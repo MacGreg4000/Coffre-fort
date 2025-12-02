@@ -210,7 +210,7 @@ model Log {
   inventoryId String?
   action      String    @db.VarChar(100) // Ex: "MOVEMENT_CREATED", "INVENTORY_CREATED", "USER_LOGIN"
   description String?   @db.Text
-  metadata    String?   @db.Json // Données supplémentaires en JSON
+  metadata    Json?     // Données supplémentaires en JSON
   ipAddress   String?   @db.VarChar(45) // IPv4 ou IPv6
   userAgent   String?   @db.Text
   createdAt   DateTime  @default(now())
