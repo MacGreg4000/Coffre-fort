@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BilletInput } from "./BilletInput"
 import { formatCurrency, BILLET_DENOMINATIONS } from "@/lib/utils"
 import { Wallet, Plus, Minus, FileText } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 
 interface CaisseInterfaceProps {
   coffres: any[]
@@ -18,9 +18,18 @@ type Mode = "INVENTORY" | "ENTRY" | "EXIT"
 
 export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [selectedCoffre, setSelectedCoffre] = useState<string | null>(
     coffres[0]?.id || null
   )
+
+  // Si un coffre est spécifié dans l'URL, le sélectionner
+  useEffect(() => {
+    const coffreId = searchParams.get("coffre")
+    if (coffreId && coffres.some((c) => c.id === coffreId)) {
+      setSelectedCoffre(coffreId)
+    }
+  }, [searchParams, coffres])
   const [mode, setMode] = useState<Mode>("INVENTORY")
   const [billets, setBillets] = useState<Record<number, number>>({})
   const [description, setDescription] = useState("")

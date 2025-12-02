@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { UserPlus, Wallet, Trash2, Edit, Save } from "lucide-react"
+import { UserPlus, Wallet, Trash2, Edit, Save, Loader2, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface AdminPanelProps {
@@ -201,36 +201,78 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
       <TabsContent value="coffres">
         <div className="space-y-6">
-          <Card className="cyber-card">
+          <Card className="cyber-card glow-gold border-2 border-cyber-gold/50">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-cyber-gold">
                 <Wallet className="h-5 w-5" />
-                Créer un coffre
+                Créer un nouveau coffre
               </CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Ajoutez un nouveau coffre pour organiser vos fonds de caisse
+              </p>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleCreateCoffre} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="coffre-name">Nom</Label>
-                  <Input id="coffre-name" name="name" required />
+                  <Label htmlFor="coffre-name" className="text-foreground font-semibold">
+                    Nom du coffre *
+                  </Label>
+                  <Input 
+                    id="coffre-name" 
+                    name="name" 
+                    required 
+                    placeholder="Ex: Caisse principale, Caisse secondaire..."
+                    className="text-base"
+                  />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="coffre-description">Description</Label>
+                  <Label htmlFor="coffre-description" className="text-foreground font-semibold">
+                    Description (optionnel)
+                  </Label>
                   <textarea
                     id="coffre-description"
                     name="description"
-                    className="w-full p-3 rounded-lg bg-cyber-dark border border-cyber-gold/30 text-foreground focus:outline-none focus:ring-2 focus:ring-cyber-gold"
+                    className="w-full p-3 rounded-lg bg-cyber-dark border border-cyber-gold/30 text-foreground focus:outline-none focus:ring-2 focus:ring-cyber-gold resize-none"
                     rows={3}
+                    placeholder="Ajoutez une description pour ce coffre..."
                   />
                 </div>
-                <Button type="submit" disabled={loading === "create-coffre"}>
-                  {loading === "create-coffre" ? "Création..." : "Créer"}
+                <Button 
+                  type="submit" 
+                  disabled={loading === "create-coffre"}
+                  className="w-full sm:w-auto"
+                >
+                  {loading === "create-coffre" ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Création en cours...
+                    </>
+                  ) : (
+                    <>
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Créer le coffre
+                    </>
+                  )}
                 </Button>
               </form>
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h2 className="text-xl font-bold text-cyber-gold mb-4">
+              Coffres existants ({data.coffres.length})
+            </h2>
+            {data.coffres.length === 0 ? (
+              <Card className="cyber-card">
+                <CardContent className="py-8 text-center">
+                  <Wallet className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                  <p className="text-muted-foreground">
+                    Aucun coffre créé pour le moment. Créez-en un ci-dessus.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {data.coffres.map((coffre) => (
               <Card key={coffre.id} className="cyber-card">
                 <CardHeader>
@@ -318,6 +360,8 @@ export function AdminPanel({ data }: AdminPanelProps) {
                 </CardContent>
               </Card>
             ))}
+              </div>
+            )}
           </div>
         </div>
       </TabsContent>
