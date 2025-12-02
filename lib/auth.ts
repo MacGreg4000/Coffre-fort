@@ -67,5 +67,7 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
   },
   secret: process.env.NEXTAUTH_SECRET,
+  // Utiliser l'URL de base si NEXTAUTH_URL n'est pas défini
+  ...(process.env.NEXTAUTH_URL && { url: process.env.NEXTAUTH_URL }),
 }
 

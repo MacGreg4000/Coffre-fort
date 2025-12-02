@@ -7,11 +7,17 @@ export default withAuth(
     const pathname = req.nextUrl.pathname
     const isAuthPage = pathname === "/login"
     const isSetupPage = pathname === "/setup"
+    const isHomePage = pathname === "/"
     const isApiRoute = pathname.startsWith("/api")
     
     // Ne pas rediriger les routes API
     if (isApiRoute) {
       return NextResponse.next()
+    }
+    
+    // Gérer la page d'accueil : rediriger vers setup (la page setup vérifiera si c'est nécessaire)
+    if (isHomePage) {
+      return NextResponse.redirect(new URL("/setup", req.url))
     }
     
     // Autoriser l'accès à /setup sans authentification
@@ -45,9 +51,9 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Autoriser l'accès aux routes API, /login et /setup
+        // Autoriser l'accès aux routes API, /login, /setup et /
         const pathname = req.nextUrl.pathname
-        if (pathname.startsWith("/api") || pathname === "/login" || pathname === "/setup") {
+        if (pathname.startsWith("/api") || pathname === "/login" || pathname === "/setup" || pathname === "/") {
           return true
         }
         return !!token

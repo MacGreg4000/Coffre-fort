@@ -28,18 +28,21 @@ export default function SetupPage() {
 
   const checkSetup = async () => {
     try {
-      const response = await fetch("/api/setup/check")
+      const response = await fetch("/api/setup/check", {
+        cache: "no-store",
+      })
       const data = await response.json()
       
       if (data.needsSetup) {
         setNeedsSetup(true)
       } else {
         // La base n'est pas vide, rediriger vers login
-        router.push("/login")
+        router.replace("/login")
       }
     } catch (error) {
       console.error("Erreur vérification setup:", error)
-      setError("Erreur lors de la vérification")
+      // En cas d'erreur, permettre quand même l'accès au setup
+      setNeedsSetup(true)
     } finally {
       setLoading(false)
     }

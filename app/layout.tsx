@@ -8,7 +8,6 @@ export const metadata: Metadata = {
   title: "SafeGuard - Gestion de Fonds de Caisse",
   description: "Application de gestion de fonds de caisse pour Synology",
   manifest: "/manifest.json",
-  themeColor: "#0a0a0a",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
