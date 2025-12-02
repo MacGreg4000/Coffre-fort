@@ -98,10 +98,10 @@ export default async function DashboardPage() {
 
   return (
     <Layout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-4xl font-bold text-cyber-gold mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyber-gold mb-2">Dashboard</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Vue d'ensemble de vos coffres et statistiques
           </p>
         </div>

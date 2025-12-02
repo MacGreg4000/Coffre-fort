@@ -6,6 +6,7 @@ export default withAuth(
     const token = req.nextauth.token
     const pathname = req.nextUrl.pathname
     const isAuthPage = pathname === "/login"
+    const isSetupPage = pathname === "/setup"
     const isApiRoute = pathname.startsWith("/api")
     
     // Ne pas rediriger les routes API
@@ -13,13 +14,18 @@ export default withAuth(
       return NextResponse.next()
     }
     
-    // Si l'utilisateur est connecté et essaie d'accéder à /login, rediriger vers dashboard
-    if (isAuthPage && token) {
+    // Autoriser l'accès à /setup sans authentification
+    if (isSetupPage) {
+      return NextResponse.next()
+    }
+    
+    // Si l'utilisateur est connecté et essaie d'accéder à /login ou /setup, rediriger vers dashboard
+    if ((isAuthPage || isSetupPage) && token) {
       return NextResponse.redirect(new URL("/dashboard", req.url))
     }
 
-    // Si l'utilisateur n'est pas connecté et n'est pas sur /login, rediriger vers /login
-    if (!token && !isAuthPage) {
+    // Si l'utilisateur n'est pas connecté et n'est pas sur /login ou /setup, rediriger vers /login
+    if (!token && !isAuthPage && !isSetupPage) {
       const loginUrl = new URL("/login", req.url)
       // Éviter les boucles : ne pas ajouter callbackUrl si on vient déjà de /login ou si callbackUrl contient /login
       const currentCallback = req.nextUrl.searchParams.get("callbackUrl")
@@ -39,9 +45,9 @@ export default withAuth(
   {
     callbacks: {
       authorized: ({ token, req }) => {
-        // Autoriser l'accès aux routes API et à /login
+        // Autoriser l'accès aux routes API, /login et /setup
         const pathname = req.nextUrl.pathname
-        if (pathname.startsWith("/api") || pathname === "/login") {
+        if (pathname.startsWith("/api") || pathname === "/login" || pathname === "/setup") {
           return true
         }
         return !!token

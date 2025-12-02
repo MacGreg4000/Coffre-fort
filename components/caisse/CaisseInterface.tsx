@@ -228,12 +228,12 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                 ))}
               </div>
 
-              <div className="mt-6 p-4 rounded-lg bg-cyber-dark border border-cyber-gold/30">
-                <div className="flex justify-between items-center">
-                  <span className="text-lg font-semibold text-foreground">
+              <div className="mt-6 p-4 sm:p-6 rounded-lg bg-cyber-dark border border-cyber-gold/30">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                  <span className="text-base sm:text-lg font-semibold text-foreground">
                     Total:
                   </span>
-                  <span className="text-2xl font-bold text-cyber-gold">
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-cyber-gold">
                     {formatCurrency(calculateTotal())}
                   </span>
                 </div>

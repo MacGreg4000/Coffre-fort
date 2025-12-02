@@ -1,8 +1,9 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { 
   LayoutDashboard, 
@@ -10,11 +11,23 @@ import {
   History, 
   Settings, 
   LogOut,
-  User
+  User,
+  Menu,
+  X
 } from "lucide-react"
 
 export function Navbar() {
   const { data: session } = useSession()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  const navItems = [
+    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/caisse", icon: Wallet, label: "Caisse" },
+    { href: "/historique", icon: History, label: "Historique" },
+    ...(session?.user?.role === "ADMIN" 
+      ? [{ href: "/admin", icon: Settings, label: "Admin" }]
+      : [])
+  ]
 
   return (
     <motion.nav
@@ -24,6 +37,7 @@ export function Navbar() {
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
+          {/* Logo */}
           <Link href="/dashboard" className="flex items-center space-x-2">
             <motion.div
               whileHover={{ scale: 1.1 }}
@@ -31,51 +45,103 @@ export function Navbar() {
             >
               <Wallet className="h-8 w-8 text-cyber-gold" />
             </motion.div>
-            <span className="text-2xl font-bold text-cyber-gold">SafeGuard</span>
+            <span className="text-xl sm:text-2xl font-bold text-cyber-gold">SafeGuard</span>
           </Link>
 
-          <div className="flex items-center space-x-6">
-            <Link href="/dashboard">
-              <Button variant="ghost" className="text-foreground hover:text-cyber-gold">
-                <LayoutDashboard className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link href="/caisse">
-              <Button variant="ghost" className="text-foreground hover:text-cyber-gold">
-                <Wallet className="h-4 w-4 mr-2" />
-                Caisse
-              </Button>
-            </Link>
-            <Link href="/historique">
-              <Button variant="ghost" className="text-foreground hover:text-cyber-gold">
-                <History className="h-4 w-4 mr-2" />
-                Historique
-              </Button>
-            </Link>
-            {session?.user?.role === "ADMIN" && (
-              <Link href="/admin">
-                <Button variant="ghost" className="text-foreground hover:text-cyber-gold">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Admin
-                </Button>
-              </Link>
-            )}
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link key={item.href} href={item.href}>
+                  <Button variant="ghost" className="text-foreground hover:text-cyber-gold">
+                    <Icon className="h-4 w-4 mr-2" />
+                    <span className="hidden lg:inline">{item.label}</span>
+                  </Button>
+                </Link>
+              )
+            })}
             
             <div className="flex items-center space-x-2 border-l border-cyber-gold/20 pl-4">
               <User className="h-4 w-4 text-cyber-gold" />
-              <span className="text-sm text-foreground">{session?.user?.name}</span>
+              <span className="text-sm text-foreground hidden lg:inline">{session?.user?.name}</span>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => signOut()}
                 className="text-foreground hover:text-destructive"
+                aria-label="Déconnexion"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           </div>
+
+          {/* Mobile Menu Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Menu"
+          >
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6 text-cyber-gold" />
+            ) : (
+              <Menu className="h-6 w-6 text-cyber-gold" />
+            )}
+          </Button>
         </div>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden border-t border-cyber-gold/20 overflow-hidden"
+            >
+              <div className="py-4 space-y-2">
+                {navItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      <motion.div
+                        whileTap={{ scale: 0.95 }}
+                        className="flex items-center space-x-3 px-4 py-3 text-foreground hover:bg-cyber-gold/10 rounded-lg transition-colors"
+                      >
+                        <Icon className="h-5 w-5 text-cyber-gold" />
+                        <span className="font-medium">{item.label}</span>
+                      </motion.div>
+                    </Link>
+                  )
+                })}
+                
+                <div className="border-t border-cyber-gold/20 pt-2 mt-2">
+                  <div className="flex items-center space-x-3 px-4 py-2">
+                    <User className="h-5 w-5 text-cyber-gold" />
+                    <span className="text-sm text-foreground">{session?.user?.name}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false)
+                      signOut()
+                    }}
+                    className="w-full flex items-center space-x-3 px-4 py-3 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
+                  >
+                    <LogOut className="h-5 w-5" />
+                    <span className="font-medium">Déconnexion</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </motion.nav>
   )

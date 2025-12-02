@@ -71,7 +71,7 @@ export function DashboardStats({ data }: DashboardStatsProps) {
                 <stat.icon className={`h-4 w-4 ${stat.color}`} />
               </CardHeader>
               <CardContent>
-                <div className={`text-2xl font-bold ${stat.color}`}>
+                <div className={`text-xl sm:text-2xl lg:text-3xl font-bold ${stat.color}`}>
                   {stat.value}
                 </div>
               </CardContent>
@@ -102,16 +102,16 @@ export function DashboardStats({ data }: DashboardStatsProps) {
                   animate={{ opacity: 1 }}
                   className="flex items-center justify-between p-4 rounded-lg bg-cyber-dark border border-cyber-gold/20"
                 >
-                  <div>
-                    <p className="font-semibold text-cyber-gold">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-cyber-gold truncate">
                       {inventory.coffre.name}
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs sm:text-sm text-muted-foreground">
                       {new Date(inventory.createdAt).toLocaleDateString("fr-FR")}
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xl font-bold text-foreground">
+                  <div className="text-right flex-shrink-0 ml-4">
+                    <p className="text-lg sm:text-xl font-bold text-foreground">
                       {formatCurrency(Number(inventory.totalAmount))}
                     </p>
                   </div>
