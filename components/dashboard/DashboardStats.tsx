@@ -40,8 +40,8 @@ export function DashboardStats({ data }: DashboardStatsProps) {
       title: "Solde net",
       value: formatCurrency(netAmount),
       icon: Wallet,
-      color: "text-cyber-gold",
-      bgColor: "bg-cyber-gold/10",
+      color: "text-blue-400",
+      bgColor: "bg-blue-500/10",
     },
     {
       title: "Mouvements",
@@ -63,7 +63,7 @@ export function DashboardStats({ data }: DashboardStatsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
           >
-            <Card className="cyber-card hover:glow-gold transition-all">
+            <Card className="cyber-card hover:shadow-md transition-all">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-foreground/70">
                   {stat.title}
@@ -100,10 +100,10 @@ export function DashboardStats({ data }: DashboardStatsProps) {
                   key={inventory.id}
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex items-center justify-between p-4 rounded-lg bg-cyber-dark border border-cyber-gold/20"
+                  className="flex items-center justify-between p-4 rounded-lg bg-cyber-dark border border-blue-500/10 hover:border-blue-500/20 transition-all hover:scale-[1.02]"
                 >
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-cyber-gold truncate">
+                    <p className="font-semibold text-blue-400 truncate">
                       {inventory.coffre.name}
                     </p>
                     <p className="text-xs sm:text-sm text-muted-foreground">

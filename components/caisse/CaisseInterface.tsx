@@ -134,11 +134,11 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                 whileTap={{ scale: 0.98 }}
                 className={`p-4 rounded-lg border-2 transition-all ${
                   selectedCoffre === coffre.id
-                    ? "border-cyber-gold glow-gold bg-cyber-gold/10"
-                    : "border-cyber-gold/20 hover:border-cyber-gold/50"
+                    ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
+                    : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
                 }`}
               >
-                <p className="font-semibold text-cyber-gold">{coffre.name}</p>
+                <p className="font-semibold text-blue-400">{coffre.name}</p>
                 {coffre.lastInventory && (
                   <p className="text-sm text-muted-foreground mt-1">
                     Dernier inventaire:{" "}
@@ -166,11 +166,11 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   whileTap={{ scale: 0.98 }}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     mode === "INVENTORY"
-                      ? "border-cyber-gold glow-gold bg-cyber-gold/10"
-                      : "border-cyber-gold/20 hover:border-cyber-gold/50"
+                      ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
+                      : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
                   }`}
                 >
-                  <FileText className="h-6 w-6 mx-auto mb-2 text-cyber-gold" />
+                  <FileText className="h-6 w-6 mx-auto mb-2 text-blue-400" />
                   <p className="font-semibold">Inventaire</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     Comptage initial
@@ -183,8 +183,8 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   whileTap={{ scale: 0.98 }}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     mode === "ENTRY"
-                      ? "border-cyber-gold glow-gold bg-cyber-gold/10"
-                      : "border-cyber-gold/20 hover:border-cyber-gold/50"
+                      ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
+                      : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
                   }`}
                 >
                   <Plus className="h-6 w-6 mx-auto mb-2 text-green-400" />
@@ -200,8 +200,8 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   whileTap={{ scale: 0.98 }}
                   className={`p-4 rounded-lg border-2 transition-all ${
                     mode === "EXIT"
-                      ? "border-cyber-gold glow-gold bg-cyber-gold/10"
-                      : "border-cyber-gold/20 hover:border-cyber-gold/50"
+                      ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
+                      : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
                   }`}
                 >
                   <Minus className="h-6 w-6 mx-auto mb-2 text-red-400" />
@@ -237,12 +237,12 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                 ))}
               </div>
 
-              <div className="mt-6 p-4 sm:p-6 rounded-lg bg-cyber-dark border border-cyber-gold/30">
+              <div className="mt-6 p-4 sm:p-6 rounded-lg bg-cyber-dark border border-blue-500/15 hover:border-blue-500/25 transition-all">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                   <span className="text-base sm:text-lg font-semibold text-foreground">
                     Total:
                   </span>
-                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-cyber-gold">
+                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-400">
                     {formatCurrency(calculateTotal())}
                   </span>
                 </div>
@@ -255,7 +255,7 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-cyber-dark border border-cyber-gold/30 text-foreground focus:outline-none focus:ring-2 focus:ring-cyber-gold"
+                  className="w-full p-3 rounded-lg bg-cyber-dark border border-blue-500/15 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
                   rows={3}
                   placeholder="Ajoutez une note..."
                 />

@@ -58,8 +58,8 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-cyber-dark-lighter border border-cyber-gold/30 rounded-lg p-3">
-          <p className="text-cyber-gold font-semibold">{payload[0].payload.date || payload[0].name}</p>
+        <div className="bg-cyber-dark-lighter border border-blue-500/15 rounded-lg p-3 shadow-sm">
+          <p className="text-blue-400 font-semibold">{payload[0].payload.date || payload[0].name}</p>
           {payload.map((entry: any, index: number) => (
             <p key={index} className="text-foreground" style={{ color: entry.color }}>
               {entry.name}: {formatCurrency(entry.value)}
@@ -89,10 +89,10 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                 <CartesianGrid strokeDasharray="3 3" stroke="#333" />
                 <XAxis
                   dataKey="date"
-                  stroke="#FFD700"
+                  stroke="#3B82F6"
                   style={{ fontSize: "12px" }}
                 />
-                <YAxis stroke="#FFD700" style={{ fontSize: "12px" }} />
+                <YAxis stroke="#3B82F6" style={{ fontSize: "12px" }} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
                 <Line
@@ -153,9 +153,9 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                   formatter={(value: number) => formatCurrency(value)}
                   contentStyle={{
                     backgroundColor: "#1a1a1a",
-                    border: "1px solid rgba(255, 215, 0, 0.3)",
+                    border: "1px solid rgba(59, 130, 246, 0.3)",
                     borderRadius: "8px",
-                    color: "#FFD700",
+                    color: "#3B82F6",
                   }}
                 />
               </PieChart>

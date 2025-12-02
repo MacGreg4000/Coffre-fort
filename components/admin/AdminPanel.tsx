@@ -169,11 +169,11 @@ export function AdminPanel({ data }: AdminPanelProps) {
                     key={user.id}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="p-4 rounded-lg bg-cyber-dark border border-cyber-gold/20"
+                    className="p-4 rounded-lg bg-cyber-dark border border-blue-500/10 hover:border-blue-500/20 transition-all hover:scale-[1.02]"
                   >
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-cyber-gold">{user.name}</p>
+                        <p className="font-semibold text-blue-400">{user.name}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                         <p className="text-xs text-muted-foreground mt-1">
                           Rôle: {user.role} | Coffres: {user.coffreMembers.length}
@@ -201,9 +201,9 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
       <TabsContent value="coffres">
         <div className="space-y-6">
-          <Card className="cyber-card glow-gold border-2 border-cyber-gold/50">
+          <Card className="cyber-card border-2 border-blue-500/20">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-cyber-gold">
+              <CardTitle className="flex items-center gap-2 text-blue-400">
                 <Wallet className="h-5 w-5" />
                 Créer un nouveau coffre
               </CardTitle>
@@ -232,7 +232,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                   <textarea
                     id="coffre-description"
                     name="description"
-                    className="w-full p-3 rounded-lg bg-cyber-dark border border-cyber-gold/30 text-foreground focus:outline-none focus:ring-2 focus:ring-cyber-gold resize-none"
+                    className="w-full p-3 rounded-lg bg-cyber-dark border border-blue-500/15 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 resize-none transition-all"
                     rows={3}
                     placeholder="Ajoutez une description pour ce coffre..."
                   />
@@ -259,7 +259,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
           </Card>
 
           <div>
-            <h2 className="text-xl font-bold text-cyber-gold mb-4">
+            <h2 className="text-xl font-bold text-blue-400 mb-4">
               Coffres existants ({data.coffres.length})
             </h2>
             {data.coffres.length === 0 ? (
@@ -346,7 +346,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                       {coffre.members.map((member: any) => (
                         <div
                           key={member.id}
-                          className="flex items-center justify-between p-2 rounded bg-cyber-dark border border-cyber-gold/10"
+                          className="flex items-center justify-between p-2 rounded bg-cyber-dark border border-blue-500/10 hover:border-blue-500/20 transition-all"
                         >
                           <span className="text-sm">{member.user.name}</span>
                           <span className="text-xs text-muted-foreground">

@@ -33,7 +33,7 @@ export function Navbar() {
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="border-b border-cyber-gold/20 bg-cyber-dark-lighter/80 backdrop-blur-sm sticky top-0 z-50"
+      className="border-b border-blue-500/10 bg-cyber-dark-lighter/95 backdrop-blur-md sticky top-0 z-50 shadow-sm"
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
@@ -43,9 +43,9 @@ export function Navbar() {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
             >
-              <Wallet className="h-8 w-8 text-cyber-gold" />
+              <Wallet className="h-8 w-8 text-blue-400" />
             </motion.div>
-            <span className="text-xl sm:text-2xl font-bold text-cyber-gold">SafeGuard</span>
+            <span className="text-xl sm:text-2xl font-bold text-blue-400">SafeGuard</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -54,7 +54,7 @@ export function Navbar() {
               const Icon = item.icon
               return (
                 <Link key={item.href} href={item.href}>
-                  <Button variant="ghost" className="text-foreground hover:text-cyber-gold">
+                  <Button variant="ghost" className="text-foreground/80 hover:text-blue-400 transition-all hover:scale-105">
                     <Icon className="h-4 w-4 mr-2" />
                     <span className="hidden lg:inline">{item.label}</span>
                   </Button>
@@ -62,8 +62,8 @@ export function Navbar() {
               )
             })}
             
-            <div className="flex items-center space-x-2 border-l border-cyber-gold/20 pl-4">
-              <User className="h-4 w-4 text-cyber-gold" />
+            <div className="flex items-center space-x-2 border-l border-blue-500/10 pl-4">
+              <User className="h-4 w-4 text-blue-400/70" />
               <span className="text-sm text-foreground hidden lg:inline">{session?.user?.name}</span>
               <Button
                 variant="ghost"
@@ -86,9 +86,9 @@ export function Navbar() {
             aria-label="Menu"
           >
             {mobileMenuOpen ? (
-              <X className="h-6 w-6 text-cyber-gold" />
+              <X className="h-6 w-6 text-blue-400" />
             ) : (
-              <Menu className="h-6 w-6 text-cyber-gold" />
+              <Menu className="h-6 w-6 text-blue-400" />
             )}
           </Button>
         </div>
@@ -100,7 +100,7 @@ export function Navbar() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden border-t border-cyber-gold/20 overflow-hidden"
+              className="md:hidden border-t border-blue-500/10 overflow-hidden"
             >
               <div className="py-4 space-y-2">
                 {navItems.map((item) => {
@@ -113,18 +113,18 @@ export function Navbar() {
                     >
                       <motion.div
                         whileTap={{ scale: 0.95 }}
-                        className="flex items-center space-x-3 px-4 py-3 text-foreground hover:bg-cyber-gold/10 rounded-lg transition-colors"
+                        className="flex items-center space-x-3 px-4 py-3 text-foreground hover:bg-blue-500/10 rounded-lg transition-all hover:scale-105"
                       >
-                        <Icon className="h-5 w-5 text-cyber-gold" />
+                        <Icon className="h-5 w-5 text-blue-400" />
                         <span className="font-medium">{item.label}</span>
                       </motion.div>
                     </Link>
                   )
                 })}
                 
-                <div className="border-t border-cyber-gold/20 pt-2 mt-2">
+                <div className="border-t border-blue-500/10 pt-2 mt-2">
                   <div className="flex items-center space-x-3 px-4 py-2">
-                    <User className="h-5 w-5 text-cyber-gold" />
+                    <User className="h-5 w-5 text-blue-400" />
                     <span className="text-sm text-foreground">{session?.user?.name}</span>
                   </div>
                   <button

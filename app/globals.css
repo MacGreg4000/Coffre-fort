@@ -34,7 +34,7 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
+    background: linear-gradient(to bottom, #0f0f0f, #1a1a1a);
     min-height: 100vh;
     /* Optimisation pour mobile */
     -webkit-font-smoothing: antialiased;
@@ -77,33 +77,42 @@
   }
   
   select:focus option:checked {
-    background-color: #FFD700;
-    color: #0a0a0a;
+    background-color: #3B82F6;
+    color: #ffffff;
   }
 }
 
 @layer utilities {
   .text-cyber-gold {
-    color: #FFD700;
-    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
+    color: #3B82F6;
+    text-shadow: none;
   }
   
   .glow-gold {
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15), 0 1px 3px rgba(59, 130, 246, 0.1);
   }
   
   .glow-gold-strong {
-    box-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.5);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25), 0 2px 6px rgba(59, 130, 246, 0.15);
   }
   
   .cyber-border {
-    @apply border border-cyber-gold/30;
-    box-shadow: inset 0 0 10px rgba(255, 215, 0, 0.1);
+    @apply border border-blue-500/15;
+    box-shadow: none;
   }
   
   .cyber-card {
-    @apply bg-cyber-dark-lighter cyber-border rounded-lg p-4 sm:p-6;
-    background: linear-gradient(135deg, rgba(26, 26, 26, 0.8) 0%, rgba(10, 10, 10, 0.9) 100%);
+    @apply bg-cyber-dark-lighter rounded-xl p-4 sm:p-6;
+    background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(20, 20, 20, 0.98) 100%);
+    border: 1px solid rgba(59, 130, 246, 0.08);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .cyber-card:hover {
+    border-color: rgba(59, 130, 246, 0.2);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1), 0 2px 6px rgba(0, 0, 0, 0.3);
+    transform: translateY(-2px);
   }
   
   /* Safe area pour iPhone avec encoche */

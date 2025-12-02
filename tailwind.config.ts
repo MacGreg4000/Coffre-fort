@@ -52,15 +52,15 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Cyber Gold Theme
+        // Theme moderne - Bleu/Cyan élégant
         cyber: {
-          gold: "#FFD700",
-          "gold-dark": "#FFA500",
-          "gold-light": "#FFE87C",
-          dark: "#0a0a0a",
+          gold: "#3B82F6", // Bleu moderne
+          "gold-dark": "#2563EB", // Bleu foncé
+          "gold-light": "#60A5FA", // Bleu clair
+          dark: "#0f0f0f",
           "dark-lighter": "#1a1a1a",
-          "dark-light": "#2a2a2a",
-          neon: "#00FFFF",
+          "dark-light": "#252525",
+          neon: "#06B6D4", // Cyan
         },
       },
       borderRadius: {

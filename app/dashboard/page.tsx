@@ -100,7 +100,7 @@ export default async function DashboardPage() {
     <Layout>
       <div className="space-y-4 sm:space-y-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyber-gold mb-2">Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-400 mb-2">Dashboard</h1>
           <p className="text-sm sm:text-base text-muted-foreground">
             Vue d&apos;ensemble de vos coffres et statistiques
           </p>

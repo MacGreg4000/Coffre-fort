@@ -60,7 +60,7 @@ function LoginForm() {
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Card className="cyber-card glow-gold">
+        <Card className="cyber-card">
           <CardHeader className="text-center">
             <motion.div
               initial={{ rotate: -10 }}
@@ -68,7 +68,7 @@ function LoginForm() {
               transition={{ type: "spring", stiffness: 200 }}
               className="flex justify-center mb-4"
             >
-              <Wallet className="h-16 w-16 text-cyber-gold" />
+              <Wallet className="h-16 w-16 text-blue-400" />
             </motion.div>
             <CardTitle className="text-3xl">SafeGuard</CardTitle>
             <CardDescription className="text-foreground/70">
