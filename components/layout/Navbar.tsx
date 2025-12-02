@@ -13,8 +13,7 @@ import {
   LogOut,
   User,
   Menu,
-  X,
-  Archive
+  X
 } from "lucide-react"
 
 export function Navbar() {
@@ -23,7 +22,6 @@ export function Navbar() {
 
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { href: "/coffres", icon: Archive, label: "Coffres" },
     { href: "/caisse", icon: Wallet, label: "Caisse" },
     { href: "/historique", icon: History, label: "Historique" },
     ...(session?.user?.role === "ADMIN" 

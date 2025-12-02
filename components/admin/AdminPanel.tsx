@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { UserPlus, Wallet, Trash2, Edit, Save, Loader2, Plus } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -139,16 +140,15 @@ export function AdminPanel({ data }: AdminPanelProps) {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="role">Rôle</Label>
-                    <select
+                    <Select
                       id="role"
                       name="role"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyber-gold"
                       required
                     >
                       <option value="USER">Utilisateur</option>
                       <option value="MANAGER">Gestionnaire</option>
                       <option value="ADMIN">Administrateur</option>
-                    </select>
+                    </Select>
                   </div>
                 </div>
                 <Button type="submit" disabled={loading === "create-user"}>
@@ -293,8 +293,8 @@ export function AdminPanel({ data }: AdminPanelProps) {
                   <div className="space-y-2">
                     <Label>Ajouter un membre</Label>
                     <div className="flex gap-2">
-                      <select
-                        className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      <Select
+                        className="flex-1"
                         id={`user-select-${coffre.id}`}
                       >
                         <option value="">Sélectionner un utilisateur</option>
@@ -308,15 +308,14 @@ export function AdminPanel({ data }: AdminPanelProps) {
                               {user.name} ({user.email})
                             </option>
                           ))}
-                      </select>
-                      <select
-                        className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      </Select>
+                      <Select
                         id={`role-select-${coffre.id}`}
                       >
                         <option value="MEMBER">Membre</option>
                         <option value="MANAGER">Gestionnaire</option>
                         <option value="OWNER">Propriétaire</option>
-                      </select>
+                      </Select>
                       <Button
                         size="sm"
                         onClick={() => {

@@ -63,6 +63,23 @@
       font-size: inherit;
     }
   }
+  
+  /* Style pour les selects et leurs options */
+  select {
+    background-color: #1a1a1a;
+    color: #fafafa;
+  }
+  
+  select option {
+    background-color: #1a1a1a;
+    color: #fafafa;
+    padding: 0.5rem;
+  }
+  
+  select:focus option:checked {
+    background-color: #FFD700;
+    color: #0a0a0a;
+  }
 }
 
 @layer utilities {
