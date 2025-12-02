@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -22,11 +22,7 @@ export default function SetupPage() {
   })
   const [error, setError] = useState("")
 
-  useEffect(() => {
-    checkSetup()
-  }, [])
-
-  const checkSetup = async () => {
+  const checkSetup = useCallback(async () => {
     try {
       const response = await fetch("/api/setup/check", {
         cache: "no-store",
@@ -46,7 +42,11 @@ export default function SetupPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [router])
+
+  useEffect(() => {
+    checkSetup()
+  }, [checkSetup])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,10 +87,10 @@ export default function SetupPage() {
         // Admin créé avec succès, rediriger vers login
         router.push("/login?setup=success")
       } else {
-        setError(data.error || "Erreur lors de la création de l'administrateur")
+        setError(data.error || "Erreur lors de la création de l&apos;administrateur")
       }
     } catch (error) {
-      setError("Erreur lors de la création de l'administrateur")
+      setError("Erreur lors de la création de l&apos;administrateur")
     } finally {
       setCreating(false)
     }
@@ -212,7 +212,7 @@ export default function SetupPage() {
 
               <div className="bg-cyber-dark/50 border border-cyber-gold/20 rounded-lg p-3">
                 <p className="text-xs text-muted-foreground text-center">
-                  ⚠️ Ce compte aura tous les droits d'administration. 
+                  ⚠️ Ce compte aura tous les droits d&apos;administration. 
                   Assurez-vous de choisir un mot de passe fort.
                 </p>
               </div>
@@ -228,7 +228,7 @@ export default function SetupPage() {
                     Création en cours...
                   </>
                 ) : (
-                  "Créer l'administrateur"
+                  "Créer l&apos;administrateur"
                 )}
               </Button>
             </form>
