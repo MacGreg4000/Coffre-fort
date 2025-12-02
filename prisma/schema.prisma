@@ -1,0 +1,230 @@
+// ============================================
+// SafeGuard - Schema Prisma (MariaDB/MySQL)
+// ============================================
+// Provider: mysql (MariaDB 10 compatible)
+// Port Synology: 3307 (par défaut)
+// ============================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// UTILISATEURS
+// ============================================
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique @db.VarChar(255)
+  password      String    @db.VarChar(255) // Hash bcrypt
+  name          String    @db.VarChar(255)
+  role          UserRole  @default(USER)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  coffreMembers CoffreMember[]
+  movements     Movement[]
+  sessions      Session[]
+  logs          Log[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  USER
+}
+
+// ============================================
+// COFFRES (Multi-Coffres)
+// ============================================
+model Coffre {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(255)
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members     CoffreMember[]
+  movements   Movement[]
+  inventories Inventory[]
+  logs        Log[]
+
+  @@index([name])
+  @@map("coffres")
+}
+
+// ============================================
+// MEMBRES DE COFFRE (Permissions)
+// ============================================
+model CoffreMember {
+  id        String        @id @default(uuid())
+  userId    String
+  coffreId  String
+  role      CoffreRole   @default(MEMBER)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime      @updatedAt
+
+  // Relations
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coffre    Coffre       @relation(fields: [coffreId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, coffreId])
+  @@index([userId])
+  @@index([coffreId])
+  @@map("coffre_members")
+}
+
+enum CoffreRole {
+  OWNER   // Propriétaire (tous droits)
+  MANAGER // Gestionnaire (gestion + inventaire)
+  MEMBER  // Membre (consultation + inventaire)
+}
+
+// ============================================
+// MOUVEMENTS DE CAISSE
+// ============================================
+model Movement {
+  id          String        @id @default(uuid())
+  coffreId    String
+  userId      String
+  type        MovementType
+  amount      Decimal       @db.Decimal(10, 2) // Montant total en euros
+  description String?       @db.Text
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  coffre      Coffre        @relation(fields: [coffreId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Restrict)
+  details     MovementDetail[]
+  logs        Log[]
+
+  @@index([coffreId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("movements")
+}
+
+enum MovementType {
+  INVENTORY // Mode Inventaire (comptage initial)
+  ENTRY     // Entrée (ajout de fonds)
+  EXIT      // Sortie (retrait de fonds)
+}
+
+// ============================================
+// DÉTAILS DE MOUVEMENT (Billets)
+// ============================================
+model MovementDetail {
+  id         String   @id @default(uuid())
+  movementId String
+  denomination Decimal @db.Decimal(10, 2) // Valeur du billet (5, 10, 20, 50, 100, 200, 500)
+  quantity   Int      // Nombre de billets
+  createdAt  DateTime @default(now())
+
+  // Relations
+  movement   Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+
+  @@index([movementId])
+  @@index([denomination])
+  @@map("movement_details")
+}
+
+// ============================================
+// INVENTAIRES (Snapshots)
+// ============================================
+model Inventory {
+  id          String   @id @default(uuid())
+  coffreId    String
+  totalAmount Decimal  @db.Decimal(10, 2) // Montant total calculé
+  notes       String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  // Relations
+  coffre      Coffre   @relation(fields: [coffreId], references: [id], onDelete: Cascade)
+  details     InventoryDetail[]
+  logs        Log[]
+
+  @@index([coffreId])
+  @@index([createdAt])
+  @@map("inventories")
+}
+
+// ============================================
+// DÉTAILS D'INVENTAIRE (Billets)
+// ============================================
+model InventoryDetail {
+  id          String    @id @default(uuid())
+  inventoryId String
+  denomination Decimal  @db.Decimal(10, 2) // Valeur du billet
+  quantity    Int       // Nombre de billets
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+
+  @@index([inventoryId])
+  @@index([denomination])
+  @@map("inventory_details")
+}
+
+// ============================================
+// SESSIONS (NextAuth.js)
+// ============================================
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique @db.VarChar(255)
+  userId       String
+  expires      DateTime @db.DateTime(3)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sessionToken])
+  @@map("sessions")
+}
+
+// ============================================
+// LOGS D'ACTIVITÉ
+// ============================================
+model Log {
+  id          String    @id @default(uuid())
+  userId      String?
+  coffreId    String?
+  movementId  String?
+  inventoryId String?
+  action      String    @db.VarChar(100) // Ex: "MOVEMENT_CREATED", "INVENTORY_CREATED", "USER_LOGIN"
+  description String?   @db.Text
+  metadata    String?   @db.Json // Données supplémentaires en JSON
+  ipAddress   String?   @db.VarChar(45) // IPv4 ou IPv6
+  userAgent   String?   @db.Text
+  createdAt   DateTime  @default(now())
+
+  // Relations
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  coffre      Coffre?   @relation(fields: [coffreId], references: [id], onDelete: SetNull)
+  movement    Movement? @relation(fields: [movementId], references: [id], onDelete: SetNull)
+  inventory   Inventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([coffreId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("logs")
+}
+
