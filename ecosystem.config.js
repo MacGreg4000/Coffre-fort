@@ -9,8 +9,8 @@ module.exports = {
   apps: [
     {
       name: "safeguard",
-      script: "npm",
-      args: "start",
+      script: "node_modules/.bin/next",
+      args: "start -p 3003",
       cwd: "/volume1/web/safeguard", // Ajustez selon votre chemin d'installation
       instances: 1,
       exec_mode: "fork",
