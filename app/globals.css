@@ -36,12 +36,38 @@
     font-feature-settings: "rlig" 1, "calt" 1;
     background: linear-gradient(to bottom, #0a0a0a, #1a1a1a);
     min-height: 100vh;
+    /* Optimisation pour mobile */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Empêcher le zoom sur input focus (iOS) */
+    touch-action: manipulation;
+  }
+  
+  /* Empêcher le zoom sur input focus iOS */
+  input[type="number"],
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  
+  @media (min-width: 640px) {
+    input[type="number"],
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    textarea,
+    select {
+      font-size: inherit;
+    }
   }
 }
 
 @layer utilities {
   .text-cyber-gold {
-    @apply text-cyber-gold;
+    color: #FFD700;
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.3);
   }
   
@@ -59,8 +85,16 @@
   }
   
   .cyber-card {
-    @apply bg-cyber-dark-lighter cyber-border rounded-lg p-6;
+    @apply bg-cyber-dark-lighter cyber-border rounded-lg p-4 sm:p-6;
     background: linear-gradient(135deg, rgba(26, 26, 26, 0.8) 0%, rgba(10, 10, 10, 0.9) 100%);
   }
+  
+  /* Safe area pour iPhone avec encoche */
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }
-

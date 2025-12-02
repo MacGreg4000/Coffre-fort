@@ -21,8 +21,14 @@ export default withAuth(
     // Si l'utilisateur n'est pas connecté et n'est pas sur /login, rediriger vers /login
     if (!token && !isAuthPage) {
       const loginUrl = new URL("/login", req.url)
-      // Éviter les boucles en ne passant pas de callbackUrl si on vient déjà de /login
-      if (!req.nextUrl.searchParams.get("callbackUrl")?.includes("/login")) {
+      // Éviter les boucles : ne pas ajouter callbackUrl si on vient déjà de /login ou si callbackUrl contient /login
+      const currentCallback = req.nextUrl.searchParams.get("callbackUrl")
+      if (currentCallback && currentCallback.includes("/login")) {
+        // Boucle détectée, rediriger vers /login sans callbackUrl
+        return NextResponse.redirect(loginUrl)
+      }
+      // Ajouter callbackUrl seulement si ce n'est pas /login
+      if (pathname !== "/login") {
         loginUrl.searchParams.set("callbackUrl", pathname)
       }
       return NextResponse.redirect(loginUrl)
