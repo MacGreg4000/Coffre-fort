@@ -38,3 +38,4 @@ SHOW DATABASES LIKE 'safeguard_db';
 -- 3. Vérifiez que le mot de passe est correct dans .env
 -- ============================================
 
+

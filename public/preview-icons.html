@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prévisualisation des icônes SafeGuard</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+            color: #fff;
+            padding: 40px;
+            margin: 0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #3B82F6;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .preview-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+        .preview-item {
+            background: #1a1a1a;
+            border: 1px solid #3B82F6;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.2);
+        }
+        .preview-item h3 {
+            color: #60A5FA;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .preview-item p {
+            color: #888;
+            font-size: 12px;
+            margin: 0;
+        }
+        .preview-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .svg-preview {
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        .info {
+            background: #1a1a1a;
+            border-left: 4px solid #3B82F6;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 40px;
+        }
+        .info h2 {
+            color: #3B82F6;
+            margin-top: 0;
+        }
+        .info ul {
+            line-height: 1.8;
+        }
+        .info code {
+            background: #0a0a0a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: #60A5FA;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔒 Prévisualisation des icônes SafeGuard</h1>
+        
+        <div class="preview-grid">
+            <div class="preview-item">
+                <div class="svg-preview">
+                    <img src="icon.svg" alt="Icon SVG" style="width: 200px; height: 200px;">
+                </div>
+                <h3>icon.svg</h3>
+                <p>512×512px<br>Source principale</p>
+            </div>
+            
+            <div class="preview-item">
+                <div class="svg-preview">
+                    <img src="favicon.svg" alt="Favicon SVG" style="width: 100px; height: 100px;">
+                </div>
+                <h3>favicon.svg</h3>
+                <p>100×100px<br>Favicon SVG</p>
+            </div>
+            
+            <div class="preview-item">
+                <img src="icon-512x512.png" alt="Icon 512x512">
+                <h3>icon-512x512.png</h3>
+                <p>512×512px<br>PWA haute résolution</p>
+            </div>
+            
+            <div class="preview-item">
+                <img src="icon-192x192.png" alt="Icon 192x192">
+                <h3>icon-192x192.png</h3>
+                <p>192×192px<br>PWA standard</p>
+            </div>
+            
+            <div class="preview-item">
+                <img src="apple-touch-icon.png" alt="Apple Touch Icon">
+                <h3>apple-touch-icon.png</h3>
+                <p>180×180px<br>iPhone/iPad</p>
+            </div>
+            
+            <div class="preview-item">
+                <img src="favicon-32x32.png" alt="Favicon 32x32">
+                <h3>favicon-32x32.png</h3>
+                <p>32×32px<br>Favicon standard</p>
+            </div>
+            
+            <div class="preview-item">
+                <img src="favicon-16x16.png" alt="Favicon 16x16">
+                <h3>favicon-16x16.png</h3>
+                <p>16×16px<br>Favicon petit</p>
+            </div>
+            
+            <div class="preview-item">
+                <img src="favicon.ico" alt="Favicon ICO">
+                <h3>favicon.ico</h3>
+                <p>32×32px<br>Compatibilité</p>
+            </div>
+        </div>
+        
+        <div class="info">
+            <h2>📋 Informations</h2>
+            <ul>
+                <li><strong>SVG principal :</strong> <code>icon.svg</code> (512×512px) - Utilisé pour générer toutes les icônes PNG</li>
+                <li><strong>Favicon SVG :</strong> <code>favicon.svg</code> (100×100px) - Version optimisée pour le favicon</li>
+                <li><strong>Couleurs :</strong> Bleu (#3B82F6, #2563EB, #60A5FA) sur fond sombre (#0a0a0a)</li>
+                <li><strong>Design :</strong> Coffre fort avec serrure centrale, poignée et coins arrondis</li>
+                <li><strong>Régénération :</strong> <code>npm run generate-icons</code> après modification du SVG</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
+

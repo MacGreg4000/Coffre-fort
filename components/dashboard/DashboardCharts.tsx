@@ -20,6 +20,7 @@ interface DashboardChartsProps {
   data: {
     movements: any[]
     statsByCoffre: any[]
+    recentInventories?: any[]
   }
 }
 
@@ -27,44 +28,89 @@ const COLORS = ["#FFD700", "#FFA500", "#00FFFF", "#FF6B6B", "#4ECDC4", "#95E1D3"
 
 export function DashboardCharts({ data }: DashboardChartsProps) {
   // Préparer les données pour le graphique linéaire (évolution dans le temps)
-  const dailyData = data.movements.reduce((acc: any, movement: any) => {
+  // Combiner les mouvements et les inventaires
+  const dailyData: any = {}
+  const recentInventories = data.recentInventories || []
+
+  // Ajouter les mouvements
+  data.movements.forEach((movement: any) => {
     const date = new Date(movement.createdAt).toLocaleDateString("fr-FR")
-    if (!acc[date]) {
-      acc[date] = { date, entries: 0, exits: 0 }
+    if (!dailyData[date]) {
+      dailyData[date] = { date, entries: 0, exits: 0, inventory: null }
     }
     if (movement.type === "ENTRY") {
-      acc[date].entries += Number(movement.amount)
+      dailyData[date].entries += Number(movement.amount)
     } else if (movement.type === "EXIT") {
-      acc[date].exits += Number(movement.amount)
+      dailyData[date].exits += Number(movement.amount)
     }
-    return acc
-  }, {})
+  })
 
-  const lineData = Object.values(dailyData).sort((a: any, b: any) =>
-    new Date(a.date).getTime() - new Date(b.date).getTime()
-  )
+  // Ajouter les inventaires récents
+  if (recentInventories.length > 0) {
+    recentInventories.forEach((inventory: any) => {
+      const date = new Date(inventory.createdAt).toLocaleDateString("fr-FR")
+      if (!dailyData[date]) {
+        dailyData[date] = { date, entries: 0, exits: 0, inventory: null }
+      }
+      // Stocker le montant de l'inventaire pour cette date
+      dailyData[date].inventory = Number(inventory.totalAmount)
+    })
+  }
+
+  const lineData = Object.values(dailyData).sort((a: any, b: any) => {
+    // Trier par date
+    const dateA = new Date(a.date.split("/").reverse().join("-"))
+    const dateB = new Date(b.date.split("/").reverse().join("-"))
+    return dateA.getTime() - dateB.getTime()
+  })
 
   // Préparer les données pour le graphique en camembert (par coffre)
-  const pieData = data.statsByCoffre.reduce((acc: any, stat: any) => {
-    const existing = acc.find((item: any) => item.name === stat.coffreName)
-    if (existing) {
-      existing.value += stat.amount
-    } else {
-      acc.push({ name: stat.coffreName, value: stat.amount })
-    }
-    return acc
-  }, [])
+  // Combiner les mouvements et les inventaires
+  const pieDataMap = new Map<string, number>()
+
+  // Ajouter les mouvements
+  data.statsByCoffre.forEach((stat: any) => {
+    const existing = pieDataMap.get(stat.coffreName) || 0
+    pieDataMap.set(stat.coffreName, existing + stat.amount)
+  })
+
+  // Ajouter les inventaires récents si disponibles
+  if (recentInventories.length > 0) {
+    recentInventories.forEach((inventory: any) => {
+      const coffreName = inventory.coffre?.name || "Inconnu"
+      const existing = pieDataMap.get(coffreName) || 0
+      // Ajouter le montant de l'inventaire (on prend le dernier inventaire par coffre)
+      const lastInventory = recentInventories
+        .filter((inv: any) => inv.coffre?.name === coffreName)
+        .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+      if (lastInventory) {
+        pieDataMap.set(coffreName, Math.max(existing, Number(lastInventory.totalAmount)))
+      }
+    })
+  }
+
+  const pieData = Array.from(pieDataMap.entries()).map(([name, value]) => ({
+    name,
+    value,
+  }))
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
+      const data = payload[0].payload
       return (
         <div className="bg-cyber-dark-lighter border border-blue-500/15 rounded-lg p-3 shadow-sm">
-          <p className="text-blue-400 font-semibold">{payload[0].payload.date || payload[0].name}</p>
-          {payload.map((entry: any, index: number) => (
-            <p key={index} className="text-foreground" style={{ color: entry.color }}>
-              {entry.name}: {formatCurrency(entry.value)}
-            </p>
-          ))}
+          <p className="text-blue-400 font-semibold mb-2">
+            {data.date || payload[0].name}
+          </p>
+          {payload.map((entry: any, index: number) => {
+            // Ne pas afficher les valeurs null/undefined
+            if (entry.value == null) return null
+            return (
+              <p key={index} className="text-foreground" style={{ color: entry.color }}>
+                {entry.name}: {formatCurrency(entry.value)}
+              </p>
+            )
+          })}
         </div>
       )
     }
@@ -111,6 +157,17 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                   name="Sorties"
                   dot={{ fill: "#FF6B6B", r: 4 }}
                 />
+                {lineData.some((d: any) => d.inventory !== null) && (
+                  <Line
+                    type="monotone"
+                    dataKey="inventory"
+                    stroke="#3B82F6"
+                    strokeWidth={2}
+                    name="Inventaire"
+                    dot={{ fill: "#3B82F6", r: 5 }}
+                    strokeDasharray="5 5"
+                  />
+                )}
               </LineChart>
             </ResponsiveContainer>
           )}

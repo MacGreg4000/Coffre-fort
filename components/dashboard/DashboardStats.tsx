@@ -12,6 +12,7 @@ interface DashboardStatsProps {
     totalExits: number
     movements: any[]
     inventories: any[]
+    recentInventories?: any[]
     statsByCoffre: any[]
     coffres: any[]
   }

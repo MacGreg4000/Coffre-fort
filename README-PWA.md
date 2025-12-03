@@ -63,3 +63,4 @@ Pour que l'application fonctionne comme une Progressive Web App (PWA), vous deve
 - ✅ Prévention du zoom sur focus (iOS)
 - ✅ Animations optimisées avec Framer Motion
 
+
