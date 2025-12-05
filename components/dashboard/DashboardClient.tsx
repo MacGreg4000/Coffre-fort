@@ -118,3 +118,4 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
   )
 }
 
+
