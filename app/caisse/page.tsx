@@ -50,10 +50,6 @@ export default async function CaissePage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Caisse</h1>
-        </div>
-
         <CaisseInterface coffres={coffres} userId={session.user.id} />
       </div>
     </Layout>

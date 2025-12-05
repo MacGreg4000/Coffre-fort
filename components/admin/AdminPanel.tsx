@@ -150,9 +150,9 @@ export function AdminPanel({ data }: AdminPanelProps) {
                     isRequired
                     defaultSelectedKeys={["USER"]}
                   >
-                    <SelectItem key="USER" value="USER">Utilisateur</SelectItem>
-                    <SelectItem key="MANAGER" value="MANAGER">Gestionnaire</SelectItem>
-                    <SelectItem key="ADMIN" value="ADMIN">Administrateur</SelectItem>
+                    <SelectItem key="USER">Utilisateur</SelectItem>
+                    <SelectItem key="MANAGER">Gestionnaire</SelectItem>
+                    <SelectItem key="ADMIN">Administrateur</SelectItem>
                   </Select>
                 </div>
                 <Button
@@ -291,7 +291,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                                   !coffre.members.some((m: any) => m.userId === u.id)
                               )
                               .map((user) => (
-                                <SelectItem key={user.id} value={user.id}>
+                                <SelectItem key={user.id}>
                                   {user.name} ({user.email})
                                 </SelectItem>
                               ))}
@@ -301,9 +301,9 @@ export function AdminPanel({ data }: AdminPanelProps) {
                             id={`role-select-${coffre.id}`}
                             className="w-32"
                           >
-                            <SelectItem key="MEMBER" value="MEMBER">Membre</SelectItem>
-                            <SelectItem key="MANAGER" value="MANAGER">Gestionnaire</SelectItem>
-                            <SelectItem key="OWNER" value="OWNER">Propriétaire</SelectItem>
+                            <SelectItem key="MEMBER">Membre</SelectItem>
+                            <SelectItem key="MANAGER">Gestionnaire</SelectItem>
+                            <SelectItem key="OWNER">Propriétaire</SelectItem>
                           </Select>
                           <Button
                             size="sm"

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardHeader, CardBody } from "@heroui/react"
+import { Card, CardBody } from "@heroui/react"
 import { Button } from "@heroui/react"
 import { Select, SelectItem } from "@heroui/react"
 import { Tabs, Tab } from "@heroui/react"
@@ -11,6 +11,7 @@ import { Plus, Minus, FileText, Wallet } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 import { Textarea } from "@heroui/react"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface CaisseInterfaceProps {
   coffres: any[]
@@ -64,7 +65,7 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
     }
   }, [selectedCoffre])
 
-  const [mode, setMode] = useState<Mode>("INVENTORY")
+  const [mode, setMode] = useState<Mode>("ENTRY")
   const [billets, setBillets] = useState<Record<number, number>>({})
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -154,146 +155,181 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
 
   return (
     <div className="space-y-6">
-      {/* En-tête avec sélection du coffre et montant global */}
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex-1 w-full sm:w-auto">
-            <Select
-              label="Coffre"
-              selectedKeys={selectedCoffre ? [selectedCoffre] : []}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string
-                setSelectedCoffre(selected || null)
-              }}
-              className="w-full sm:w-64"
-            >
-              {coffres.map((coffre) => (
-                <SelectItem key={coffre.id} value={coffre.id}>
-                  {coffre.name}
-                </SelectItem>
-              ))}
-            </Select>
-          </div>
-        </div>
-        
-        {/* Montant global - toujours visible et proéminent */}
-        {selectedCoffre && (
-          <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
-            <CardBody>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-foreground/60 mb-1">Montant actuel du coffre</div>
-                  <div className="text-4xl sm:text-5xl font-bold text-primary">
-                    {loadingBalance ? (
-                      <span className="text-foreground/30 animate-pulse">Chargement...</span>
-                    ) : balance !== null ? (
-                      formatCurrency(balance)
-                    ) : (
-                      <span className="text-foreground/30">0,00 €</span>
-                    )}
-                  </div>
-                </div>
-                <Wallet className="h-12 w-12 text-primary/30" />
-              </div>
-            </CardBody>
-          </Card>
-        )}
+      {/* Sélection du coffre */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <Select
+          label="Coffre"
+          selectedKeys={selectedCoffre ? [selectedCoffre] : []}
+          onSelectionChange={(keys) => {
+            const selected = Array.from(keys)[0] as string
+            setSelectedCoffre(selected || null)
+          }}
+          className="w-full sm:w-64"
+        >
+          {coffres.map((coffre) => (
+            <SelectItem key={coffre.id}>
+              {coffre.name}
+            </SelectItem>
+          ))}
+        </Select>
       </div>
 
+      {/* Montant global - Centré sur la page */}
       {selectedCoffre && (
-        <Card>
-          <CardBody className="pt-6 space-y-6">
-            {/* Mode sélection avec Tabs HeroUI */}
-            <Tabs
-              selectedKey={mode}
-              onSelectionChange={(key) => setMode(key as Mode)}
-              aria-label="Mode de saisie"
-            >
-              <Tab
-                key="INVENTORY"
-                title={
-                  <div className="flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    <span>Inventaire</span>
+        <div className="flex justify-center">
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="relative group"
+          >
+            {/* Halo lumineux au survol */}
+            <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+            
+            <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+              <CardBody className="p-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Wallet className="h-4 w-4 text-primary" />
                   </div>
-                }
-              />
-              <Tab
-                key="ENTRY"
-                title={
-                  <div className="flex items-center gap-2">
-                    <Plus className="h-4 w-4" />
-                    <span>Entrée</span>
+                  <div>
+                    <p className="text-xs text-foreground/60 mb-0.5">Montant actuel</p>
+                    <p className="text-xl font-bold text-primary">
+                      {loadingBalance ? (
+                        <span className="text-foreground/30 animate-pulse">Chargement...</span>
+                      ) : balance !== null ? (
+                        formatCurrency(balance)
+                      ) : (
+                        <span className="text-foreground/30">0,00 €</span>
+                      )}
+                    </p>
                   </div>
-                }
-              />
-              <Tab
-                key="EXIT"
-                title={
-                  <div className="flex items-center gap-2">
-                    <Minus className="h-4 w-4" />
-                    <span>Sortie</span>
-                  </div>
-                }
-              />
-            </Tabs>
+                </div>
+              </CardBody>
+            </Card>
+          </motion.div>
+        </div>
+      )}
 
-            {/* Saisie des billets */}
-            <div>
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                {BILLET_DENOMINATIONS.map((denomination) => (
-                  <BilletInput
-                    key={denomination}
-                    denomination={denomination}
-                    quantity={billets[denomination] || 0}
-                    onChange={handleBilletChange}
+      {selectedCoffre && (
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="relative group"
+        >
+          {/* Halo lumineux au survol */}
+          <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+          
+          <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+            <CardBody className="p-6 space-y-6">
+              {/* Mode sélection avec Tabs HeroUI - Centré */}
+              <div className="flex justify-center">
+                <Tabs
+                  selectedKey={mode}
+                  onSelectionChange={(key) => setMode(key as Mode)}
+                  aria-label="Mode de saisie"
+                  classNames={{
+                    base: "w-full max-w-md",
+                    tabList: "w-full",
+                    tab: "flex-1",
+                  }}
+                >
+                  <Tab
+                    key="INVENTORY"
+                    title={
+                      <div className="flex items-center gap-2 justify-center">
+                        <FileText className="h-4 w-4" />
+                        <span>Inventaire</span>
+                      </div>
+                    }
                   />
-                ))}
+                  <Tab
+                    key="ENTRY"
+                    title={
+                      <div className="flex items-center gap-2 justify-center">
+                        <Plus className="h-4 w-4" />
+                        <span>Entrée</span>
+                      </div>
+                    }
+                  />
+                  <Tab
+                    key="EXIT"
+                    title={
+                      <div className="flex items-center gap-2 justify-center">
+                        <Minus className="h-4 w-4" />
+                        <span>Sortie</span>
+                      </div>
+                    }
+                  />
+                </Tabs>
               </div>
 
-              <Card className="mt-4 bg-default-100">
-                <CardBody>
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-foreground/70">
-                      Total saisi:
-                    </span>
-                    <span className="text-2xl font-bold text-primary">
-                      {formatCurrency(calculateTotal())}
-                    </span>
+              {/* Saisie des billets avec effet de coulissement */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={mode}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                >
+                  <div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                      {BILLET_DENOMINATIONS.map((denomination) => (
+                        <BilletInput
+                          key={denomination}
+                          denomination={denomination}
+                          quantity={billets[denomination] || 0}
+                          onChange={handleBilletChange}
+                        />
+                      ))}
+                    </div>
+
+                    <Card className="mt-4 bg-default-100 border-divider border">
+                      <CardBody className="p-4">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-foreground/70">
+                            Total saisi:
+                          </span>
+                          <span className="text-2xl font-bold text-primary">
+                            {formatCurrency(calculateTotal())}
+                          </span>
+                        </div>
+                      </CardBody>
+                    </Card>
                   </div>
-                </CardBody>
-              </Card>
-            </div>
 
-            {/* Description et bouton */}
-            <div className="space-y-4">
-              <Textarea
-                label="Description (optionnel)"
-                value={description}
-                onValueChange={setDescription}
-                placeholder="Ajoutez une note..."
-                minRows={2}
-              />
+                  {/* Description et bouton */}
+                  <div className="space-y-4 mt-6">
+                    <Textarea
+                      label="Description (optionnel)"
+                      value={description}
+                      onValueChange={setDescription}
+                      placeholder="Ajoutez une note..."
+                      minRows={2}
+                    />
 
-              <Button
-                onPress={mode === "INVENTORY" ? handleInventory : handleSubmit}
-                isLoading={loading}
-                isDisabled={calculateTotal() === 0}
-                color="primary"
-                size="lg"
-                className="w-full"
-              >
-                {loading
-                  ? "Enregistrement..."
-                  : mode === "INVENTORY"
-                  ? "Enregistrer l'inventaire"
-                  : mode === "ENTRY"
-                  ? "Enregistrer l'entrée"
-                  : "Enregistrer la sortie"}
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
+                    <Button
+                      onPress={mode === "INVENTORY" ? handleInventory : handleSubmit}
+                      isLoading={loading}
+                      isDisabled={calculateTotal() === 0}
+                      color="primary"
+                      size="lg"
+                      className="w-full"
+                    >
+                      {loading
+                        ? "Enregistrement..."
+                        : mode === "INVENTORY"
+                        ? "Enregistrer l'inventaire"
+                        : mode === "ENTRY"
+                        ? "Enregistrer l'entrée"
+                        : "Enregistrer la sortie"}
+                    </Button>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </CardBody>
+          </Card>
+        </motion.div>
       )}
     </div>
   )

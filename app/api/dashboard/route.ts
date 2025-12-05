@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { startOfMonth, endOfMonth } from "date-fns"
+import { startOfMonth, endOfMonth, subDays, format } from "date-fns"
+import { BILLET_DENOMINATIONS } from "@/lib/utils"
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,6 +17,7 @@ export async function GET(req: NextRequest) {
     const now = new Date()
     const monthStart = startOfMonth(now)
     const monthEnd = endOfMonth(now)
+    const thirtyDaysAgo = subDays(now, 30)
 
     // Récupérer les coffres accessibles par l'utilisateur
     const userCoffres = await prisma.coffreMember.findMany({
@@ -78,9 +80,6 @@ export async function GET(req: NextRequest) {
     })
 
     // Données des inventaires pour les graphiques (derniers 30 jours)
-    const thirtyDaysAgo = new Date(now)
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-
     const recentInventories = await prisma.inventory.findMany({
       where: {
         coffreId: { in: filteredCoffreIds },
@@ -92,6 +91,102 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { createdAt: "asc" },
     })
+
+    // Données pour activité mensuelle (12 derniers mois)
+    const twelveMonthsAgo = new Date(now)
+    twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
+    
+    // Récupérer tous les mouvements des 12 derniers mois
+    const allMonthlyMovements = await prisma.movement.findMany({
+      where: {
+        coffreId: { in: filteredCoffreIds },
+        createdAt: { gte: twelveMonthsAgo },
+      },
+      select: {
+        createdAt: true,
+      },
+    })
+    
+    // Grouper par mois
+    const monthlyActivityMap = new Map<string, number>()
+    allMonthlyMovements.forEach((movement) => {
+      const monthKey = format(new Date(movement.createdAt), "yyyy-MM")
+      monthlyActivityMap.set(monthKey, (monthlyActivityMap.get(monthKey) || 0) + 1)
+    })
+    
+    // Créer un tableau pour les 12 derniers mois
+    const monthlyActivity = Array.from({ length: 12 }, (_, i) => {
+      const date = new Date(now)
+      date.setMonth(date.getMonth() - (11 - i))
+      const monthKey = format(date, "yyyy-MM")
+      const monthLabel = format(date, "MMM yyyy")
+      return {
+        month: monthLabel,
+        count: monthlyActivityMap.get(monthKey) || 0,
+      }
+    })
+
+    // Répartition des billets (tous les mouvements et inventaires)
+    const allMovements = await prisma.movement.findMany({
+      where: {
+        coffreId: { in: filteredCoffreIds },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      include: {
+        details: true,
+      },
+    })
+
+    const allInventories = await prisma.inventory.findMany({
+      where: {
+        coffreId: { in: filteredCoffreIds },
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      include: {
+        details: true,
+      },
+    })
+
+    // Calculer la répartition des billets
+    const billDistribution = new Map<number, number>()
+
+    // Ajouter les mouvements
+    allMovements.forEach((movement) => {
+      movement.details.forEach((detail) => {
+        const denom = Number(detail.denomination)
+        const current = billDistribution.get(denom) || 0
+        billDistribution.set(denom, current + detail.quantity)
+      })
+    })
+
+    // Ajouter les inventaires
+    allInventories.forEach((inventory) => {
+      inventory.details.forEach((detail) => {
+        const denom = Number(detail.denomination)
+        const current = billDistribution.get(denom) || 0
+        billDistribution.set(denom, current + detail.quantity)
+      })
+    })
+
+    // Top utilisateurs par activité
+    const userActivity = await prisma.movement.groupBy({
+      by: ["userId"],
+      where: {
+        coffreId: { in: filteredCoffreIds },
+        createdAt: { gte: monthStart, lte: monthEnd },
+      },
+      _count: {
+        id: true,
+      },
+    })
+
+    const userIds = userActivity.map((u) => u.userId)
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true },
+    })
+
+    const userMap = new Map(users.map((u) => [u.id, u.name]))
 
     const coffreNames = await prisma.coffre.findMany({
       where: { id: { in: filteredCoffreIds } },
@@ -129,6 +224,22 @@ export async function GET(req: NextRequest) {
       })),
     }))
 
+    // Préparer les données de répartition des billets
+    const billDistributionData = BILLET_DENOMINATIONS.map((denom) => ({
+      denomination: denom,
+      quantity: billDistribution.get(denom) || 0,
+      value: (billDistribution.get(denom) || 0) * denom,
+    }))
+
+    // Préparer les données des top utilisateurs
+    const topUsersData = userActivity
+      .map((u) => ({
+        name: userMap.get(u.userId) || "Inconnu",
+        count: u._count.id,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5)
+
     return NextResponse.json({
       movements: serializedMovements,
       totalEntries,
@@ -142,6 +253,9 @@ export async function GET(req: NextRequest) {
         amount: Number(stat._sum.amount || 0),
       })),
       coffres: userCoffres.map((uc) => uc.coffre),
+      monthlyActivity: monthlyActivity,
+      billDistribution: billDistributionData,
+      topUsers: topUsersData,
     })
   } catch (error: any) {
     console.error("Erreur récupération dashboard:", error)
@@ -151,5 +265,3 @@ export async function GET(req: NextRequest) {
     )
   }
 }
-
-
