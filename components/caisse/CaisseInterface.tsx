@@ -1,13 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardBody } from "@heroui/react"
+import { Button } from "@heroui/react"
+import { Select, SelectItem } from "@heroui/react"
+import { Tabs, Tab } from "@heroui/react"
 import { BilletInput } from "./BilletInput"
 import { formatCurrency, BILLET_DENOMINATIONS } from "@/lib/utils"
-import { Wallet, Plus, Minus, FileText } from "lucide-react"
+import { Plus, Minus, FileText, Wallet } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useToast } from "@/components/ui/toast"
+import { Textarea } from "@heroui/react"
 
 interface CaisseInterfaceProps {
   coffres: any[]
@@ -19,23 +22,52 @@ type Mode = "INVENTORY" | "ENTRY" | "EXIT"
 export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { showToast } = useToast()
   const [selectedCoffre, setSelectedCoffre] = useState<string | null>(
     coffres[0]?.id || null
   )
+  const [balance, setBalance] = useState<number | null>(null)
+  const [loadingBalance, setLoadingBalance] = useState(false)
 
-  // Si un coffre est spécifié dans l'URL, le sélectionner
   useEffect(() => {
     const coffreId = searchParams.get("coffre")
     if (coffreId && coffres.some((c) => c.id === coffreId)) {
       setSelectedCoffre(coffreId)
     }
   }, [searchParams, coffres])
+
+  // Charger le solde du coffre sélectionné
+  useEffect(() => {
+    if (selectedCoffre) {
+      setLoadingBalance(true)
+      fetch(`/api/coffres/balance?coffreId=${selectedCoffre}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Erreur API')
+          return res.json()
+        })
+        .then((data) => {
+          if (data.error) {
+            console.error('Erreur balance:', data.error)
+            setBalance(0)
+          } else {
+            setBalance(data.balance ?? 0)
+          }
+          setLoadingBalance(false)
+        })
+        .catch((err) => {
+          console.error('Erreur chargement balance:', err)
+          setBalance(0)
+          setLoadingBalance(false)
+        })
+    } else {
+      setBalance(null)
+    }
+  }, [selectedCoffre])
+
   const [mode, setMode] = useState<Mode>("INVENTORY")
   const [billets, setBillets] = useState<Record<number, number>>({})
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
-
-  const selectedCoffreData = coffres.find((c) => c.id === selectedCoffre)
 
   const handleBilletChange = (denomination: number, quantity: number) => {
     setBillets((prev) => ({
@@ -71,13 +103,16 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
         router.refresh()
         setBillets({})
         setDescription("")
-        alert("Mouvement enregistré avec succès!")
+        const balanceRes = await fetch(`/api/coffres/balance?coffreId=${selectedCoffre}`)
+        const balanceData = await balanceRes.json()
+        setBalance(balanceData.balance || 0)
+        showToast("Mouvement enregistré avec succès!", "success")
       } else {
         const error = await response.json()
-        alert(`Erreur: ${error.message || "Une erreur est survenue"}`)
+        showToast(`Erreur: ${error.message || "Une erreur est survenue"}`, "error")
       }
     } catch (error) {
-      alert("Erreur lors de l'enregistrement")
+      showToast("Erreur lors de l'enregistrement", "error")
     } finally {
       setLoading(false)
     }
@@ -102,13 +137,16 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
         router.refresh()
         setBillets({})
         setDescription("")
-        alert("Inventaire enregistré avec succès!")
+        const balanceRes = await fetch(`/api/coffres/balance?coffreId=${selectedCoffre}`)
+        const balanceData = await balanceRes.json()
+        setBalance(balanceData.balance || 0)
+        showToast("Inventaire enregistré avec succès!", "success")
       } else {
         const error = await response.json()
-        alert(`Erreur: ${error.message || "Une erreur est survenue"}`)
+        showToast(`Erreur: ${error.message || "Une erreur est survenue"}`, "error")
       }
     } catch (error) {
-      alert("Erreur lors de l'enregistrement")
+      showToast("Erreur lors de l'enregistrement", "error")
     } finally {
       setLoading(false)
     }
@@ -116,117 +154,93 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
 
   return (
     <div className="space-y-6">
-      {/* Sélection du coffre */}
-      <Card className="cyber-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Wallet className="h-5 w-5" />
-            Sélectionner un coffre
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {coffres.map((coffre) => (
-              <motion.button
-                key={coffre.id}
-                onClick={() => setSelectedCoffre(coffre.id)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className={`p-4 rounded-lg border-2 transition-all ${
-                  selectedCoffre === coffre.id
-                    ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
-                    : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
-                }`}
-              >
-                <p className="font-semibold text-blue-400">{coffre.name}</p>
-                {coffre.lastInventory && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Dernier inventaire:{" "}
-                    {formatCurrency(Number(coffre.lastInventory.totalAmount))}
-                  </p>
-                )}
-              </motion.button>
-            ))}
+      {/* En-tête avec sélection du coffre et montant global */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex-1 w-full sm:w-auto">
+            <Select
+              label="Coffre"
+              selectedKeys={selectedCoffre ? [selectedCoffre] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string
+                setSelectedCoffre(selected || null)
+              }}
+              className="w-full sm:w-64"
+            >
+              {coffres.map((coffre) => (
+                <SelectItem key={coffre.id} value={coffre.id}>
+                  {coffre.name}
+                </SelectItem>
+              ))}
+            </Select>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        
+        {/* Montant global - toujours visible et proéminent */}
+        {selectedCoffre && (
+          <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
+            <CardBody>
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-sm text-foreground/60 mb-1">Montant actuel du coffre</div>
+                  <div className="text-4xl sm:text-5xl font-bold text-primary">
+                    {loadingBalance ? (
+                      <span className="text-foreground/30 animate-pulse">Chargement...</span>
+                    ) : balance !== null ? (
+                      formatCurrency(balance)
+                    ) : (
+                      <span className="text-foreground/30">0,00 €</span>
+                    )}
+                  </div>
+                </div>
+                <Wallet className="h-12 w-12 text-primary/30" />
+              </div>
+            </CardBody>
+          </Card>
+        )}
+      </div>
 
       {selectedCoffre && (
-        <>
-          {/* Mode sélection */}
-          <Card className="cyber-card">
-            <CardHeader>
-              <CardTitle>Mode de saisie</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <motion.button
-                  onClick={() => setMode("INVENTORY")}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    mode === "INVENTORY"
-                      ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
-                      : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
-                  }`}
-                >
-                  <FileText className="h-6 w-6 mx-auto mb-2 text-blue-400" />
-                  <p className="font-semibold">Inventaire</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Comptage initial
-                  </p>
-                </motion.button>
+        <Card>
+          <CardBody className="pt-6 space-y-6">
+            {/* Mode sélection avec Tabs HeroUI */}
+            <Tabs
+              selectedKey={mode}
+              onSelectionChange={(key) => setMode(key as Mode)}
+              aria-label="Mode de saisie"
+            >
+              <Tab
+                key="INVENTORY"
+                title={
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    <span>Inventaire</span>
+                  </div>
+                }
+              />
+              <Tab
+                key="ENTRY"
+                title={
+                  <div className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    <span>Entrée</span>
+                  </div>
+                }
+              />
+              <Tab
+                key="EXIT"
+                title={
+                  <div className="flex items-center gap-2">
+                    <Minus className="h-4 w-4" />
+                    <span>Sortie</span>
+                  </div>
+                }
+              />
+            </Tabs>
 
-                <motion.button
-                  onClick={() => setMode("ENTRY")}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    mode === "ENTRY"
-                      ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
-                      : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
-                  }`}
-                >
-                  <Plus className="h-6 w-6 mx-auto mb-2 text-green-400" />
-                  <p className="font-semibold">Entrée</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Ajout de fonds
-                  </p>
-                </motion.button>
-
-                <motion.button
-                  onClick={() => setMode("EXIT")}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className={`p-4 rounded-lg border-2 transition-all ${
-                    mode === "EXIT"
-                      ? "border-blue-500 bg-blue-500/10 shadow-lg scale-105"
-                      : "border-blue-500/20 hover:border-blue-500/40 hover:scale-105"
-                  }`}
-                >
-                  <Minus className="h-6 w-6 mx-auto mb-2 text-red-400" />
-                  <p className="font-semibold">Sortie</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Retrait de fonds
-                  </p>
-                </motion.button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Saisie des billets */}
-          <Card className="cyber-card">
-            <CardHeader>
-              <CardTitle>
-                {mode === "INVENTORY"
-                  ? "Comptage des billets"
-                  : mode === "ENTRY"
-                  ? "Billets ajoutés"
-                  : "Billets retirés"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            {/* Saisie des billets */}
+            <div>
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
                 {BILLET_DENOMINATIONS.map((denomination) => (
                   <BilletInput
                     key={denomination}
@@ -237,33 +251,36 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                 ))}
               </div>
 
-              <div className="mt-6 p-4 sm:p-6 rounded-lg bg-cyber-dark border border-blue-500/15 hover:border-blue-500/25 transition-all">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                  <span className="text-base sm:text-lg font-semibold text-foreground">
-                    Total:
-                  </span>
-                  <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-blue-400">
-                    {formatCurrency(calculateTotal())}
-                  </span>
-                </div>
-              </div>
+              <Card className="mt-4 bg-default-100">
+                <CardBody>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-foreground/70">
+                      Total saisi:
+                    </span>
+                    <span className="text-2xl font-bold text-primary">
+                      {formatCurrency(calculateTotal())}
+                    </span>
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Description (optionnel)
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full p-3 rounded-lg bg-cyber-dark border border-blue-500/15 text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/30 transition-all"
-                  rows={3}
-                  placeholder="Ajoutez une note..."
-                />
-              </div>
+            {/* Description et bouton */}
+            <div className="space-y-4">
+              <Textarea
+                label="Description (optionnel)"
+                value={description}
+                onValueChange={setDescription}
+                placeholder="Ajoutez une note..."
+                minRows={2}
+              />
 
               <Button
-                onClick={mode === "INVENTORY" ? handleInventory : handleSubmit}
-                disabled={loading || calculateTotal() === 0}
+                onPress={mode === "INVENTORY" ? handleInventory : handleSubmit}
+                isLoading={loading}
+                isDisabled={calculateTotal() === 0}
+                color="primary"
+                size="lg"
                 className="w-full"
               >
                 {loading
@@ -274,11 +291,10 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   ? "Enregistrer l'entrée"
                   : "Enregistrer la sortie"}
               </Button>
-            </CardContent>
-          </Card>
-        </>
+            </div>
+          </CardBody>
+        </Card>
       )}
     </div>
   )
 }
-

@@ -40,7 +40,17 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json(coffre, { status: 201 })
+    // Retourner seulement les données nécessaires (pas d'objets Prisma complets)
+    return NextResponse.json(
+      {
+        id: coffre.id,
+        name: coffre.name,
+        description: coffre.description,
+        createdAt: coffre.createdAt,
+        updatedAt: coffre.updatedAt,
+      },
+      { status: 201 }
+    )
   } catch (error: any) {
     console.error("Erreur création coffre:", error)
     return NextResponse.json(

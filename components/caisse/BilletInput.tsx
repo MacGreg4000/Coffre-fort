@@ -1,7 +1,7 @@
 "use client"
 
-import { motion } from "framer-motion"
-import { Input } from "@/components/ui/input"
+import { Input } from "@heroui/react"
+import { Card, CardBody } from "@heroui/react"
 import { formatCurrency } from "@/lib/utils"
 
 interface BilletInputProps {
@@ -18,39 +18,32 @@ export function BilletInput({
   const total = denomination * quantity
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-      className="p-3 sm:p-4 rounded-lg bg-cyber-dark border border-cyber-gold/20 hover:border-cyber-gold/50 transition-all"
-    >
-      <div className="text-center mb-2">
-        <p className="text-xs sm:text-sm text-muted-foreground">Billet de</p>
-        <p className="text-lg sm:text-xl font-bold text-cyber-gold">
-          {formatCurrency(denomination)}
-        </p>
-      </div>
-      <Input
-        type="number"
-        min="0"
-        value={quantity || ""}
-        onChange={(e) => {
-          const value = parseInt(e.target.value) || 0
-          onChange(denomination, value)
-        }}
-        className="text-center text-base sm:text-lg font-semibold"
-        placeholder="0"
-        inputMode="numeric"
-      />
-      {quantity > 0 && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="text-center mt-2 text-xs sm:text-sm text-foreground font-medium"
-        >
-          = {formatCurrency(total)}
-        </motion.p>
-      )}
-    </motion.div>
+    <Card className="bg-default-100">
+      <CardBody className="p-3">
+        <div className="text-center mb-2">
+          <p className="text-xs text-foreground/50 mb-1">Billet de</p>
+          <p className="text-base font-semibold text-primary">
+            {formatCurrency(denomination)}
+          </p>
+        </div>
+        <Input
+          type="number"
+          min="0"
+          value={quantity.toString()}
+          onValueChange={(value) => {
+            const numValue = parseInt(value) || 0
+            onChange(denomination, numValue)
+          }}
+          className="text-center"
+          placeholder="0"
+          size="sm"
+        />
+        {quantity > 0 && (
+          <p className="text-center mt-2 text-xs text-foreground/60 font-medium">
+            = {formatCurrency(total)}
+          </p>
+        )}
+      </CardBody>
+    </Card>
   )
 }
-

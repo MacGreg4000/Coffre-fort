@@ -4,26 +4,26 @@
 
 @layer base {
   :root {
-    --background: 0 0% 4%;
+    --background: 0 0% 12%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 6%;
+    --card: 0 0% 15%;
     --card-foreground: 0 0% 98%;
-    --popover: 0 0% 6%;
+    --popover: 0 0% 15%;
     --popover-foreground: 0 0% 98%;
-    --primary: 51 100% 50%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 0 0% 15%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 20%;
     --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 65%;
-    --accent: 0 0% 15%;
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 70%;
+    --accent: 0 0% 20%;
     --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 62.8% 50%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 20%;
+    --border: 0 0% 25%;
     --input: 0 0% 20%;
-    --ring: 51 100% 50%;
-    --radius: 0.5rem;
+    --ring: 217 91% 60%;
+    --radius: 0.75rem;
   }
 }
 
@@ -34,12 +34,10 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-    background: linear-gradient(to bottom, #0f0f0f, #1a1a1a);
+    background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 50%, #0a0a0a 100%);
     min-height: 100vh;
-    /* Optimisation pour mobile */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    /* Empêcher le zoom sur input focus (iOS) */
     touch-action: manipulation;
   }
   
@@ -63,58 +61,9 @@
       font-size: inherit;
     }
   }
-  
-  /* Style pour les selects et leurs options */
-  select {
-    background-color: #1a1a1a;
-    color: #fafafa;
-  }
-  
-  select option {
-    background-color: #1a1a1a;
-    color: #fafafa;
-    padding: 0.5rem;
-  }
-  
-  select:focus option:checked {
-    background-color: #3B82F6;
-    color: #ffffff;
-  }
 }
 
 @layer utilities {
-  .text-cyber-gold {
-    color: #3B82F6;
-    text-shadow: none;
-  }
-  
-  .glow-gold {
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15), 0 1px 3px rgba(59, 130, 246, 0.1);
-  }
-  
-  .glow-gold-strong {
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25), 0 2px 6px rgba(59, 130, 246, 0.15);
-  }
-  
-  .cyber-border {
-    @apply border border-blue-500/15;
-    box-shadow: none;
-  }
-  
-  .cyber-card {
-    @apply bg-cyber-dark-lighter rounded-xl p-4 sm:p-6;
-    background: linear-gradient(135deg, rgba(26, 26, 26, 0.95) 0%, rgba(20, 20, 20, 0.98) 100%);
-    border: 1px solid rgba(59, 130, 246, 0.08);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-  
-  .cyber-card:hover {
-    border-color: rgba(59, 130, 246, 0.2);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1), 0 2px 6px rgba(0, 0, 0, 0.3);
-    transform: translateY(-2px);
-  }
-  
   /* Safe area pour iPhone avec encoche */
   .safe-area-top {
     padding-top: env(safe-area-inset-top);

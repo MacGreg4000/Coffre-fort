@@ -81,7 +81,17 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json(movement, { status: 201 })
+    // Convertir les Decimal en Number
+    const serializedMovement = {
+      ...movement,
+      amount: Number(movement.amount),
+      details: movement.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }
+
+    return NextResponse.json(serializedMovement, { status: 201 })
   } catch (error: any) {
     console.error("Erreur création mouvement:", error)
     return NextResponse.json(
@@ -123,7 +133,17 @@ export async function GET(req: NextRequest) {
       take: 100,
     })
 
-    return NextResponse.json(movements)
+    // Convertir les Decimal en Number
+    const serializedMovements = movements.map((m) => ({
+      ...m,
+      amount: Number(m.amount),
+      details: m.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }))
+
+    return NextResponse.json(serializedMovements)
   } catch (error: any) {
     console.error("Erreur récupération mouvements:", error)
     return NextResponse.json(

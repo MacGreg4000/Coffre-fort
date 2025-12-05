@@ -1,12 +1,12 @@
 "use client"
 
 import { useState } from "react"
-import { motion } from "framer-motion"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardBody } from "@heroui/react"
+import { Button } from "@heroui/react"
+import { Tabs, Tab } from "@heroui/react"
 import { formatCurrency, formatDate } from "@/lib/utils"
 import { FileText, Plus, Minus, Download } from "lucide-react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useToast } from "@/components/ui/toast"
 
 interface HistoriqueListProps {
   data: {
@@ -16,7 +16,7 @@ interface HistoriqueListProps {
 }
 
 export function HistoriqueList({ data }: HistoriqueListProps) {
-  const [selectedItem, setSelectedItem] = useState<string | null>(null)
+  const { showToast } = useToast()
 
   const handleExportPDF = async (type: "movement" | "inventory", id: string) => {
     try {
@@ -31,162 +31,157 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
         a.click()
         window.URL.revokeObjectURL(url)
         document.body.removeChild(a)
+        showToast("PDF exporté avec succès!", "success")
       } else {
-        alert("Erreur lors de l'export PDF")
+        showToast("Erreur lors de l'export PDF", "error")
       }
     } catch (error) {
-      alert("Erreur lors de l'export PDF")
+      showToast("Erreur lors de l'export PDF", "error")
     }
   }
 
   return (
-    <Tabs defaultValue="movements" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="movements">Mouvements</TabsTrigger>
-        <TabsTrigger value="inventories">Inventaires</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="movements">
-        <Card className="cyber-card">
+    <Tabs aria-label="Historique tabs" defaultSelectedKey="movements">
+      <Tab
+        key="movements"
+        title="Mouvements"
+      >
+        <Card>
           <CardHeader>
-            <CardTitle>Mouvements de caisse</CardTitle>
+            <h3 className="text-lg font-semibold">Mouvements de caisse</h3>
           </CardHeader>
-          <CardContent>
+          <CardBody>
             {data.movements.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
+              <p className="text-foreground/60 text-center py-8">
                 Aucun mouvement enregistré
               </p>
             ) : (
               <div className="space-y-4">
                 {data.movements.map((movement) => (
-                  <motion.div
-                    key={movement.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-lg bg-cyber-dark border border-cyber-gold/20 hover:border-cyber-gold/50 transition-all"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          {movement.type === "ENTRY" ? (
-                            <Plus className="h-5 w-5 text-green-400" />
-                          ) : movement.type === "EXIT" ? (
-                            <Minus className="h-5 w-5 text-red-400" />
-                          ) : (
-                            <FileText className="h-5 w-5 text-blue-400" />
-                          )}
-                          <span className="font-semibold text-cyber-gold">
-                            {movement.coffre.name}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(movement.createdAt)}
-                          </span>
-                        </div>
-                        <p className="text-lg font-bold text-foreground mb-1">
-                          {formatCurrency(Number(movement.amount))}
-                        </p>
-                        {movement.description && (
-                          <p className="text-sm text-muted-foreground">
-                            {movement.description}
-                          </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {movement.details.map((detail: any) => (
-                            <span
-                              key={detail.id}
-                              className="text-xs px-2 py-1 rounded bg-cyber-dark-lighter border border-cyber-gold/20"
-                            >
-                              {detail.quantity}x {formatCurrency(Number(detail.denomination))}
+                  <Card key={movement.id} className="bg-default-100">
+                    <CardBody>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            {movement.type === "ENTRY" ? (
+                              <Plus className="h-5 w-5 text-success" />
+                            ) : movement.type === "EXIT" ? (
+                              <Minus className="h-5 w-5 text-danger" />
+                            ) : (
+                              <FileText className="h-5 w-5 text-primary" />
+                            )}
+                            <span className="font-semibold text-primary">
+                              {movement.coffre.name}
                             </span>
-                          ))}
+                            <span className="text-sm text-foreground/60">
+                              {formatDate(movement.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-lg font-bold text-foreground mb-1">
+                            {formatCurrency(Number(movement.amount))}
+                          </p>
+                          {movement.description && (
+                            <p className="text-sm text-foreground/60">
+                              {movement.description}
+                            </p>
+                          )}
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {movement.details.map((detail: any) => (
+                              <span
+                                key={detail.id}
+                                className="text-xs px-2 py-1 rounded bg-default-200 border border-divider"
+                              >
+                                {detail.quantity}x {formatCurrency(Number(detail.denomination))}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="text-xs text-foreground/50 mt-2">
+                            Par {movement.user.name}
+                          </p>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Par {movement.user.name}
-                        </p>
+                        <Button
+                          variant="light"
+                          size="sm"
+                          isIconOnly
+                          onPress={() => handleExportPDF("movement", movement.id)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleExportPDF("movement", movement.id)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </motion.div>
+                    </CardBody>
+                  </Card>
                 ))}
               </div>
             )}
-          </CardContent>
+          </CardBody>
         </Card>
-      </TabsContent>
+      </Tab>
 
-      <TabsContent value="inventories">
-        <Card className="cyber-card">
+      <Tab
+        key="inventories"
+        title="Inventaires"
+      >
+        <Card>
           <CardHeader>
-            <CardTitle>Inventaires</CardTitle>
+            <h3 className="text-lg font-semibold">Inventaires</h3>
           </CardHeader>
-          <CardContent>
+          <CardBody>
             {data.inventories.length === 0 ? (
-              <p className="text-muted-foreground text-center py-8">
+              <p className="text-foreground/60 text-center py-8">
                 Aucun inventaire enregistré
               </p>
             ) : (
               <div className="space-y-4">
                 {data.inventories.map((inventory) => (
-                  <motion.div
-                    key={inventory.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-lg bg-cyber-dark border border-cyber-gold/20 hover:border-cyber-gold/50 transition-all"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <FileText className="h-5 w-5 text-cyber-gold" />
-                          <span className="font-semibold text-cyber-gold">
-                            {inventory.coffre.name}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {formatDate(inventory.createdAt)}
-                          </span>
-                        </div>
-                        <p className="text-2xl font-bold text-cyber-gold mb-1">
-                          {formatCurrency(Number(inventory.totalAmount))}
-                        </p>
-                        {inventory.notes && (
-                          <p className="text-sm text-muted-foreground mt-2">
-                            {inventory.notes}
-                          </p>
-                        )}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {inventory.details.map((detail: any) => (
-                            <span
-                              key={detail.id}
-                              className="text-xs px-2 py-1 rounded bg-cyber-dark-lighter border border-cyber-gold/20"
-                            >
-                              {detail.quantity}x {formatCurrency(Number(detail.denomination))}
+                  <Card key={inventory.id} className="bg-default-100">
+                    <CardBody>
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <FileText className="h-5 w-5 text-primary" />
+                            <span className="font-semibold text-primary">
+                              {inventory.coffre.name}
                             </span>
-                          ))}
+                            <span className="text-sm text-foreground/60">
+                              {formatDate(inventory.createdAt)}
+                            </span>
+                          </div>
+                          <p className="text-2xl font-bold text-primary mb-1">
+                            {formatCurrency(Number(inventory.totalAmount))}
+                          </p>
+                          {inventory.notes && (
+                            <p className="text-sm text-foreground/60 mt-2">
+                              {inventory.notes}
+                            </p>
+                          )}
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {inventory.details.map((detail: any) => (
+                              <span
+                                key={detail.id}
+                                className="text-xs px-2 py-1 rounded bg-default-200 border border-divider"
+                              >
+                                {detail.quantity}x {formatCurrency(Number(detail.denomination))}
+                              </span>
+                            ))}
+                          </div>
                         </div>
+                        <Button
+                          variant="light"
+                          size="sm"
+                          isIconOnly
+                          onPress={() => handleExportPDF("inventory", inventory.id)}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleExportPDF("inventory", inventory.id)}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </motion.div>
+                    </CardBody>
+                  </Card>
                 ))}
               </div>
             )}
-          </CardContent>
+          </CardBody>
         </Card>
-      </TabsContent>
+      </Tab>
     </Tabs>
   )
 }
-
-
-

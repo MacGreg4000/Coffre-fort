@@ -75,7 +75,17 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    return NextResponse.json(inventory, { status: 201 })
+    // Convertir les Decimal en Number
+    const serializedInventory = {
+      ...inventory,
+      totalAmount: Number(inventory.totalAmount),
+      details: inventory.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }
+
+    return NextResponse.json(serializedInventory, { status: 201 })
   } catch (error: any) {
     console.error("Erreur création inventaire:", error)
     return NextResponse.json(
@@ -116,7 +126,17 @@ export async function GET(req: NextRequest) {
       take: 100,
     })
 
-    return NextResponse.json(inventories)
+    // Convertir les Decimal en Number
+    const serializedInventories = inventories.map((inv) => ({
+      ...inv,
+      totalAmount: Number(inv.totalAmount),
+      details: inv.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }))
+
+    return NextResponse.json(serializedInventories)
   } catch (error: any) {
     console.error("Erreur récupération inventaires:", error)
     return NextResponse.json(

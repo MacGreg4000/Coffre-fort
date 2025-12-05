@@ -4,10 +4,9 @@ import { useState, useEffect, Suspense } from "react"
 import { signIn } from "next-auth/react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@heroui/react"
+import { Input } from "@heroui/react"
+import { Card, CardHeader, CardBody } from "@heroui/react"
 import { Wallet, CheckCircle2 } from "lucide-react"
 
 function LoginForm() {
@@ -22,7 +21,6 @@ function LoginForm() {
   useEffect(() => {
     if (searchParams.get("setup") === "success") {
       setSetupSuccess(true)
-      // Nettoyer l'URL
       router.replace("/login", { scroll: false })
     }
   }, [searchParams, router])
@@ -53,14 +51,14 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyber-dark to-cyber-dark-lighter p-4 sm:p-6">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Card className="cyber-card">
+        <Card>
           <CardHeader className="text-center">
             <motion.div
               initial={{ rotate: -10 }}
@@ -68,67 +66,63 @@ function LoginForm() {
               transition={{ type: "spring", stiffness: 200 }}
               className="flex justify-center mb-4"
             >
-              <Wallet className="h-16 w-16 text-blue-400" />
+              <Wallet className="h-16 w-16 text-primary" />
             </motion.div>
-            <CardTitle className="text-3xl">SafeGuard</CardTitle>
-            <CardDescription className="text-foreground/70">
+            <h1 className="text-3xl font-bold">SafeGuard</h1>
+            <p className="text-foreground/70 mt-2">
               Connectez-vous pour accéder à votre espace
-            </CardDescription>
+            </p>
           </CardHeader>
-          <CardContent>
+          <CardBody>
             {setupSuccess && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="mb-4 p-3 rounded-lg bg-green-400/10 border border-green-400/30 flex items-center gap-2"
+                className="mb-4 p-3 rounded-lg bg-success/10 border border-success/30 flex items-center gap-2"
               >
-                <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0" />
-                <p className="text-sm text-green-400">
+                <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0" />
+                <p className="text-sm text-success">
                   Administrateur créé avec succès ! Vous pouvez maintenant vous connecter.
                 </p>
               </motion.div>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="votre@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
+              <Input
+                type="email"
+                label="Email"
+                placeholder="votre@email.com"
+                value={email}
+                onValueChange={setEmail}
+                isRequired
+              />
+              <Input
+                type="password"
+                label="Mot de passe"
+                placeholder="••••••••"
+                value={password}
+                onValueChange={setPassword}
+                isRequired
+              />
               {error && (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-sm text-destructive text-center"
+                  className="text-sm text-danger text-center"
                 >
                   {error}
                 </motion.p>
               )}
               <Button
                 type="submit"
+                color="primary"
                 className="w-full"
-                disabled={loading}
+                isLoading={loading}
+                size="lg"
               >
                 {loading ? "Connexion..." : "Se connecter"}
               </Button>
             </form>
-          </CardContent>
+          </CardBody>
         </Card>
       </motion.div>
     </div>
@@ -138,12 +132,11 @@ function LoginForm() {
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyber-dark to-cyber-dark-lighter">
-        <div className="text-cyber-gold">Chargement...</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-primary">Chargement...</div>
       </div>
     }>
       <LoginForm />
     </Suspense>
   )
 }
-

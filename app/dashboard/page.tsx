@@ -27,7 +27,12 @@ export default async function DashboardPage() {
 
   return (
     <Layout>
-      <DashboardClient initialCoffres={initialData.coffres} />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Dashboard</h1>
+        </div>
+        <DashboardClient initialCoffres={initialData.coffres} />
+      </div>
     </Layout>
   )
 }

@@ -1,11 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { motion } from "framer-motion"
-import { Select } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
+import { Select, SelectItem } from "@heroui/react"
+import { Card, CardBody } from "@heroui/react"
 import { DashboardStats } from "./DashboardStats"
-import { Loader2 } from "lucide-react"
+import { Spinner } from "@heroui/react"
+import { formatCurrency } from "@/lib/utils"
+import { Wallet } from "lucide-react"
 
 interface DashboardClientProps {
   initialCoffres: any[]
@@ -21,14 +22,53 @@ interface DashboardData {
   coffres: any[]
 }
 
+interface CoffreBalance {
+  coffreId: string
+  coffreName: string
+  balance: number
+}
+
 export function DashboardClient({ initialCoffres }: DashboardClientProps) {
   const [selectedCoffreId, setSelectedCoffreId] = useState<string>("")
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [coffresBalances, setCoffresBalances] = useState<CoffreBalance[]>([])
 
   useEffect(() => {
     fetchDashboardData(selectedCoffreId)
   }, [selectedCoffreId])
+
+  // Charger les balances de tous les coffres
+  useEffect(() => {
+    if (initialCoffres.length > 0) {
+      Promise.all(
+        initialCoffres.map(async (coffre) => {
+          try {
+            const res = await fetch(`/api/coffres/balance?coffreId=${coffre.id}`)
+            if (res.ok) {
+              const data = await res.json()
+              return {
+                coffreId: coffre.id,
+                coffreName: coffre.name,
+                balance: data.balance || 0,
+              }
+            }
+            return {
+              coffreId: coffre.id,
+              coffreName: coffre.name,
+              balance: 0,
+            }
+          } catch {
+            return {
+              coffreId: coffre.id,
+              coffreName: coffre.name,
+              balance: 0,
+            }
+          }
+        })
+      ).then(setCoffresBalances)
+    }
+  }, [initialCoffres])
 
   const fetchDashboardData = async (coffreId: string) => {
     setLoading(true)
@@ -40,8 +80,6 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
       if (response.ok) {
         const dashboardData = await response.json()
         setData(dashboardData)
-      } else {
-        console.error("Erreur récupération dashboard")
       }
     } catch (error) {
       console.error("Erreur récupération dashboard:", error)
@@ -50,72 +88,81 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
     }
   }
 
+  const totalBalance = coffresBalances.reduce((sum, cb) => sum + cb.balance, 0)
+
   if (loading && !data) {
     return (
       <div className="min-h-[400px] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Spinner size="lg" color="primary" />
       </div>
     )
   }
 
   if (!data) {
     return (
-      <div className="space-y-4 sm:space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-400 mb-2">
-            Dashboard
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Vue d&apos;ensemble de vos coffres et statistiques
-          </p>
-        </div>
-        <p className="text-muted-foreground text-center py-8">
-          Aucune donnée disponible
-        </p>
-      </div>
+      <p className="text-foreground/60 text-center py-8">
+        Aucune donnée disponible
+      </p>
     )
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-blue-400 mb-2">
-            Dashboard
-          </h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Vue d&apos;ensemble de vos coffres et statistiques
-          </p>
-        </div>
+    <div className="space-y-6">
+      {/* Montant total global de tous les coffres */}
+      {coffresBalances.length > 0 && (
+        <Card className="bg-gradient-to-br from-primary/20 to-primary/5 border-primary/30">
+          <CardBody>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-sm text-foreground/60 mb-1">Montant total de tous les coffres</div>
+                <div className="text-4xl sm:text-5xl font-bold text-primary">
+                  {formatCurrency(totalBalance)}
+                </div>
+              </div>
+              <Wallet className="h-12 w-12 text-primary/30" />
+            </div>
+            
+            {/* Détail par coffre */}
+            {coffresBalances.length > 1 && (
+              <div className="mt-4 pt-4 border-t border-divider space-y-2">
+                {coffresBalances.map((cb) => (
+                  <div key={cb.coffreId} className="flex items-center justify-between text-sm">
+                    <span className="text-foreground/70">{cb.coffreName}</span>
+                    <span className="font-semibold text-primary">
+                      {formatCurrency(cb.balance)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
-        {initialCoffres.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex flex-col gap-2 min-w-[200px] sm:min-w-[250px]"
+      {initialCoffres.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <Select
+            label="Filtrer par coffre"
+            selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
+            onSelectionChange={(keys) => {
+              const selected = Array.from(keys)[0] as string
+              setSelectedCoffreId(selected || "")
+            }}
+            className="w-full sm:w-64"
           >
-            <Label htmlFor="coffre-select" className="text-sm text-muted-foreground">
-              Filtrer par coffre
-            </Label>
-            <Select
-              id="coffre-select"
-              value={selectedCoffreId}
-              onChange={(e) => setSelectedCoffreId(e.target.value)}
-            >
-              <option value="">Tous les coffres</option>
-              {initialCoffres.map((coffre) => (
-                <option key={coffre.id} value={coffre.id}>
-                  {coffre.name}
-                </option>
-              ))}
-            </Select>
-          </motion.div>
-        )}
-      </div>
+            <SelectItem key="" value="">
+              Tous les coffres
+            </SelectItem>
+            {initialCoffres.map((coffre) => (
+              <SelectItem key={coffre.id} value={coffre.id}>
+                {coffre.name}
+              </SelectItem>
+            ))}
+          </Select>
+        </div>
+      )}
 
       <DashboardStats data={data} />
     </div>
   )
 }
-
-

@@ -36,7 +36,26 @@ async function getHistoriqueData(userId: string) {
     take: 100,
   })
 
-  return { movements, inventories }
+  // Convertir les Decimal en Number
+  const serializedMovements = movements.map((m) => ({
+    ...m,
+    amount: Number(m.amount),
+    details: m.details.map((d) => ({
+      ...d,
+      denomination: Number(d.denomination),
+    })),
+  }))
+
+  const serializedInventories = inventories.map((inv) => ({
+    ...inv,
+    totalAmount: Number(inv.totalAmount),
+    details: inv.details.map((d) => ({
+      ...d,
+      denomination: Number(d.denomination),
+    })),
+  }))
+
+  return { movements: serializedMovements, inventories: serializedInventories }
 }
 
 export default async function HistoriquePage() {
@@ -49,12 +68,9 @@ export default async function HistoriquePage() {
 
   return (
     <Layout>
-      <div className="space-y-4 sm:space-y-6">
+      <div className="space-y-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-cyber-gold mb-2">Historique</h1>
-          <p className="text-sm sm:text-base text-muted-foreground">
-            Consultation de tous les mouvements et inventaires
-          </p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Historique</h1>
         </div>
 
         <HistoriqueList data={data} />

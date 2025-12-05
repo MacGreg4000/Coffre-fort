@@ -100,12 +100,41 @@ export async function GET(req: NextRequest) {
 
     const coffreMap = new Map(coffreNames.map((c) => [c.id, c.name]))
 
+    // Convertir les Decimal en Number pour les mouvements
+    const serializedMovements = movements.map((m) => ({
+      ...m,
+      amount: Number(m.amount),
+      details: m.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }))
+
+    // Convertir les Decimal en Number pour les inventaires
+    const serializedInventories = inventories.map((inv) => ({
+      ...inv,
+      totalAmount: Number(inv.totalAmount),
+      details: inv.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }))
+
+    const serializedRecentInventories = recentInventories.map((inv) => ({
+      ...inv,
+      totalAmount: Number(inv.totalAmount),
+      details: inv.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }))
+
     return NextResponse.json({
-      movements,
+      movements: serializedMovements,
       totalEntries,
       totalExits,
-      inventories,
-      recentInventories,
+      inventories: serializedInventories,
+      recentInventories: serializedRecentInventories,
       statsByCoffre: statsByCoffre.map((stat) => ({
         coffreId: stat.coffreId,
         coffreName: coffreMap.get(stat.coffreId) || "Inconnu",

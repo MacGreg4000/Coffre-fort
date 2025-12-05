@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss"
+import { heroui } from "@heroui/react"
 
 const config = {
   darkMode: ["class"],
@@ -7,6 +8,7 @@ const config = {
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
+    './node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}',
   ],
   prefix: "",
   theme: {
@@ -52,16 +54,6 @@ const config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Theme moderne - Bleu/Cyan élégant
-        cyber: {
-          gold: "#3B82F6", // Bleu moderne
-          "gold-dark": "#2563EB", // Bleu foncé
-          "gold-light": "#60A5FA", // Bleu clair
-          dark: "#0f0f0f",
-          "dark-lighter": "#1a1a1a",
-          "dark-light": "#252525",
-          neon: "#06B6D4", // Cyan
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -77,28 +69,50 @@ const config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
-        "glow-pulse": {
-          "0%, 100%": { 
-            boxShadow: "0 0 5px rgba(255, 215, 0, 0.5), 0 0 10px rgba(255, 215, 0, 0.3)",
-          },
-          "50%": { 
-            boxShadow: "0 0 20px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.5)",
-          },
-        },
-        "shimmer": {
-          "0%": { backgroundPosition: "-1000px 0" },
-          "100%": { backgroundPosition: "1000px 0" },
-        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "glow-pulse": "glow-pulse 2s ease-in-out infinite",
-        "shimmer": "shimmer 2s linear infinite",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    heroui({
+      themes: {
+        dark: {
+          colors: {
+            primary: {
+              DEFAULT: "#3B82F6",
+              foreground: "#ffffff",
+            },
+            secondary: {
+              DEFAULT: "#2a2a2a",
+              foreground: "#ffffff",
+            },
+            background: "#1a1a1a",
+            foreground: "#fafafa",
+            default: {
+              DEFAULT: "#2a2a2a",
+              foreground: "#fafafa",
+            },
+            success: {
+              DEFAULT: "#22c55e",
+              foreground: "#ffffff",
+            },
+            danger: {
+              DEFAULT: "#ef4444",
+              foreground: "#ffffff",
+            },
+            warning: {
+              DEFAULT: "#f59e0b",
+              foreground: "#ffffff",
+            },
+          },
+        },
+      },
+    }),
+  ],
 } satisfies Config
 
 export default config
