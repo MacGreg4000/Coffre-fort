@@ -1,15 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Card, CardHeader, CardBody } from "@heroui/react"
+import { Card, CardBody } from "@heroui/react"
 import { Button } from "@heroui/react"
 import { Input } from "@heroui/react"
 import { Select, SelectItem } from "@heroui/react"
 import { Tabs, Tab } from "@heroui/react"
-import { UserPlus, Wallet, Save } from "lucide-react"
+import { UserPlus, Wallet, Save, Users, Shield, Mail, User } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 import { Textarea } from "@heroui/react"
+import { motion, AnimatePresence } from "framer-motion"
 
 interface AdminPanelProps {
   data: {
@@ -22,6 +23,9 @@ export function AdminPanel({ data }: AdminPanelProps) {
   const router = useRouter()
   const { showToast } = useToast()
   const [loading, setLoading] = useState<string | null>(null)
+  const [selectedTab, setSelectedTab] = useState<string>("users")
+  const [selectedUsers, setSelectedUsers] = useState<Record<string, string>>({})
+  const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({})
 
   const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -87,7 +91,15 @@ export function AdminPanel({ data }: AdminPanelProps) {
     }
   }
 
-  const handleAddMember = async (coffreId: string, userId: string, role: string) => {
+  const handleAddMember = async (coffreId: string) => {
+    const userId = selectedUsers[coffreId]
+    const role = selectedRoles[coffreId] || "MEMBER"
+    
+    if (!userId) {
+      showToast("Veuillez sélectionner un utilisateur", "error")
+      return
+    }
+
     setLoading(`add-member-${coffreId}`)
     try {
       const response = await fetch("/api/admin/coffres/members", {
@@ -98,6 +110,8 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
       if (response.ok) {
         router.refresh()
+        setSelectedUsers((prev) => ({ ...prev, [coffreId]: "" }))
+        setSelectedRoles((prev) => ({ ...prev, [coffreId]: "MEMBER" }))
         showToast("Membre ajouté avec succès!", "success")
       } else {
         const error = await response.json()
@@ -111,248 +125,373 @@ export function AdminPanel({ data }: AdminPanelProps) {
   }
 
   return (
-    <Tabs aria-label="Admin tabs" defaultSelectedKey="users">
-      <Tab
-        key="users"
-        title="Utilisateurs"
-      >
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <UserPlus className="h-5 w-5" />
-                <h3 className="text-lg font-semibold">Créer un utilisateur</h3>
+    <div className="space-y-6">
+      {/* Onglets centrés avec effet de coulissement */}
+      <div className="flex justify-center">
+        <Tabs
+          selectedKey={selectedTab}
+          onSelectionChange={(key) => setSelectedTab(key as string)}
+          aria-label="Admin tabs"
+          classNames={{
+            base: "w-full max-w-md",
+            tabList: "w-full",
+            tab: "flex-1",
+          }}
+        >
+          <Tab
+            key="users"
+            title={
+              <div className="flex items-center gap-2 justify-center">
+                <Users className="h-4 w-4" />
+                <span>Utilisateurs</span>
               </div>
-            </CardHeader>
-            <CardBody>
-              <form onSubmit={handleCreateUser} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    name="name"
-                    label="Nom"
-                    isRequired
-                  />
-                  <Input
-                    name="email"
-                    type="email"
-                    label="Email"
-                    isRequired
-                  />
-                  <Input
-                    name="password"
-                    type="password"
-                    label="Mot de passe"
-                    isRequired
-                  />
-                  <Select
-                    name="role"
-                    label="Rôle"
-                    isRequired
-                    defaultSelectedKeys={["USER"]}
-                  >
-                    <SelectItem key="USER">Utilisateur</SelectItem>
-                    <SelectItem key="MANAGER">Gestionnaire</SelectItem>
-                    <SelectItem key="ADMIN">Administrateur</SelectItem>
-                  </Select>
-                </div>
-                <Button
-                  type="submit"
-                  color="primary"
-                  isLoading={loading === "create-user"}
-                >
-                  Créer
-                </Button>
-              </form>
-            </CardBody>
-          </Card>
+            }
+          />
+          <Tab
+            key="coffres"
+            title={
+              <div className="flex items-center gap-2 justify-center">
+                <Wallet className="h-4 w-4" />
+                <span>Coffres</span>
+              </div>
+            }
+          />
+        </Tabs>
+      </div>
 
-          <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold">Liste des utilisateurs</h3>
-            </CardHeader>
-            <CardBody>
+      {/* Contenu avec effet de coulissement */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={selectedTab}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          {selectedTab === "users" ? (
+            <div className="space-y-6">
+              {/* Formulaire de création d'utilisateur */}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="relative group"
+              >
+                <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+                
+                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                  <CardBody className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <UserPlus className="h-5 w-5 text-primary" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-primary">Créer un utilisateur</h3>
+                    </div>
+                    <form onSubmit={handleCreateUser} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Input
+                          name="name"
+                          label="Nom"
+                          isRequired
+                        />
+                        <Input
+                          name="email"
+                          type="email"
+                          label="Email"
+                          isRequired
+                        />
+                        <Input
+                          name="password"
+                          type="password"
+                          label="Mot de passe"
+                          isRequired
+                        />
+                        <Select
+                          name="role"
+                          label="Rôle"
+                          isRequired
+                          defaultSelectedKeys={["USER"]}
+                        >
+                          <SelectItem key="USER">Utilisateur</SelectItem>
+                          <SelectItem key="MANAGER">Gestionnaire</SelectItem>
+                          <SelectItem key="ADMIN">Administrateur</SelectItem>
+                        </Select>
+                      </div>
+                      <Button
+                        type="submit"
+                        color="primary"
+                        isLoading={loading === "create-user"}
+                        className="w-full sm:w-auto"
+                      >
+                        Créer
+                      </Button>
+                    </form>
+                  </CardBody>
+                </Card>
+              </motion.div>
+
+              {/* Liste des utilisateurs */}
               <div className="space-y-4">
-                {data.users.map((user) => (
-                  <Card key={user.id} className="bg-default-100">
-                    <CardBody>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-foreground">{user.name}</p>
-                          <p className="text-sm text-foreground/60">{user.email}</p>
-                          <p className="text-xs text-foreground/50 mt-1">
-                            Rôle: {user.role} | Coffres: {user.coffreMembers.length}
-                          </p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={`px-2 py-1 rounded text-xs ${
-                              user.isActive
-                                ? "bg-success/20 text-success"
-                                : "bg-danger/20 text-danger"
-                            }`}
-                          >
-                            {user.isActive ? "Actif" : "Inactif"}
-                          </span>
-                        </div>
-                      </div>
+                {data.users.length === 0 ? (
+                  <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                    <CardBody className="p-8">
+                      <p className="text-foreground/60 text-center">
+                        Aucun utilisateur enregistré
+                      </p>
                     </CardBody>
                   </Card>
-                ))}
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      </Tab>
-
-      <Tab
-        key="coffres"
-        title="Coffres"
-      >
-        <div className="space-y-6">
-          <Card className="border-primary/30">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold text-primary">Créer un nouveau coffre</h3>
-              </div>
-              <p className="text-sm text-foreground/60 mt-2">
-                Ajoutez un nouveau coffre pour organiser vos fonds de caisse
-              </p>
-            </CardHeader>
-            <CardBody>
-              <form onSubmit={handleCreateCoffre} className="space-y-4">
-                <Input
-                  name="name"
-                  label="Nom du coffre"
-                  placeholder="Ex: Caisse principale, Caisse secondaire..."
-                  isRequired
-                />
-                <Textarea
-                  name="description"
-                  label="Description (optionnel)"
-                  placeholder="Ajoutez une description pour ce coffre..."
-                  minRows={3}
-                />
-                <Button
-                  type="submit"
-                  color="primary"
-                  isLoading={loading === "create-coffre"}
-                  startContent={<Wallet className="h-4 w-4" />}
-                >
-                  Créer le coffre
-                </Button>
-              </form>
-            </CardBody>
-          </Card>
-
-          <div>
-            <h2 className="text-xl font-bold text-primary mb-4">
-              Coffres existants ({data.coffres.length})
-            </h2>
-            {data.coffres.length === 0 ? (
-              <Card>
-                <CardBody className="py-8 text-center">
-                  <Wallet className="h-12 w-12 text-foreground/30 mx-auto mb-4" />
-                  <p className="text-foreground/60">
-                    Aucun coffre créé pour le moment. Créez-en un ci-dessus.
-                  </p>
-                </CardBody>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {data.coffres.map((coffre) => (
-                  <Card key={coffre.id}>
-                    <CardHeader>
-                      <h4 className="font-semibold">{coffre.name}</h4>
-                      {coffre.description && (
-                        <p className="text-sm text-foreground/60">
-                          {coffre.description}
-                        </p>
-                      )}
-                    </CardHeader>
-                    <CardBody className="space-y-4">
-                      <div className="text-sm text-foreground/60">
-                        <p>Mouvements: {coffre._count.movements}</p>
-                        <p>Inventaires: {coffre._count.inventories}</p>
-                        <p>Membres: {coffre.members.length}</p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Ajouter un membre</p>
-                        <div className="flex gap-2">
-                          <Select
-                            placeholder="Sélectionner un utilisateur"
-                            className="flex-1"
-                            id={`user-select-${coffre.id}`}
-                          >
-                            {data.users
-                              .filter(
-                                (u) =>
-                                  !coffre.members.some((m: any) => m.userId === u.id)
-                              )
-                              .map((user) => (
-                                <SelectItem key={user.id}>
-                                  {user.name} ({user.email})
-                                </SelectItem>
-                              ))}
-                          </Select>
-                          <Select
-                            defaultSelectedKeys={["MEMBER"]}
-                            id={`role-select-${coffre.id}`}
-                            className="w-32"
-                          >
-                            <SelectItem key="MEMBER">Membre</SelectItem>
-                            <SelectItem key="MANAGER">Gestionnaire</SelectItem>
-                            <SelectItem key="OWNER">Propriétaire</SelectItem>
-                          </Select>
-                          <Button
-                            size="sm"
-                            color="primary"
-                            isIconOnly
-                            onPress={() => {
-                              const userIdSelect = document.getElementById(
-                                `user-select-${coffre.id}`
-                              ) as any
-                              const roleSelect = document.getElementById(
-                                `role-select-${coffre.id}`
-                              ) as any
-                              const userId = userIdSelect?.value || userIdSelect?.selectedKeys?.values().next().value
-                              const role = roleSelect?.value || roleSelect?.selectedKeys?.values().next().value
-                              if (userId) {
-                                handleAddMember(coffre.id, userId, role || "MEMBER")
-                              }
-                            }}
-                            isLoading={loading?.startsWith("add-member")}
-                          >
-                            <Save className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium">Membres actuels</p>
-                        <div className="space-y-1">
-                          {coffre.members.map((member: any) => (
-                            <div
-                              key={member.id}
-                              className="flex items-center justify-between p-2 rounded-lg bg-default-100 border border-divider"
-                            >
-                              <span className="text-sm">{member.user.name}</span>
-                              <span className="text-xs text-foreground/60">
-                                {member.role}
-                              </span>
+                ) : (
+                  data.users.map((user) => (
+                    <motion.div
+                      key={user.id}
+                      whileHover={{ scale: 1.01 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="relative group"
+                    >
+                      <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+                      
+                      <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                        <CardBody className="p-5">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-3 mb-3">
+                                <div className={`p-2 rounded-lg ${
+                                  user.role === "ADMIN" 
+                                    ? "bg-danger/10" 
+                                    : user.role === "MANAGER"
+                                    ? "bg-warning/10"
+                                    : "bg-primary/10"
+                                }`}>
+                                  {user.role === "ADMIN" ? (
+                                    <Shield className="h-5 w-5 text-danger" />
+                                  ) : (
+                                    <User className="h-5 w-5 text-primary" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-semibold text-primary text-lg">{user.name}</p>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Mail className="h-3 w-3 text-foreground/50" />
+                                    <p className="text-sm text-foreground/70">{user.email}</p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 flex-wrap">
+                                <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                                  user.role === "ADMIN"
+                                    ? "bg-danger/20 text-danger"
+                                    : user.role === "MANAGER"
+                                    ? "bg-warning/20 text-warning"
+                                    : "bg-primary/20 text-primary"
+                                }`}>
+                                  {user.role}
+                                </span>
+                                <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                                  user.isActive
+                                    ? "bg-success/20 text-success"
+                                    : "bg-default-200 text-foreground/60"
+                                }`}>
+                                  {user.isActive ? "Actif" : "Inactif"}
+                                </span>
+                                <span className="text-xs text-foreground/50">
+                                  {user.coffreMembers.length} coffre{user.coffreMembers.length > 1 ? "s" : ""}
+                                </span>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    </CardBody>
-                  </Card>
-                ))}
+                          </div>
+                        </CardBody>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      </Tab>
-    </Tabs>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Formulaire de création de coffre */}
+              <motion.div
+                whileHover={{ scale: 1.01 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="relative group"
+              >
+                <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+                
+                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                  <CardBody className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <Wallet className="h-5 w-5 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-semibold text-primary">Créer un nouveau coffre</h3>
+                        <p className="text-sm text-foreground/60 mt-1">
+                          Ajoutez un nouveau coffre pour organiser vos fonds de caisse
+                        </p>
+                      </div>
+                    </div>
+                    <form onSubmit={handleCreateCoffre} className="space-y-4">
+                      <Input
+                        name="name"
+                        label="Nom du coffre"
+                        placeholder="Ex: Caisse principale, Caisse secondaire..."
+                        isRequired
+                      />
+                      <Textarea
+                        name="description"
+                        label="Description (optionnel)"
+                        placeholder="Ajoutez une description pour ce coffre..."
+                        minRows={3}
+                      />
+                      <Button
+                        type="submit"
+                        color="primary"
+                        isLoading={loading === "create-coffre"}
+                        startContent={<Wallet className="h-4 w-4" />}
+                        className="w-full sm:w-auto"
+                      >
+                        Créer le coffre
+                      </Button>
+                    </form>
+                  </CardBody>
+                </Card>
+              </motion.div>
+
+              {/* Liste des coffres */}
+              {data.coffres.length === 0 ? (
+                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                  <CardBody className="p-8 text-center">
+                    <Wallet className="h-12 w-12 text-foreground/30 mx-auto mb-4" />
+                    <p className="text-foreground/60">
+                      Aucun coffre créé pour le moment. Créez-en un ci-dessus.
+                    </p>
+                  </CardBody>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {data.coffres.map((coffre) => (
+                    <motion.div
+                      key={coffre.id}
+                      whileHover={{ scale: 1.02 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="relative group"
+                    >
+                      <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+                      
+                      <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border h-full">
+                        <CardBody className="p-5 space-y-4">
+                          {/* En-tête du coffre */}
+                          <div>
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 rounded-lg bg-primary/10">
+                                <Wallet className="h-5 w-5 text-primary" />
+                              </div>
+                              <h4 className="font-semibold text-primary text-lg">{coffre.name}</h4>
+                            </div>
+                            {coffre.description && (
+                              <p className="text-sm text-foreground/70 ml-11">
+                                {coffre.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Statistiques */}
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="text-center p-2 rounded-lg bg-default-200">
+                              <p className="text-xs text-foreground/60 mb-1">Mouvements</p>
+                              <p className="text-sm font-bold text-primary">{coffre._count.movements}</p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-default-200">
+                              <p className="text-xs text-foreground/60 mb-1">Inventaires</p>
+                              <p className="text-sm font-bold text-primary">{coffre._count.inventories}</p>
+                            </div>
+                            <div className="text-center p-2 rounded-lg bg-default-200">
+                              <p className="text-xs text-foreground/60 mb-1">Membres</p>
+                              <p className="text-sm font-bold text-primary">{coffre.members.length}</p>
+                            </div>
+                          </div>
+
+                          {/* Ajouter un membre */}
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium text-foreground/80">Ajouter un membre</p>
+                            <div className="flex gap-2">
+                              <Select
+                                placeholder="Sélectionner un utilisateur"
+                                className="flex-1"
+                                selectedKeys={selectedUsers[coffre.id] ? [selectedUsers[coffre.id]] : []}
+                                onSelectionChange={(keys) => {
+                                  const selected = Array.from(keys)[0] as string
+                                  setSelectedUsers((prev) => ({ ...prev, [coffre.id]: selected || "" }))
+                                }}
+                              >
+                                {data.users
+                                  .filter(
+                                    (u) =>
+                                      !coffre.members.some((m: any) => m.userId === u.id)
+                                  )
+                                  .map((user) => (
+                                    <SelectItem key={user.id}>
+                                      {user.name} ({user.email})
+                                    </SelectItem>
+                                  ))}
+                              </Select>
+                              <Select
+                                selectedKeys={selectedRoles[coffre.id] ? [selectedRoles[coffre.id]] : ["MEMBER"]}
+                                onSelectionChange={(keys) => {
+                                  const selected = Array.from(keys)[0] as string
+                                  setSelectedRoles((prev) => ({ ...prev, [coffre.id]: selected || "MEMBER" }))
+                                }}
+                                className="w-32"
+                              >
+                                <SelectItem key="MEMBER">Membre</SelectItem>
+                                <SelectItem key="MANAGER">Gestionnaire</SelectItem>
+                                <SelectItem key="OWNER">Propriétaire</SelectItem>
+                              </Select>
+                              <Button
+                                size="sm"
+                                color="primary"
+                                isIconOnly
+                                onPress={() => handleAddMember(coffre.id)}
+                                isLoading={loading === `add-member-${coffre.id}`}
+                              >
+                                <Save className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          {/* Membres actuels */}
+                          {coffre.members.length > 0 && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-foreground/80">Membres actuels</p>
+                              <div className="space-y-1">
+                                {coffre.members.map((member: any) => (
+                                  <div
+                                    key={member.id}
+                                    className="flex items-center justify-between p-2 rounded-lg bg-default-200 border border-divider"
+                                  >
+                                    <span className="text-sm text-foreground/90">{member.user.name}</span>
+                                    <span className={`text-xs px-2 py-0.5 rounded ${
+                                      member.role === "OWNER"
+                                        ? "bg-danger/20 text-danger"
+                                        : member.role === "MANAGER"
+                                        ? "bg-warning/20 text-warning"
+                                        : "bg-primary/20 text-primary"
+                                    }`}>
+                                      {member.role}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </CardBody>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
+    </div>
   )
 }

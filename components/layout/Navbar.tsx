@@ -12,7 +12,6 @@ import {
   History, 
   Settings, 
   LogOut,
-  User,
 } from "lucide-react"
 
 export function Navbar() {
@@ -52,20 +51,6 @@ export function Navbar() {
                 </Link>
               )
             })}
-
-            {/* Icône utilisateur flottante */}
-            <div className="flex items-center justify-center">
-              <motion.div
-                whileHover={{ scale: 1.3, y: -8 }}
-                whileTap={{ scale: 1.1 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-xl bg-default-100 hover:bg-default-200 border border-divider flex items-center justify-center transition-all shadow-sm hover:shadow-lg cursor-pointer"
-                style={{ transformOrigin: "center center" }}
-                title={session?.user?.name || "Utilisateur"}
-              >
-                <User className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-foreground" />
-              </motion.div>
-            </div>
 
             {/* Bouton déconnexion */}
             <div className="flex items-center justify-center">

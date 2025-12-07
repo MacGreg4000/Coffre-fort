@@ -9,7 +9,7 @@ async function getHistoriqueData(userId: string) {
   // Récupérer les coffres accessibles
   const userCoffres = await prisma.coffreMember.findMany({
     where: { userId },
-    select: { coffreId: true },
+    include: { coffre: true },
   })
   const coffreIds = userCoffres.map((uc) => uc.coffreId)
 
@@ -55,7 +55,11 @@ async function getHistoriqueData(userId: string) {
     })),
   }))
 
-  return { movements: serializedMovements, inventories: serializedInventories }
+  return { 
+    movements: serializedMovements, 
+    inventories: serializedInventories,
+    coffres: userCoffres.map((uc) => uc.coffre)
+  }
 }
 
 export default async function HistoriquePage() {
@@ -69,10 +73,6 @@ export default async function HistoriquePage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Historique</h1>
-        </div>
-
         <HistoriqueList data={data} />
       </div>
     </Layout>

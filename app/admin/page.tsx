@@ -52,10 +52,6 @@ export default async function AdminPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-1">Administration</h1>
-        </div>
-
         <AdminPanel data={data} />
       </div>
     </Layout>
