@@ -460,7 +460,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
         {/* Halo lumineux au survol */}
         <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
         
-        <Card>
+        <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
           <CardHeader>
             <h3 className="text-lg font-semibold">Évolution du solde</h3>
           </CardHeader>
@@ -482,6 +482,8 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                       },
                       tooltip: {
                         ...chartOptions.plugins.tooltip,
+                        backgroundColor: "rgba(18, 18, 20, 0.92)",
+                        borderColor: "rgba(59, 130, 246, 0.35)",
                         callbacks: {
                           label: (context: any) => {
                             return `Solde: ${formatCurrency(context.parsed.y)}`
@@ -508,7 +510,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           {/* Halo lumineux au survol */}
           <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
           
-          <Card>
+          <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
             <CardHeader>
               <h3 className="text-lg font-semibold">Répartition des billets</h3>
             </CardHeader>
@@ -541,7 +543,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           {/* Halo lumineux au survol */}
           <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
           
-          <Card>
+          <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <h3 className="text-lg font-semibold">Évolution du solde</h3>
               <div className="flex gap-2 flex-wrap">
@@ -618,7 +620,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           {/* Halo lumineux au survol */}
           <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
           
-          <Card>
+          <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
             <CardHeader>
               <h3 className="text-lg font-semibold">Répartition par coffre</h3>
             </CardHeader>
@@ -633,6 +635,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                       legend: {
                         ...chartOptions.plugins.legend,
                         position: "bottom" as const,
+                        labels: { color: "#a0aec0" },
                       },
                     },
                   }}
@@ -652,7 +655,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
             {/* Halo lumineux au survol */}
             <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
             
-            <Card>
+            <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
               <CardHeader>
                 <h3 className="text-lg font-semibold">Top utilisateurs (activité)</h3>
               </CardHeader>
@@ -663,12 +666,17 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                     options={{
                       ...chartOptions,
                       indexAxis: "y" as const,
-                      plugins: {
-                        ...chartOptions.plugins,
-                        legend: {
-                          display: false,
-                        },
+                    plugins: {
+                      ...chartOptions.plugins,
+                      legend: {
+                        display: false,
                       },
+                      tooltip: {
+                        ...chartOptions.plugins.tooltip,
+                        backgroundColor: "rgba(18, 18, 20, 0.92)",
+                        borderColor: "rgba(59, 130, 246, 0.35)",
+                      },
+                    },
                     }}
                   />
                 </div>

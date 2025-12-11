@@ -38,15 +38,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2 max-w-md w-full sm:w-auto">
+      <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-3 max-w-md w-full sm:w-auto pointer-events-none">
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
               key={toast.id}
-              initial={{ opacity: 0, y: 50, scale: 0.9 }}
+              initial={{ opacity: 0, y: 30, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.9 }}
-              className="p-4 rounded-lg border bg-background/95 backdrop-blur-sm shadow-lg flex items-start gap-3 min-w-[300px]"
+              exit={{ opacity: 0, y: -20, scale: 0.95 }}
+              className="pointer-events-auto p-4 rounded-xl border border-border/70 bg-card/80 backdrop-blur-xl shadow-[var(--shadow-2)] flex items-start gap-3 min-w-[300px]"
               style={{
                 borderColor:
                   toast.type === "success"
@@ -57,13 +57,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               }}
             >
               {toast.type === "success" && (
-                <CheckCircle2 className="h-5 w-5 text-green-400 flex-shrink-0 mt-0.5" />
+                <CheckCircle2 className="h-5 w-5 text-success flex-shrink-0 mt-0.5" />
               )}
               {toast.type === "error" && (
-                <XCircle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <XCircle className="h-5 w-5 text-danger flex-shrink-0 mt-0.5" />
               )}
               {toast.type === "info" && (
-                <AlertCircle className="h-5 w-5 text-vault-primary flex-shrink-0 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
               )}
               <p
                 className="flex-1 text-sm"

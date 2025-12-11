@@ -15,45 +15,43 @@ export function Select({
       className={cn("w-full", className)}
       classNames={{
         trigger: cn(
-          "h-12 min-h-12",
-          "px-4",
-          "bg-default-100 border-2 border-divider rounded-lg",
-          "hover:border-primary/70 hover:bg-default-200 hover:shadow-md",
-          "focus:border-primary focus:ring-2 focus:ring-primary/30 focus:shadow-lg",
-          "data-[open=true]:border-primary data-[open=true]:ring-2 data-[open=true]:ring-primary/30",
+          "min-h-[56px] px-4 py-3",
+          "rounded-2xl border border-primary/25 bg-gradient-to-br from-card/95 via-card/90 to-card/80 backdrop-blur",
+          "shadow-[var(--shadow-2)]",
+          "hover:border-primary/50 hover:shadow-[0_12px_35px_rgba(0,0,0,0.08)] hover:bg-primary/6",
+          "focus:border-primary focus:ring-2 focus:ring-primary/35 focus:shadow-[0_16px_40px_rgba(0,0,0,0.12)]",
+          "data-[open=true]:border-primary data-[open=true]:ring-2 data-[open=true]:ring-primary/40 data-[open=true]:shadow-[0_16px_40px_rgba(0,0,0,0.12)]",
           "transition-all duration-200",
-          "shadow-sm",
           classNames?.trigger
         ),
         value: cn(
           "text-base font-semibold text-foreground",
-          "px-0",
-          "group-data-[placeholder=true]:text-foreground/40 group-data-[placeholder=true]:font-normal",
+          "pl-1.5 pr-0",
+          "group-data-[placeholder=true]:text-foreground/55 group-data-[placeholder=true]:font-medium",
           classNames?.value
         ),
         label: cn(
-          "text-sm font-bold text-foreground/90 mb-1.5",
-          "px-0",
+          "text-sm font-semibold text-foreground/85 mb-1.5 pl-0.5 pr-0",
           classNames?.label
         ),
         popoverContent: cn(
-          "bg-default-100 border-2 border-divider shadow-xl",
-          "p-2",
+          "bg-card/95 backdrop-blur-2xl border border-primary/20 shadow-[var(--shadow-2)]",
+          "p-2 rounded-2xl",
           classNames?.popoverContent
         ),
         listbox: cn(
-          "p-2 gap-1",
+          "p-1.5 gap-1",
           classNames?.listbox
         ),
         selectorIcon: cn(
-          "text-foreground/50",
+          "text-foreground/60",
           classNames?.selectorIcon
         ),
         ...classNames,
       }}
       itemClasses={{
-        base: "px-3 py-2.5 rounded-md hover:bg-primary/10 focus:bg-primary/10 transition-colors",
-        title: "font-medium px-0",
+        base: "px-3 py-2.5 rounded-lg hover:bg-primary/10 focus:bg-primary/12 transition-all text-foreground/90",
+        title: "font-semibold px-0",
       }}
       {...props}
     />

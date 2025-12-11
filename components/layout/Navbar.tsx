@@ -6,21 +6,25 @@ import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@heroui/react"
-import { 
-  LayoutDashboard, 
-  Wallet, 
-  History, 
-  Settings, 
+import {
+  LayoutDashboard as LayoutDashboardIcon,
+  Wallet,
+  History,
+  Settings,
   LogOut,
+  SunMedium,
+  Moon,
 } from "lucide-react"
+import { useTheme } from "@/components/theme/theme-provider"
 
 export function Navbar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   const navItems = [
-    { href: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { href: "/dashboard", icon: LayoutDashboardIcon, label: "Dashboard" },
     { href: "/caisse", icon: Wallet, label: "Caisse" },
     { href: "/historique", icon: History, label: "Historique" },
     ...(session?.user?.role === "ADMIN"
@@ -53,7 +57,27 @@ export function Navbar() {
             })}
 
             {/* Bouton déconnexion */}
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-2">
+              <motion.div
+                whileHover={{ scale: 1.2, y: -6, rotate: 4 }}
+                whileTap={{ scale: 1.05 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                style={{ transformOrigin: "center center" }}
+              >
+                <Button
+                  variant="light"
+                  isIconOnly
+                  onPress={toggleTheme}
+                  className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-xl border border-divider hover:border-primary/40 hover:bg-primary/10"
+                  aria-label="Changer de thème"
+                >
+                  {theme === "dark" ? (
+                    <SunMedium className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-foreground/80" />
+                  ) : (
+                    <Moon className="h-4 w-4 sm:h-5 sm:w-5 md:h-6 md:w-6 text-foreground/80" />
+                  )}
+                </Button>
+              </motion.div>
               <motion.div
                 whileHover={{ scale: 1.3, y: -8 }}
                 whileTap={{ scale: 1.1 }}

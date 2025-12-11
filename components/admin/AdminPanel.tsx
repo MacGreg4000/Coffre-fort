@@ -125,7 +125,18 @@ export function AdminPanel({ data }: AdminPanelProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          <Shield className="h-4 w-4" />
+          Administration
+        </div>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Gestion des accès et coffres</h1>
+        <p className="text-foreground/70">
+          Créez des utilisateurs, affectez des rôles et gérez les coffres et membres avec une interface modernisée.
+        </p>
+      </div>
+
       {/* Onglets centrés avec effet de coulissement */}
       <div className="flex justify-center">
         <Tabs
@@ -178,7 +189,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
               >
                 <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                 
-                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                   <CardBody className="p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-2 rounded-lg bg-primary/10">
@@ -233,7 +244,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
               {/* Liste des utilisateurs */}
               <div className="space-y-4">
                 {data.users.length === 0 ? (
-                  <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                  <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                     <CardBody className="p-8">
                       <p className="text-foreground/60 text-center">
                         Aucun utilisateur enregistré
@@ -316,7 +327,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
               >
                 <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                 
-                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                   <CardBody className="p-6">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-2 rounded-lg bg-primary/10">
@@ -358,7 +369,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
               {/* Liste des coffres */}
               {data.coffres.length === 0 ? (
-                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                   <CardBody className="p-8 text-center">
                     <Wallet className="h-12 w-12 text-foreground/30 mx-auto mb-4" />
                     <p className="text-foreground/60">
@@ -377,7 +388,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                     >
                       <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                       
-                      <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border h-full">
+                      <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)] h-full">
                         <CardBody className="p-5 space-y-4">
                           {/* En-tête du coffre */}
                           <div>
@@ -463,13 +474,20 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
                           {/* Membres actuels */}
                           {coffre.members.length > 0 && (
-                            <div className="space-y-2">
+                            <motion.div
+                              layout
+                              className="space-y-2"
+                              transition={{ layout: { duration: 0.25, ease: "easeInOut" } }}
+                            >
                               <p className="text-sm font-medium text-foreground/80">Membres actuels</p>
                               <div className="space-y-1">
                                 {coffre.members.map((member: any) => (
-                                  <div
+                                  <motion.div
                                     key={member.id}
-                                    className="flex items-center justify-between p-2 rounded-lg bg-default-200 border border-divider"
+                                    initial={{ opacity: 0, y: 8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center justify-between p-2.5 rounded-lg bg-default-200 border border-divider shadow-sm"
+                                    whileHover={{ scale: 1.01 }}
                                   >
                                     <span className="text-sm text-foreground/90">{member.user.name}</span>
                                     <span className={`text-xs px-2 py-0.5 rounded ${
@@ -481,10 +499,10 @@ export function AdminPanel({ data }: AdminPanelProps) {
                                     }`}>
                                       {member.role}
                                     </span>
-                                  </div>
+                                  </motion.div>
                                 ))}
                               </div>
-                            </div>
+                            </motion.div>
                           )}
                         </CardBody>
                       </Card>

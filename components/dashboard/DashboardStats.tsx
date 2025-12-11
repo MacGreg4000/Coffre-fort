@@ -56,8 +56,8 @@ export function DashboardStats({ data }: DashboardStatsProps) {
   ]
 
   return (
-    <div className="space-y-6">
-      {/* KPI Cards - Design sobre et uniforme */}
+    <div className="space-y-8">
+      {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => {
           const Icon = stat.icon
@@ -71,16 +71,16 @@ export function DashboardStats({ data }: DashboardStatsProps) {
               {/* Halo lumineux au survol */}
               <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
               
-              <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border h-full">
-                <CardBody className="p-6 flex flex-col h-full">
+              <Card className="bg-card/70 backdrop-blur border border-border/60 h-full">
+                <CardBody className="p-5 sm:p-6 flex flex-col h-full">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 rounded-xl bg-primary/10">
+                    <div className="p-3 rounded-xl bg-primary/10 border border-primary/20">
                       <Icon className="h-6 w-6 text-primary" />
                     </div>
                   </div>
                   <div className="flex-1 flex flex-col justify-between">
                     <p className="text-sm text-foreground/60 mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold text-primary mb-1">
+                    <p className="text-3xl font-semibold text-primary mb-1">
                       {stat.value}
                     </p>
                     <p className="text-xs text-foreground/50 min-h-[16px]">

@@ -42,6 +42,9 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
   const [loading, setLoading] = useState(false)
   const [deletingMovementId, setDeletingMovementId] = useState<string | null>(null)
 
+  const totalMovements = data.movements.length
+  const totalInventories = data.inventories.length
+
   const handleExportPDF = async (type: "movement" | "inventory", id: string) => {
     try {
       const response = await fetch(`/api/pdf/export?type=${type}&id=${id}`)
@@ -175,31 +178,60 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
   }, [data.inventories, selectedCoffreId])
 
   return (
-    <div className="space-y-6">
-      {/* Filtre par coffre */}
-      {data.coffres.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <Select
-            label="Filtrer par coffre"
-            placeholder="Tous les coffres"
-            selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
-            onSelectionChange={(keys) => {
-              const selected = Array.from(keys)[0] as string
-              setSelectedCoffreId(selected || "")
-            }}
-            className="w-full sm:w-64"
-          >
-            <SelectItem key="">
-              Tous les coffres
-            </SelectItem>
-            {data.coffres.map((coffre) => (
-              <SelectItem key={coffre.id}>
-                {coffre.name}
-              </SelectItem>
-            ))}
-          </Select>
+    <div className="space-y-8">
+      {/* Hero */}
+      <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr] items-center">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <Activity className="h-4 w-4" />
+            Historique
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
+            Mouvements & Inventaires
+          </h1>
+          <p className="text-foreground/70">
+            Consultez et exportez vos mouvements, filtrez par coffre et parcourez les détails des billets.
+          </p>
+          {data.coffres.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <Select
+                label="Filtrer par coffre"
+                placeholder="Tous les coffres"
+                selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string
+                  setSelectedCoffreId(selected || "")
+                }}
+                className="w-full sm:w-72"
+              >
+                <SelectItem key="">
+                  Tous les coffres
+                </SelectItem>
+                {data.coffres.map((coffre) => (
+                  <SelectItem key={coffre.id}>
+                    {coffre.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          )}
         </div>
-      )}
+
+        <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
+          <CardBody className="p-5 sm:p-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-xs text-foreground/60">Mouvements</p>
+                <p className="text-2xl font-semibold text-primary">{totalMovements}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-xs text-foreground/60">Inventaires</p>
+                <p className="text-2xl font-semibold text-primary">{totalInventories}</p>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      </div>
 
       {/* Onglets centrés avec effet de coulissement */}
       <div className="flex justify-center">
@@ -246,7 +278,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
           {selectedTab === "movements" ? (
             <div className="space-y-4">
               {filteredMovements.length === 0 ? (
-                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                   <CardBody className="p-8">
                     <p className="text-foreground/60 text-center">
                       Aucun mouvement enregistré
@@ -269,7 +301,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                       {/* Halo lumineux au survol */}
                       <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                       
-                      <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                      <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                         <CardBody className="p-5">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">
@@ -319,28 +351,42 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                               {movement.details.length > 0 && (
                                 <div>
                                   {movement.details.length <= 3 ? (
-                                    <div className="flex flex-wrap gap-2">
-                                      {movement.details.map((detail: any) => (
-                                        <span
-                                          key={detail.id}
-                                          className="text-xs px-2.5 py-1 rounded-lg bg-default-200 border border-divider text-foreground/80"
-                                        >
-                                          {detail.quantity}x {formatCurrency(Number(detail.denomination))}
-                                        </span>
-                                      ))}
-                                    </div>
+                  <motion.div
+                    layout
+                    className="flex flex-wrap gap-2"
+                    transition={{ layout: { duration: 0.2, ease: "easeInOut" } }}
+                  >
+                    {movement.details.map((detail: any) => (
+                      <motion.span
+                        key={detail.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs px-2.5 py-1 rounded-lg bg-default-200 border border-divider text-foreground/80 shadow-sm"
+                        whileHover={{ scale: 1.05 }}
+                      >
+                        {detail.quantity}x {formatCurrency(Number(detail.denomination))}
+                      </motion.span>
+                    ))}
+                  </motion.div>
                                   ) : (
                                     <>
-                                      <div className="flex flex-wrap gap-2 mb-2">
+                                      <motion.div
+                                        layout
+                                        className="flex flex-wrap gap-2 mb-2"
+                                        transition={{ layout: { duration: 0.2, ease: "easeInOut" } }}
+                                      >
                                         {movement.details.slice(0, 3).map((detail: any) => (
-                                          <span
+                                          <motion.span
                                             key={detail.id}
-                                            className="text-xs px-2.5 py-1 rounded-lg bg-default-200 border border-divider text-foreground/80"
+                                            initial={{ opacity: 0, y: 6 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="text-xs px-2.5 py-1 rounded-lg bg-default-200 border border-divider text-foreground/80 shadow-sm"
+                                            whileHover={{ scale: 1.05 }}
                                           >
                                             {detail.quantity}x {formatCurrency(Number(detail.denomination))}
-                                          </span>
+                                          </motion.span>
                                         ))}
-                                      </div>
+                                      </motion.div>
                                       <Button
                                         variant="light"
                                         size="sm"
@@ -432,7 +478,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
           ) : (
             <div className="space-y-4">
               {filteredInventories.length === 0 ? (
-                <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                   <CardBody className="p-8">
                     <p className="text-foreground/60 text-center">
                       Aucun inventaire enregistré
@@ -453,7 +499,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                       {/* Halo lumineux au survol */}
                       <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                       
-                      <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
+                      <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                         <CardBody className="p-5">
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex-1 min-w-0">

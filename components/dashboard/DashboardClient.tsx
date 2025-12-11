@@ -6,7 +6,7 @@ import { Card, CardBody } from "@heroui/react"
 import { DashboardStats } from "./DashboardStats"
 import { Spinner } from "@heroui/react"
 import { formatCurrency } from "@/lib/utils"
-import { Wallet } from "lucide-react"
+import { Wallet, LayoutDashboard } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface DashboardClientProps {
@@ -116,76 +116,85 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Montant total global de tous les coffres - Design compact */}
-      {coffresBalances.length > 0 && (
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="relative group"
-        >
-          {/* Halo lumineux au survol */}
-          <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-          
-          <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
-            <CardBody className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Wallet className="h-4 w-4 text-primary" />
+    <div className="space-y-8">
+      {/* Hero header */}
+      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] items-center">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <LayoutDashboard className="h-4 w-4" />
+            Vue d’ensemble
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
+            Dashboard financier
+          </h1>
+          <p className="text-foreground/70">
+            Visualisez vos coffres, balances et indicateurs clés avec une interface fluide et responsive.
+          </p>
+          {initialCoffres.length > 0 && (
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <Select
+                label="Filtrer par coffre"
+                placeholder="Tous les coffres"
+                selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string
+                  setSelectedCoffreId(selected || "")
+                }}
+                className="w-full sm:w-72"
+              >
+                <SelectItem key="">
+                  Tous les coffres
+                </SelectItem>
+                {initialCoffres.map((coffre) => (
+                  <SelectItem key={coffre.id}>
+                    {coffre.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            </div>
+          )}
+        </div>
+
+        {coffresBalances.length > 0 && (
+          <motion.div
+            whileHover={{ scale: 1.015 }}
+            transition={{ type: "spring", stiffness: 280, damping: 20 }}
+            className="relative group"
+          >
+            <div className="absolute -inset-0.5 bg-primary/15 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+            <Card className="bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20">
+              <CardBody className="p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-primary/15 border border-primary/20">
+                      <Wallet className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-foreground/60 mb-1">Montant total</p>
+                      <p className="text-2xl font-semibold text-primary">
+                        {formatCurrency(totalBalance)}
+                      </p>
+                      <p className="text-xs text-foreground/50">
+                        {coffresBalances.length} coffre{coffresBalances.length > 1 ? "s" : ""}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-foreground/60 mb-0.5">Montant total</p>
-                    <p className="text-xl font-bold text-primary">
-                      {formatCurrency(totalBalance)}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Détail par coffre - compact */}
-                {coffresBalances.length > 1 && (
-                  <div className="text-right">
-                    <div className="space-y-1">
+                  {coffresBalances.length > 1 && (
+                    <div className="text-right text-xs text-foreground/60 space-y-1">
                       {coffresBalances.map((cb) => (
-                        <div key={cb.coffreId} className="flex items-center gap-2 text-xs">
-                          <span className="text-foreground/60">{cb.coffreName}:</span>
-                          <span className="font-semibold text-primary">
-                            {formatCurrency(cb.balance)}
-                          </span>
+                        <div key={cb.coffreId} className="flex items-center gap-2 justify-end">
+                          <span>{cb.coffreName}:</span>
+                          <span className="font-semibold text-primary">{formatCurrency(cb.balance)}</span>
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-              </div>
-            </CardBody>
-          </Card>
-        </motion.div>
-      )}
-
-      {initialCoffres.length > 0 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <Select
-            label="Filtrer par coffre"
-            placeholder="Tous les coffres"
-            selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
-            onSelectionChange={(keys) => {
-              const selected = Array.from(keys)[0] as string
-              setSelectedCoffreId(selected || "")
-            }}
-            className="w-full sm:w-64"
-          >
-            <SelectItem key="">
-              Tous les coffres
-            </SelectItem>
-            {initialCoffres.map((coffre) => (
-              <SelectItem key={coffre.id}>
-                {coffre.name}
-              </SelectItem>
-            ))}
-          </Select>
-        </div>
-      )}
+                  )}
+                </div>
+              </CardBody>
+            </Card>
+          </motion.div>
+        )}
+      </div>
 
       <DashboardStats data={data} />
     </div>

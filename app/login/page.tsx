@@ -51,29 +51,33 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-10 -top-10 h-64 w-64 rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute right-0 top-20 h-64 w-64 rounded-full bg-accent/15 blur-[120px]" />
+      </div>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative z-10"
       >
-        <Card>
-          <CardHeader className="text-center">
+        <Card className="bg-card/70 backdrop-blur-xl border border-border/60 shadow-[var(--shadow-2)]">
+          <CardHeader className="text-center space-y-2">
             <motion.div
               initial={{ rotate: -10 }}
               animate={{ rotate: 0 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className="flex justify-center mb-4"
+              className="flex justify-center mb-2"
             >
-              <Wallet className="h-16 w-16 text-primary" />
+              <Wallet className="h-14 w-14 text-primary" />
             </motion.div>
-            <h1 className="text-3xl font-bold">SafeGuard</h1>
-            <p className="text-foreground/70 mt-2">
+            <h1 className="text-3xl font-semibold text-foreground">SafeGuard</h1>
+            <p className="text-foreground/70 mt-1">
               Connectez-vous pour accéder à votre espace
             </p>
           </CardHeader>
-          <CardBody>
+          <CardBody className="space-y-4">
             {setupSuccess && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}

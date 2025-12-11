@@ -159,74 +159,88 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
 
   return (
     <div className="space-y-6">
-      {/* Sélection du coffre */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <Select
-          label="Coffre"
-          placeholder="Sélectionnez un coffre"
-          isRequired
-          selectedKeys={selectedCoffre ? [selectedCoffre] : []}
-          onSelectionChange={(keys) => {
-            const selected = Array.from(keys)[0] as string
-            setSelectedCoffre(selected || null)
-          }}
-          className="w-full sm:w-64"
-        >
-          {coffres.map((coffre) => (
-            <SelectItem key={coffre.id}>
-              {coffre.name}
-            </SelectItem>
-          ))}
-        </Select>
-      </div>
+      {/* En-tête */}
+      <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr] items-center">
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+            <Wallet className="h-4 w-4" />
+            Gestion des mouvements
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
+            Encodage caisse
+          </h1>
+          <p className="text-foreground/70">
+            Choisissez un coffre, encodez un inventaire ou un mouvement avec un aperçu clair
+            du total saisi. L’interface est fluide et responsive.
+          </p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <Select
+              label="Coffre"
+              placeholder="Sélectionnez un coffre"
+              isRequired
+              selectedKeys={selectedCoffre ? [selectedCoffre] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string
+                setSelectedCoffre(selected || null)
+              }}
+              className="w-full sm:w-72"
+            >
+              {coffres.map((coffre) => (
+                <SelectItem key={coffre.id}>
+                  {coffre.name}
+                </SelectItem>
+              ))}
+            </Select>
+          </div>
+        </div>
 
-      {/* Montant global - Centré sur la page */}
-      {selectedCoffre && (
-        <div className="flex justify-center">
+        {selectedCoffre && (
           <motion.div
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            whileHover={{ scale: 1.015 }}
+            transition={{ type: "spring", stiffness: 260, damping: 22 }}
             className="relative group"
           >
-            {/* Halo lumineux au survol */}
-            <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-            
-            <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
-              <CardBody className="p-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Wallet className="h-4 w-4 text-primary" />
+            <div className="absolute -inset-0.5 bg-primary/15 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+            <Card className="bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 shadow-[var(--shadow-1)]">
+              <CardBody className="p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-primary/15 border border-primary/20">
+                      <Wallet className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-foreground/60 mb-1">Montant actuel</p>
+                      <p className="text-2xl font-semibold text-primary">
+                        {loadingBalance ? (
+                          <span className="text-foreground/30 animate-pulse">Chargement...</span>
+                        ) : balance !== null ? (
+                          formatCurrency(balance)
+                        ) : (
+                          <span className="text-foreground/30">0,00 €</span>
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-xs text-foreground/60 mb-0.5">Montant actuel</p>
-                    <p className="text-xl font-bold text-primary">
-                      {loadingBalance ? (
-                        <span className="text-foreground/30 animate-pulse">Chargement...</span>
-                      ) : balance !== null ? (
-                        formatCurrency(balance)
-                      ) : (
-                        <span className="text-foreground/30">0,00 €</span>
-                      )}
-                    </p>
+                  <div className="text-right text-xs text-foreground/50">
+                    Utilisateur : <span className="font-semibold text-foreground/80">{userId}</span>
                   </div>
                 </div>
               </CardBody>
             </Card>
           </motion.div>
-        </div>
-      )}
+        )}
+      </div>
 
       {selectedCoffre && (
         <motion.div
-          whileHover={{ scale: 1.01 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          whileHover={{ scale: 1.005 }}
+          transition={{ type: "spring", stiffness: 260, damping: 22 }}
           className="relative group"
         >
-          {/* Halo lumineux au survol */}
-          <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+          <div className="absolute -inset-0.5 bg-primary/15 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
           
-          <Card className="bg-gradient-to-br from-default-100 to-default-50 border-divider border">
-            <CardBody className="p-6 space-y-6">
+          <Card className="bg-card/70 backdrop-blur-lg border border-border/60 shadow-[var(--shadow-1)]">
+            <CardBody className="p-5 sm:p-6 space-y-6">
               {/* Mode sélection avec Tabs HeroUI - Centré */}
               <div className="flex justify-center">
                 <Tabs
@@ -234,7 +248,7 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   onSelectionChange={(key) => setMode(key as Mode)}
                   aria-label="Mode de saisie"
                   classNames={{
-                    base: "w-full max-w-md",
+                    base: "w-full max-w-xl",
                     tabList: "w-full",
                     tab: "flex-1",
                   }}
@@ -273,39 +287,36 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
               <AnimatePresence mode="wait">
                 <motion.div
                   key={mode}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.25, ease: "easeInOut" }}
+                  className="space-y-5"
                 >
-                  <div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                      {BILLET_DENOMINATIONS.map((denomination) => (
-                        <BilletInput
-                          key={denomination}
-                          denomination={denomination}
-                          quantity={billets[denomination] || 0}
-                          onChange={handleBilletChange}
-                        />
-                      ))}
-                    </div>
-
-                    <Card className="mt-4 bg-default-100 border-divider border">
-                      <CardBody className="p-4">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-foreground/70">
-                            Total saisi:
-                          </span>
-                          <span className="text-2xl font-bold text-primary">
-                            {formatCurrency(calculateTotal())}
-                          </span>
-                        </div>
-                      </CardBody>
-                    </Card>
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                    {BILLET_DENOMINATIONS.map((denomination) => (
+                      <BilletInput
+                        key={denomination}
+                        denomination={denomination}
+                        quantity={billets[denomination] || 0}
+                        onChange={handleBilletChange}
+                      />
+                    ))}
                   </div>
 
+                  <Card className="bg-muted/40 border border-border/60">
+                    <CardBody className="p-4 flex items-center justify-between">
+                      <span className="text-sm font-medium text-foreground/80">
+                        Total saisi
+                      </span>
+                      <span className="text-2xl font-bold text-primary">
+                        {formatCurrency(calculateTotal())}
+                      </span>
+                    </CardBody>
+                  </Card>
+
                   {/* Description et bouton */}
-                  <div className="space-y-4 mt-6">
+                  <div className="space-y-4">
                     <Textarea
                       label="Description (optionnel)"
                       value={description}

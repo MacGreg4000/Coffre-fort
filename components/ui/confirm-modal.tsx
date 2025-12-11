@@ -34,7 +34,18 @@ export function ConfirmModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onOpenChange={onOpenChange} size="md">
+    <Modal
+      isOpen={isOpen}
+      onOpenChange={onOpenChange}
+      size="md"
+      backdrop="blur"
+      classNames={{
+        base: "bg-card/80 backdrop-blur-xl border border-border/70 shadow-[var(--shadow-2)] rounded-2xl",
+        header: "px-5 pt-5 pb-2",
+        body: "px-5 pb-2",
+        footer: "px-5 pb-4",
+      }}
+    >
       <ModalContent>
         {(onClose) => (
           <>
@@ -47,7 +58,7 @@ export function ConfirmModal({
               </div>
             </ModalHeader>
             <ModalBody>
-              <p className="text-foreground/80">{message}</p>
+              <p className="text-foreground/80 leading-relaxed">{message}</p>
             </ModalBody>
             <ModalFooter>
               <Button variant="light" onPress={onClose} isDisabled={isLoading}>
