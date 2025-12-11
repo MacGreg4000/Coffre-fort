@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { Card, CardBody } from "@heroui/react"
 import { Button } from "@heroui/react"
-import { Select, SelectItem } from "@heroui/react"
+import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { Tabs, Tab } from "@heroui/react"
 import { BilletInput } from "./BilletInput"
 import { formatCurrency, BILLET_DENOMINATIONS } from "@/lib/utils"
@@ -24,9 +24,7 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
-  const [selectedCoffre, setSelectedCoffre] = useState<string | null>(
-    coffres[0]?.id || null
-  )
+  const [selectedCoffre, setSelectedCoffre] = useState<string | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
   const [loadingBalance, setLoadingBalance] = useState(false)
 
@@ -85,7 +83,10 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
   }
 
   const handleSubmit = async () => {
-    if (!selectedCoffre) return
+    if (!selectedCoffre) {
+      showToast("Veuillez sélectionner un coffre avant d'enregistrer un mouvement", "error")
+      return
+    }
 
     setLoading(true)
     try {
@@ -120,7 +121,10 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
   }
 
   const handleInventory = async () => {
-    if (!selectedCoffre) return
+    if (!selectedCoffre) {
+      showToast("Veuillez sélectionner un coffre avant d'enregistrer un inventaire", "error")
+      return
+    }
 
     setLoading(true)
     try {
@@ -159,6 +163,8 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <Select
           label="Coffre"
+          placeholder="Sélectionnez un coffre"
+          isRequired
           selectedKeys={selectedCoffre ? [selectedCoffre] : []}
           onSelectionChange={(keys) => {
             const selected = Array.from(keys)[0] as string

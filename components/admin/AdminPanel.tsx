@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Card, CardBody } from "@heroui/react"
 import { Button } from "@heroui/react"
 import { Input } from "@heroui/react"
-import { Select, SelectItem } from "@heroui/react"
+import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { Tabs, Tab } from "@heroui/react"
 import { UserPlus, Wallet, Save, Users, Shield, Mail, User } from "lucide-react"
 import { useRouter } from "next/navigation"
@@ -209,6 +209,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                           name="role"
                           label="Rôle"
                           isRequired
+                          placeholder="Sélectionnez un rôle"
                           defaultSelectedKeys={["USER"]}
                         >
                           <SelectItem key="USER">Utilisateur</SelectItem>
@@ -414,6 +415,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                             <p className="text-sm font-medium text-foreground/80">Ajouter un membre</p>
                             <div className="flex gap-2">
                               <Select
+                                label="Utilisateur"
                                 placeholder="Sélectionner un utilisateur"
                                 className="flex-1"
                                 selectedKeys={selectedUsers[coffre.id] ? [selectedUsers[coffre.id]] : []}
@@ -434,12 +436,14 @@ export function AdminPanel({ data }: AdminPanelProps) {
                                   ))}
                               </Select>
                               <Select
+                                label="Rôle"
+                                placeholder="Rôle"
                                 selectedKeys={selectedRoles[coffre.id] ? [selectedRoles[coffre.id]] : ["MEMBER"]}
                                 onSelectionChange={(keys) => {
                                   const selected = Array.from(keys)[0] as string
                                   setSelectedRoles((prev) => ({ ...prev, [coffre.id]: selected || "MEMBER" }))
                                 }}
-                                className="w-32"
+                                className="w-40"
                               >
                                 <SelectItem key="MEMBER">Membre</SelectItem>
                                 <SelectItem key="MANAGER">Gestionnaire</SelectItem>

@@ -4,11 +4,17 @@ import { useState, useMemo } from "react"
 import { Card, CardBody } from "@heroui/react"
 import { Button } from "@heroui/react"
 import { Tabs, Tab } from "@heroui/react"
-import { Select, SelectItem } from "@heroui/react"
-import { formatCurrency, formatDate } from "@/lib/utils"
-import { FileText, Plus, Minus, Download, ChevronDown, ChevronUp, Activity } from "lucide-react"
+import { Select, SelectItem } from "@/components/ui/select-heroui"
+import { Input } from "@heroui/react"
+import { Textarea } from "@heroui/react"
+import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react"
+import { formatCurrency, formatDate, BILLET_DENOMINATIONS } from "@/lib/utils"
+import { FileText, Plus, Minus, Download, ChevronDown, ChevronUp, Activity, Edit, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import { motion, AnimatePresence } from "framer-motion"
+import { useSession } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { BilletInput } from "@/components/caisse/BilletInput"
 
 interface HistoriqueListProps {
   data: {
@@ -20,9 +26,19 @@ interface HistoriqueListProps {
 
 export function HistoriqueList({ data }: HistoriqueListProps) {
   const { showToast } = useToast()
+  const router = useRouter()
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.role === "ADMIN"
   const [selectedTab, setSelectedTab] = useState<string>("movements")
   const [selectedCoffreId, setSelectedCoffreId] = useState<string>("")
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+  const { isOpen, onOpen, onClose } = useDisclosure()
+  const [editingMovement, setEditingMovement] = useState<any>(null)
+  const [editBillets, setEditBillets] = useState<Record<number, number>>({})
+  const [editType, setEditType] = useState<"ENTRY" | "EXIT">("ENTRY")
+  const [editDescription, setEditDescription] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [deletingMovementId, setDeletingMovementId] = useState<string | null>(null)
 
   const handleExportPDF = async (type: "movement" | "inventory", id: string) => {
     try {
@@ -58,6 +74,85 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
     })
   }
 
+  const handleEditMovement = (movement: any) => {
+    setEditingMovement(movement)
+    setEditType(movement.type)
+    setEditDescription(movement.description || "")
+    
+    // Initialiser les billets depuis les détails
+    const billets: Record<number, number> = {}
+    movement.details.forEach((detail: any) => {
+      billets[Number(detail.denomination)] = detail.quantity
+    })
+    setEditBillets(billets)
+    onOpen()
+  }
+
+  const handleUpdateMovement = async (onCloseModal: () => void) => {
+    if (!editingMovement) return
+
+    setLoading(true)
+    try {
+      const response = await fetch(`/api/movements/${editingMovement.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: editType,
+          billets: editBillets,
+          description: editDescription,
+        }),
+      })
+
+      if (response.ok) {
+        router.refresh()
+        onCloseModal()
+        setEditingMovement(null)
+        setEditBillets({})
+        setEditDescription("")
+        showToast("Mouvement modifié avec succès!", "success")
+      } else {
+        const error = await response.json()
+        showToast(`Erreur: ${error.error || "Une erreur est survenue"}`, "error")
+      }
+    } catch (error) {
+      showToast("Erreur lors de la modification", "error")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDeleteMovement = async (movementId: string) => {
+    if (!confirm("Êtes-vous sûr de vouloir supprimer ce mouvement ? Cette action est irréversible.")) {
+      return
+    }
+
+    setDeletingMovementId(movementId)
+    try {
+      const response = await fetch(`/api/movements/${movementId}`, {
+        method: "DELETE",
+      })
+
+      if (response.ok) {
+        router.refresh()
+        showToast("Mouvement supprimé avec succès!", "success")
+      } else {
+        const error = await response.json()
+        showToast(`Erreur: ${error.error || "Une erreur est survenue"}`, "error")
+      }
+    } catch (error) {
+      showToast("Erreur lors de la suppression", "error")
+    } finally {
+      setDeletingMovementId(null)
+    }
+  }
+
+  const handleBilletChange = (denomination: number, quantity: number) => {
+    setEditBillets((prev) => ({
+      ...prev,
+      [denomination]: quantity,
+    }))
+  }
+
   // Filtrer les données par coffre
   const filteredMovements = useMemo(() => {
     if (!selectedCoffreId) return data.movements
@@ -76,6 +171,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <Select
             label="Filtrer par coffre"
+            placeholder="Tous les coffres"
             selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
             onSelectionChange={(keys) => {
               const selected = Array.from(keys)[0] as string
@@ -283,16 +379,40 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                               </p>
                             </div>
 
-                            {/* Bouton d'export PDF */}
-                            <Button
-                              variant="light"
-                              size="sm"
-                              isIconOnly
-                              onPress={() => handleExportPDF("movement", movement.id)}
-                              className="flex-shrink-0"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            {/* Boutons d'action */}
+                            <div className="flex gap-2 flex-shrink-0">
+                              <Button
+                                variant="light"
+                                size="sm"
+                                isIconOnly
+                                onPress={() => handleExportPDF("movement", movement.id)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                              {isAdmin && (
+                                <>
+                                  <Button
+                                    variant="light"
+                                    size="sm"
+                                    isIconOnly
+                                    color="warning"
+                                    onPress={() => handleEditMovement(movement)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="light"
+                                    size="sm"
+                                    isIconOnly
+                                    color="danger"
+                                    onPress={() => handleDeleteMovement(movement.id)}
+                                    isLoading={deletingMovementId === movement.id}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </CardBody>
                       </Card>
@@ -444,6 +564,85 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* Modal d'édition de mouvement */}
+      <Modal isOpen={isOpen} onOpenChange={onClose} size="2xl" scrollBehavior="inside">
+        <ModalContent>
+          {(onClose) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Modifier le mouvement
+              </ModalHeader>
+              <ModalBody>
+                {editingMovement && (
+                  <div className="space-y-4">
+                    <Select
+                      label="Type de mouvement"
+                      selectedKeys={[editType]}
+                      onSelectionChange={(keys) => {
+                        const selected = Array.from(keys)[0] as string
+                        setEditType(selected as "ENTRY" | "EXIT")
+                      }}
+                      className="w-full"
+                    >
+                      <SelectItem key="ENTRY">Entrée (Ajout)</SelectItem>
+                      <SelectItem key="EXIT">Sortie (Retrait)</SelectItem>
+                    </Select>
+
+                    <Textarea
+                      label="Description (optionnel)"
+                      value={editDescription}
+                      onValueChange={setEditDescription}
+                      placeholder="Ajoutez une description..."
+                      minRows={2}
+                    />
+
+                    <div>
+                      <p className="text-sm font-medium mb-3">Billets</p>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                        {BILLET_DENOMINATIONS.map((denomination) => (
+                          <BilletInput
+                            key={denomination}
+                            denomination={denomination}
+                            quantity={editBillets[denomination] || 0}
+                            onChange={handleBilletChange}
+                          />
+                        ))}
+                      </div>
+                      <div className="mt-4 p-3 rounded-lg bg-default-100">
+                        <p className="text-sm text-foreground/60 mb-1">Total</p>
+                        <p className={`text-xl font-bold ${
+                          editType === "ENTRY" ? "text-success" : "text-danger"
+                        }`}>
+                          {editType === "ENTRY" ? "+" : "-"}
+                          {formatCurrency(
+                            Object.entries(editBillets).reduce(
+                              (sum, [denom, qty]) => sum + parseFloat(denom) * qty,
+                              0
+                            )
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={onClose}>
+                  Annuler
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={() => handleUpdateMovement(onClose)}
+                  isLoading={loading}
+                >
+                  Enregistrer
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
     </div>
   )
 }

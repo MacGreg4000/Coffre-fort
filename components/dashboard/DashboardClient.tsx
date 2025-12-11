@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Select, SelectItem } from "@heroui/react"
+import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { Card, CardBody } from "@heroui/react"
 import { DashboardStats } from "./DashboardStats"
 import { Spinner } from "@heroui/react"
@@ -162,6 +162,7 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <Select
             label="Filtrer par coffre"
+            placeholder="Tous les coffres"
             selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
             onSelectionChange={(keys) => {
               const selected = Array.from(keys)[0] as string
