@@ -51,18 +51,23 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
             const res = await fetch(`/api/coffres/balance?coffreId=${coffre.id}`)
             if (res.ok) {
               const data = await res.json()
+              const balance = data.balance || 0
               return {
                 coffreId: coffre.id,
                 coffreName: coffre.name,
-                balance: data.balance || 0,
+                balance: balance,
+              }
+            } else {
+              const errorData = await res.json().catch(() => ({}))
+              console.error(`Erreur API pour ${coffre.name} (${res.status}):`, errorData)
+              return {
+                coffreId: coffre.id,
+                coffreName: coffre.name,
+                balance: 0,
               }
             }
-            return {
-              coffreId: coffre.id,
-              coffreName: coffre.name,
-              balance: 0,
-            }
-          } catch {
+          } catch (error) {
+            console.error(`Erreur fetch pour ${coffre.name}:`, error)
             return {
               coffreId: coffre.id,
               coffreName: coffre.name,
@@ -170,16 +175,14 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
             }}
             className="w-full sm:w-64"
           >
-            {[
-              <SelectItem key="">
-                Tous les coffres
-              </SelectItem>,
-              ...initialCoffres.map((coffre) => (
-                <SelectItem key={coffre.id}>
-                  {coffre.name}
-                </SelectItem>
-              )),
-            ]}
+            <SelectItem key="">
+              Tous les coffres
+            </SelectItem>
+            {initialCoffres.map((coffre) => (
+              <SelectItem key={coffre.id}>
+                {coffre.name}
+              </SelectItem>
+            ))}
           </Select>
         </div>
       )}

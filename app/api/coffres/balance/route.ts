@@ -40,33 +40,55 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
     })
 
-    // Si pas d'inventaire, retourner 0
-    if (!lastInventory) {
-      return NextResponse.json({ balance: 0, lastInventoryDate: null })
+    let balance = 0
+    let lastInventoryDate = null
+    let lastInventoryAmount = 0
+
+    if (lastInventory) {
+      // Si on a un inventaire, l'utiliser comme point de départ
+      balance = Number(lastInventory.totalAmount)
+      lastInventoryDate = lastInventory.createdAt
+      lastInventoryAmount = Number(lastInventory.totalAmount)
+
+      // Calculer le solde : dernier inventaire + entrées - sorties depuis le dernier inventaire
+      const movements = await prisma.movement.findMany({
+        where: {
+          coffreId,
+          createdAt: { gte: lastInventory.createdAt },
+          type: { in: ["ENTRY", "EXIT"] },
+        },
+      })
+
+      movements.forEach((movement) => {
+        if (movement.type === "ENTRY") {
+          balance += Number(movement.amount)
+        } else if (movement.type === "EXIT") {
+          balance -= Number(movement.amount)
+        }
+      })
+    } else {
+      // Pas d'inventaire : calculer la balance à partir de tous les mouvements
+      const allMovements = await prisma.movement.findMany({
+        where: {
+          coffreId,
+          type: { in: ["ENTRY", "EXIT"] },
+        },
+        orderBy: { createdAt: "asc" },
+      })
+
+      allMovements.forEach((movement) => {
+        if (movement.type === "ENTRY") {
+          balance += Number(movement.amount)
+        } else if (movement.type === "EXIT") {
+          balance -= Number(movement.amount)
+        }
+      })
     }
-
-    // Calculer le solde : dernier inventaire + entrées - sorties depuis le dernier inventaire
-    const movements = await prisma.movement.findMany({
-      where: {
-        coffreId,
-        createdAt: { gte: lastInventory.createdAt },
-        type: { in: ["ENTRY", "EXIT"] },
-      },
-    })
-
-    let balance = Number(lastInventory.totalAmount)
-    movements.forEach((movement) => {
-      if (movement.type === "ENTRY") {
-        balance += Number(movement.amount)
-      } else if (movement.type === "EXIT") {
-        balance -= Number(movement.amount)
-      }
-    })
 
     return NextResponse.json({
       balance,
-      lastInventoryDate: lastInventory.createdAt,
-      lastInventoryAmount: Number(lastInventory.totalAmount),
+      lastInventoryDate,
+      lastInventoryAmount,
     })
   } catch (error: any) {
     console.error("Erreur calcul balance:", error)
@@ -76,5 +98,7 @@ export async function GET(req: NextRequest) {
     )
   }
 }
+
+
 
 

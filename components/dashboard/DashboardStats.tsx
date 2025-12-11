@@ -16,6 +16,9 @@ interface DashboardStatsProps {
     statsByCoffre: any[]
     coffres: any[]
     monthlyActivity?: any[]
+    allMovements?: any[]
+    allInventories?: any[]
+    totalBalance?: number
   }
 }
 

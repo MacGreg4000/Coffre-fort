@@ -1,6 +1,8 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import { Card, CardHeader, CardBody } from "@heroui/react"
+import { Button } from "@heroui/react"
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -17,6 +19,7 @@ import {
 import { Line, Bar, Doughnut } from "react-chartjs-2"
 import { formatCurrency } from "@/lib/utils"
 import { motion } from "framer-motion"
+import { subDays, subMonths, subYears, format } from "date-fns"
 
 ChartJS.register(
   CategoryScale,
@@ -39,8 +42,13 @@ interface DashboardChartsProps {
     monthlyActivity?: any[]
     billDistribution?: any[]
     topUsers?: any[]
+    allMovements?: any[] // Tous les mouvements pour l'évolution du solde
+    allInventories?: any[] // Tous les inventaires pour l'évolution du solde
+    totalBalance?: number // Solde total pour l'échelle Y
   }
 }
+
+type TimePeriod = "1d" | "1w" | "1m" | "1y" | "5y"
 
 const chartOptions = {
   responsive: true,
@@ -77,6 +85,7 @@ const chartOptions = {
 }
 
 export function DashboardCharts({ data }: DashboardChartsProps) {
+  const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("1m")
   // Graphique 1: Évolution du solde cumulé dans le temps
   const balanceEvolutionData = (() => {
     const recentInventories = data.recentInventories || []
@@ -217,23 +226,174 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     }
   })()
 
-  // Graphique 3: Activité mensuelle
-  const monthlyActivityData = (() => {
-    const activity = data.monthlyActivity || []
-    return {
-      labels: activity.map((a: any) => a.month),
+  // Graphique 3: Évolution du solde avec sélecteur de période
+  const balanceEvolutionPeriodData = useMemo(() => {
+    const allMovements = data.allMovements || data.movements || []
+    const allInventories = data.allInventories || data.recentInventories || []
+    const totalBalance = data.totalBalance || 0
+
+    // Calculer la date de début selon la période
+    const now = new Date()
+    let startDate: Date
+    switch (selectedPeriod) {
+      case "1d":
+        startDate = subDays(now, 1)
+        break
+      case "1w":
+        startDate = subDays(now, 7)
+        break
+      case "1m":
+        startDate = subMonths(now, 1)
+        break
+      case "1y":
+        startDate = subYears(now, 1)
+        break
+      case "5y":
+        startDate = subYears(now, 5)
+        break
+      default:
+        startDate = subMonths(now, 1)
+    }
+
+    // Filtrer les événements selon la période
+    const allEvents: Array<{ date: Date; type: 'inventory' | 'movement'; amount: number }> = []
+    
+    // Ajouter les inventaires dans la période
+    allInventories.forEach((inv: any) => {
+      const invDate = new Date(inv.createdAt)
+      if (invDate >= startDate) {
+        allEvents.push({
+          date: invDate,
+          type: 'inventory',
+          amount: Number(inv.totalAmount),
+        })
+      }
+    })
+    
+    // Ajouter les mouvements dans la période
+    allMovements.forEach((mov: any) => {
+      const movDate = new Date(mov.createdAt)
+      if (movDate >= startDate) {
+        if (mov.type === "ENTRY") {
+          allEvents.push({
+            date: movDate,
+            type: 'movement',
+            amount: Number(mov.amount),
+          })
+        } else if (mov.type === "EXIT") {
+          allEvents.push({
+            date: movDate,
+            type: 'movement',
+            amount: -Number(mov.amount),
+          })
+        }
+      }
+    })
+    
+    // Trier par date
+    allEvents.sort((a, b) => a.date.getTime() - b.date.getTime())
+    
+    // Trouver le dernier inventaire avant la période pour avoir le solde de départ
+    const inventoriesBeforePeriod = (data.allInventories || data.recentInventories || [])
+      .filter((inv: any) => new Date(inv.createdAt) < startDate)
+      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    
+    let startingBalance = 0
+    if (inventoriesBeforePeriod.length > 0) {
+      const lastInventoryBefore = inventoriesBeforePeriod[0]
+      startingBalance = Number(lastInventoryBefore.totalAmount)
+      
+      // Ajouter les mouvements entre le dernier inventaire et le début de la période
+      const movementsBeforePeriod = (data.allMovements || data.movements || [])
+        .filter((mov: any) => {
+          const movDate = new Date(mov.createdAt)
+          return movDate >= new Date(lastInventoryBefore.createdAt) && movDate < startDate
+        })
+      
+      movementsBeforePeriod.forEach((mov: any) => {
+        if (mov.type === "ENTRY") {
+          startingBalance += Number(mov.amount)
+        } else if (mov.type === "EXIT") {
+          startingBalance -= Number(mov.amount)
+        }
+      })
+    } else {
+      // Pas d'inventaire avant, calculer depuis le début
+      const movementsBeforePeriod = (data.allMovements || data.movements || [])
+        .filter((mov: any) => new Date(mov.createdAt) < startDate)
+      
+      movementsBeforePeriod.forEach((mov: any) => {
+        if (mov.type === "ENTRY") {
+          startingBalance += Number(mov.amount)
+        } else if (mov.type === "EXIT") {
+          startingBalance -= Number(mov.amount)
+        }
+      })
+    }
+    
+    // Calculer le solde cumulé
+    let currentBalance = startingBalance
+    const balanceData: Array<{ date: string; balance: number; timestamp: number }> = []
+    
+    // Ajouter le point de départ si on a un solde initial
+    if (startingBalance > 0 || allEvents.length > 0) {
+      balanceData.push({
+        date: format(startDate, "dd/MM/yyyy HH:mm"),
+        balance: startingBalance,
+        timestamp: startDate.getTime(),
+      })
+    }
+    
+    allEvents.forEach((event) => {
+      if (event.type === 'inventory') {
+        currentBalance = event.amount
+      } else {
+        currentBalance += event.amount
+      }
+      balanceData.push({
+        date: format(event.date, selectedPeriod === "1d" ? "HH:mm" : selectedPeriod === "1w" ? "dd/MM HH:mm" : "dd/MM/yyyy"),
+        balance: currentBalance,
+        timestamp: event.date.getTime(),
+      })
+    })
+    
+    // Si pas de données, retourner un tableau vide
+    if (balanceData.length === 0) {
+      return {
+        chartData: {
+          labels: [],
+          datasets: [],
+        },
+        maxBalance: totalBalance || 0,
+      }
+    }
+    
+    // Trouver le solde max pour l'échelle
+    const maxBalanceInPeriod = Math.max(...balanceData.map(d => d.balance), totalBalance || 0)
+    const minBalanceInPeriod = Math.min(...balanceData.map(d => d.balance), 0)
+    const maxBalance = Math.max(maxBalanceInPeriod, Math.abs(minBalanceInPeriod) * 0.1) // Ajouter 10% de marge
+    
+    const chartData = {
+      labels: balanceData.map((d) => d.date),
       datasets: [
         {
-          label: "Nombre de mouvements",
-          data: activity.map((a: any) => a.count),
-          backgroundColor: "rgba(59, 130, 246, 0.6)",
+          label: "Solde",
+          data: balanceData.map((d) => d.balance),
           borderColor: "#3B82F6",
-          borderWidth: 2,
-          borderRadius: 6,
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          fill: true,
+          tension: 0.4,
+          pointRadius: selectedPeriod === "1d" ? 3 : 2,
+          pointHoverRadius: 5,
+          pointBackgroundColor: "#3B82F6",
+          pointBorderColor: "#ffffff",
+          pointBorderWidth: 2,
         },
       ],
     }
-  })()
+    
+    return { chartData, maxBalance }
+  }, [data, selectedPeriod])
 
   // Graphique 4: Répartition par coffre
   const coffreDistributionData = (() => {
@@ -372,7 +532,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           </Card>
         </motion.div>
 
-        {/* Graphique 3: Activité mensuelle */}
+        {/* Graphique 3: Évolution du solde avec sélecteur de période */}
         <motion.div
           whileHover={{ scale: 1.01 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
@@ -382,12 +542,68 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
           
           <Card>
-            <CardHeader>
-              <h3 className="text-lg font-semibold">Activité mensuelle (12 mois)</h3>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h3 className="text-lg font-semibold">Évolution du solde</h3>
+              <div className="flex gap-2 flex-wrap">
+                {(["1d", "1w", "1m", "1y", "5y"] as TimePeriod[]).map((period) => {
+                  const isSelected = selectedPeriod === period
+                  return (
+                    <Button
+                      key={period}
+                      size="sm"
+                      variant={isSelected ? "solid" : "bordered"}
+                      color={isSelected ? "primary" : "default"}
+                      onPress={() => setSelectedPeriod(period)}
+                      className="min-w-12"
+                    >
+                      {period === "1d" ? "1j" : period === "1w" ? "1sem" : period === "1m" ? "1mois" : period === "1y" ? "1an" : "5ans"}
+                    </Button>
+                  )
+                })}
+              </div>
             </CardHeader>
             <CardBody>
               <div className="h-64">
-                <Bar data={monthlyActivityData} options={chartOptions} />
+                {balanceEvolutionPeriodData.chartData.labels.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-foreground/60">
+                    Aucune donnée disponible
+                  </div>
+                ) : (
+                  <Line 
+                    data={balanceEvolutionPeriodData.chartData} 
+                    options={{
+                      ...chartOptions,
+                      scales: {
+                        ...chartOptions.scales,
+                        y: {
+                          ...chartOptions.scales.y,
+                          min: 0,
+                          max: balanceEvolutionPeriodData.maxBalance,
+                          ticks: {
+                            ...chartOptions.scales.y.ticks,
+                            callback: function(value: any) {
+                              return formatCurrency(value)
+                            },
+                          },
+                        },
+                      },
+                      plugins: {
+                        ...chartOptions.plugins,
+                        legend: {
+                          display: false,
+                        },
+                        tooltip: {
+                          ...chartOptions.plugins.tooltip,
+                          callbacks: {
+                            label: (context: any) => {
+                              return `Solde: ${formatCurrency(context.parsed.y)}`
+                            },
+                          },
+                        },
+                      },
+                    }} 
+                  />
+                )}
               </div>
             </CardBody>
           </Card>

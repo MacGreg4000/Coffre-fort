@@ -8,6 +8,7 @@ import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { Input } from "@heroui/react"
 import { Textarea } from "@heroui/react"
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react"
+import { useConfirmModal } from "@/components/ui/confirm-modal"
 import { formatCurrency, formatDate, BILLET_DENOMINATIONS } from "@/lib/utils"
 import { FileText, Plus, Minus, Download, ChevronDown, ChevronUp, Activity, Edit, Trash2 } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
@@ -33,6 +34,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
   const [selectedCoffreId, setSelectedCoffreId] = useState<string>("")
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { confirm, ConfirmModal } = useConfirmModal()
   const [editingMovement, setEditingMovement] = useState<any>(null)
   const [editBillets, setEditBillets] = useState<Record<number, number>>({})
   const [editType, setEditType] = useState<"ENTRY" | "EXIT">("ENTRY")
@@ -121,29 +123,37 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
     }
   }
 
-  const handleDeleteMovement = async (movementId: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer ce mouvement ? Cette action est irréversible.")) {
-      return
-    }
+  const handleDeleteMovement = (movementId: string) => {
+    confirm(
+      "Êtes-vous sûr de vouloir supprimer ce mouvement ? Cette action est irréversible.",
+      {
+        title: "Supprimer le mouvement",
+        confirmLabel: "Supprimer",
+        cancelLabel: "Annuler",
+        confirmColor: "danger",
+        isLoading: deletingMovementId === movementId,
+        onConfirm: async () => {
+          setDeletingMovementId(movementId)
+          try {
+            const response = await fetch(`/api/movements/${movementId}`, {
+              method: "DELETE",
+            })
 
-    setDeletingMovementId(movementId)
-    try {
-      const response = await fetch(`/api/movements/${movementId}`, {
-        method: "DELETE",
-      })
-
-      if (response.ok) {
-        router.refresh()
-        showToast("Mouvement supprimé avec succès!", "success")
-      } else {
-        const error = await response.json()
-        showToast(`Erreur: ${error.error || "Une erreur est survenue"}`, "error")
+            if (response.ok) {
+              router.refresh()
+              showToast("Mouvement supprimé avec succès!", "success")
+            } else {
+              const error = await response.json()
+              showToast(`Erreur: ${error.error || "Une erreur est survenue"}`, "error")
+            }
+          } catch (error) {
+            showToast("Erreur lors de la suppression", "error")
+          } finally {
+            setDeletingMovementId(null)
+          }
+        },
       }
-    } catch (error) {
-      showToast("Erreur lors de la suppression", "error")
-    } finally {
-      setDeletingMovementId(null)
-    }
+    )
   }
 
   const handleBilletChange = (denomination: number, quantity: number) => {
@@ -179,16 +189,14 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
             }}
             className="w-full sm:w-64"
           >
-            {[
-              <SelectItem key="">
-                Tous les coffres
-              </SelectItem>,
-              ...data.coffres.map((coffre) => (
-                <SelectItem key={coffre.id}>
-                  {coffre.name}
-                </SelectItem>
-              )),
-            ]}
+            <SelectItem key="">
+              Tous les coffres
+            </SelectItem>
+            {data.coffres.map((coffre) => (
+              <SelectItem key={coffre.id}>
+                {coffre.name}
+              </SelectItem>
+            ))}
           </Select>
         </div>
       )}
@@ -643,6 +651,9 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
           )}
         </ModalContent>
       </Modal>
+
+      {/* Modal de confirmation de suppression */}
+      {ConfirmModal}
     </div>
   )
 }

@@ -92,6 +92,79 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "asc" },
     })
 
+    // Tous les inventaires pour l'évolution du solde (5 ans max)
+    const fiveYearsAgo = new Date(now)
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5)
+    const allInventories = await prisma.inventory.findMany({
+      where: {
+        coffreId: { in: filteredCoffreIds },
+        createdAt: { gte: fiveYearsAgo },
+      },
+      include: {
+        coffre: true,
+        details: true,
+      },
+      orderBy: { createdAt: "asc" },
+    })
+
+    // Tous les mouvements pour l'évolution du solde (5 ans max)
+    const allMovementsForBalance = await prisma.movement.findMany({
+      where: {
+        coffreId: { in: filteredCoffreIds },
+        createdAt: { gte: fiveYearsAgo },
+        type: { in: ["ENTRY", "EXIT"] },
+      },
+      include: {
+        coffre: true,
+        user: true,
+        details: true,
+      },
+      orderBy: { createdAt: "asc" },
+    })
+
+    // Calculer le solde total actuel pour chaque coffre
+    let totalBalance = 0
+    for (const coffreId of filteredCoffreIds) {
+      const lastInventory = await prisma.inventory.findFirst({
+        where: { coffreId },
+        orderBy: { createdAt: "desc" },
+      })
+
+      let balance = 0
+      if (lastInventory) {
+        balance = Number(lastInventory.totalAmount)
+        const movementsAfterInventory = await prisma.movement.findMany({
+          where: {
+            coffreId,
+            createdAt: { gte: lastInventory.createdAt },
+            type: { in: ["ENTRY", "EXIT"] },
+          },
+        })
+        movementsAfterInventory.forEach((movement) => {
+          if (movement.type === "ENTRY") {
+            balance += Number(movement.amount)
+          } else if (movement.type === "EXIT") {
+            balance -= Number(movement.amount)
+          }
+        })
+      } else {
+        const allMovementsForCoffre = await prisma.movement.findMany({
+          where: {
+            coffreId,
+            type: { in: ["ENTRY", "EXIT"] },
+          },
+        })
+        allMovementsForCoffre.forEach((movement) => {
+          if (movement.type === "ENTRY") {
+            balance += Number(movement.amount)
+          } else if (movement.type === "EXIT") {
+            balance -= Number(movement.amount)
+          }
+        })
+      }
+      totalBalance += balance
+    }
+
     // Données pour activité mensuelle (12 derniers mois)
     const twelveMonthsAgo = new Date(now)
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
@@ -126,8 +199,8 @@ export async function GET(req: NextRequest) {
       }
     })
 
-    // Répartition des billets (tous les mouvements et inventaires)
-    const allMovements = await prisma.movement.findMany({
+    // Répartition des billets (tous les mouvements et inventaires des 30 derniers jours)
+    const allMovementsForBills = await prisma.movement.findMany({
       where: {
         coffreId: { in: filteredCoffreIds },
         createdAt: { gte: thirtyDaysAgo },
@@ -137,7 +210,7 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    const allInventories = await prisma.inventory.findMany({
+    const allInventoriesForBills = await prisma.inventory.findMany({
       where: {
         coffreId: { in: filteredCoffreIds },
         createdAt: { gte: thirtyDaysAgo },
@@ -151,7 +224,7 @@ export async function GET(req: NextRequest) {
     const billDistribution = new Map<number, number>()
 
     // Ajouter les mouvements
-    allMovements.forEach((movement) => {
+    allMovementsForBills.forEach((movement) => {
       movement.details.forEach((detail) => {
         const denom = Number(detail.denomination)
         const current = billDistribution.get(denom) || 0
@@ -160,7 +233,7 @@ export async function GET(req: NextRequest) {
     })
 
     // Ajouter les inventaires
-    allInventories.forEach((inventory) => {
+    allInventoriesForBills.forEach((inventory) => {
       inventory.details.forEach((detail) => {
         const denom = Number(detail.denomination)
         const current = billDistribution.get(denom) || 0
@@ -205,8 +278,26 @@ export async function GET(req: NextRequest) {
       })),
     }))
 
+    const serializedAllMovements = allMovementsForBalance.map((m) => ({
+      ...m,
+      amount: Number(m.amount),
+      details: m.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }))
+
     // Convertir les Decimal en Number pour les inventaires
     const serializedInventories = inventories.map((inv) => ({
+      ...inv,
+      totalAmount: Number(inv.totalAmount),
+      details: inv.details.map((d) => ({
+        ...d,
+        denomination: Number(d.denomination),
+      })),
+    }))
+
+    const serializedAllInventories = allInventories.map((inv) => ({
       ...inv,
       totalAmount: Number(inv.totalAmount),
       details: inv.details.map((d) => ({
@@ -246,6 +337,9 @@ export async function GET(req: NextRequest) {
       totalExits,
       inventories: serializedInventories,
       recentInventories: serializedRecentInventories,
+      allMovements: serializedAllMovements,
+      allInventories: serializedAllInventories,
+      totalBalance,
       statsByCoffre: statsByCoffre.map((stat) => ({
         coffreId: stat.coffreId,
         coffreName: coffreMap.get(stat.coffreId) || "Inconnu",
