@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { logger } from "@/lib/logger"
 
 // ============================================
 // GESTION D'ERREURS SÉCURISÉE
@@ -17,7 +18,12 @@ export class ApiError extends Error {
 }
 
 export function handleApiError(error: unknown): NextResponse {
-  console.error("API Error:", error)
+  // Log structuré de l'erreur
+  if (error instanceof Error) {
+    logger.error("API Error", error, { stack: error.stack })
+  } else {
+    logger.error("API Error (unknown)", undefined, { error: String(error) })
+  }
 
   // Erreur connue (ApiError)
   if (error instanceof ApiError) {
