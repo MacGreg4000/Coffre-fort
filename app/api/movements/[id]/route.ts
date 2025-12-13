@@ -7,7 +7,7 @@ import { BILLET_DENOMINATIONS } from "@/lib/utils"
 // Modifier un mouvement (uniquement pour les admins)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params?: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -23,7 +23,10 @@ export async function PUT(
       )
     }
 
-    const movementId = params.id
+    const movementId = params?.id
+    if (!movementId) {
+      return NextResponse.json({ error: "Identifiant manquant" }, { status: 400 })
+    }
     const body = await req.json()
     const { type, billets, description } = body
 
@@ -126,7 +129,7 @@ export async function PUT(
 // Supprimer un mouvement (uniquement pour les admins)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params?: { id: string } }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -142,7 +145,10 @@ export async function DELETE(
       )
     }
 
-    const movementId = params.id
+    const movementId = params?.id
+    if (!movementId) {
+      return NextResponse.json({ error: "Identifiant manquant" }, { status: 400 })
+    }
 
     // Vérifier que le mouvement existe
     const existingMovement = await prisma.movement.findUnique({
@@ -188,3 +194,4 @@ export async function DELETE(
     )
   }
 }
+
