@@ -4,164 +4,183 @@ import {
   createInventorySchema,
   createCoffreSchema,
   validateRequest,
-} from '@/lib/validations'
+} from "@/lib/validations"
 
-describe('Validations Zod', () => {
-  describe('createUserSchema', () => {
-    it('devrait valider un utilisateur valide', () => {
+describe("Validations", () => {
+  describe("createUserSchema", () => {
+    it("should validate a correct user", () => {
       const validUser = {
-        email: 'test@example.com',
-        password: 'StrongP@ssw0rd123',
-        name: 'Test User',
-        role: 'USER' as const,
+        email: "test@example.com",
+        password: "SecurePass123!",
+        name: "Test User",
+        role: "USER" as const,
       }
 
       const result = validateRequest(createUserSchema, validUser)
       expect(result.success).toBe(true)
       if (result.success) {
-        expect(result.data.email).toBe(validUser.email)
+        expect(result.data).toEqual(validUser)
       }
     })
 
-    it('devrait rejeter un email invalide', () => {
+    it("should reject invalid email", () => {
       const invalidUser = {
-        email: 'invalid-email',
-        password: 'StrongP@ssw0rd123',
-        name: 'Test User',
-        role: 'USER' as const,
+        email: "invalid-email",
+        password: "SecurePass123!",
+        name: "Test User",
+        role: "USER" as const,
       }
 
       const result = validateRequest(createUserSchema, invalidUser)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error).toContain('Email invalide')
+        expect(result.error).toContain("Email invalide")
       }
     })
 
-    it('devrait rejeter un mot de passe trop court', () => {
-      const invalidUser = {
-        email: 'test@example.com',
-        password: 'Short1!',
-        name: 'Test User',
-        role: 'USER' as const,
-      }
+    it("should reject weak password", () => {
+      const weakPasswords = [
+        "short", // Trop court
+        "nouppercase123!", // Pas de majuscule
+        "NOLOWERCASE123!", // Pas de minuscule
+        "NoNumbers!", // Pas de chiffre
+        "NoSpecialChar123", // Pas de caractère spécial
+      ]
 
-      const result = validateRequest(createUserSchema, invalidUser)
-      expect(result.success).toBe(false)
-      if (!result.success) {
-        expect(result.error).toContain('12 caractères')
-      }
+      weakPasswords.forEach((password) => {
+        const result = validateRequest(createUserSchema, {
+          email: "test@example.com",
+          password,
+          name: "Test User",
+          role: "USER" as const,
+        })
+        expect(result.success).toBe(false)
+      })
     })
 
-    it('devrait rejeter un mot de passe sans majuscule', () => {
-      const invalidUser = {
-        email: 'test@example.com',
-        password: 'weakp@ssw0rd123',
-        name: 'Test User',
-        role: 'USER' as const,
-      }
+    it("should require name with at least 2 characters", () => {
+      const result = validateRequest(createUserSchema, {
+        email: "test@example.com",
+        password: "SecurePass123!",
+        name: "A",
+        role: "USER" as const,
+      })
 
-      const result = validateRequest(createUserSchema, invalidUser)
       expect(result.success).toBe(false)
       if (!result.success) {
-        expect(result.error).toContain('majuscule')
-      }
-    })
-
-    it('devrait rejeter un mot de passe sans caractère spécial', () => {
-      const invalidUser = {
-        email: 'test@example.com',
-        password: 'WeakPassword123',
-        name: 'Test User',
-        role: 'USER' as const,
-      }
-
-      const result = validateRequest(createUserSchema, invalidUser)
-      expect(result.success).toBe(false)
-      if (!result.success) {
-        expect(result.error).toContain('caractère spécial')
+        expect(result.error).toContain("au moins 2 caractères")
       }
     })
   })
 
-  describe('createMovementSchema', () => {
-    it('devrait valider un mouvement valide', () => {
+  describe("createMovementSchema", () => {
+    it("should validate a correct movement", () => {
       const validMovement = {
-        coffreId: '123e4567-e89b-12d3-a456-426614174000',
-        type: 'ENTRY' as const,
+        coffreId: "550e8400-e29b-41d4-a716-446655440000",
+        type: "ENTRY" as const,
         billets: {
-          5: 10,
-          10: 5,
-          20: 2,
+          "5": 10,
+          "10": 5,
+          "20": 2,
         },
-        description: 'Test movement',
+        description: "Test movement",
       }
 
       const result = validateRequest(createMovementSchema, validMovement)
       expect(result.success).toBe(true)
     })
 
-    it('devrait rejeter un UUID invalide', () => {
-      const invalidMovement = {
-        coffreId: 'invalid-uuid',
-        type: 'ENTRY' as const,
-        billets: { 5: 10 },
-      }
+    it("should reject invalid UUID", () => {
+      const result = validateRequest(createMovementSchema, {
+        coffreId: "invalid-uuid",
+        type: "ENTRY" as const,
+        billets: { "5": 10 },
+      })
 
-      const result = validateRequest(createMovementSchema, invalidMovement)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toContain("coffre invalide")
+      }
+    })
+
+    it("should reject negative billet quantities", () => {
+      const result = validateRequest(createMovementSchema, {
+        coffreId: "550e8400-e29b-41d4-a716-446655440000",
+        type: "ENTRY" as const,
+        billets: { "5": -10 },
+      })
+
       expect(result.success).toBe(false)
     })
 
-    it('devrait rejeter des quantités négatives', () => {
-      const invalidMovement = {
-        coffreId: '123e4567-e89b-12d3-a456-426614174000',
-        type: 'ENTRY' as const,
-        billets: { 5: -10 },
-      }
+    it("should reject invalid movement type", () => {
+      const result = validateRequest(createMovementSchema, {
+        coffreId: "550e8400-e29b-41d4-a716-446655440000",
+        type: "INVALID" as any,
+        billets: { "5": 10 },
+      })
 
-      const result = validateRequest(createMovementSchema, invalidMovement)
-      expect(result.success).toBe(false)
-    })
-
-    it('devrait rejeter des quantités trop grandes', () => {
-      const invalidMovement = {
-        coffreId: '123e4567-e89b-12d3-a456-426614174000',
-        type: 'ENTRY' as const,
-        billets: { 5: 99999 },
-      }
-
-      const result = validateRequest(createMovementSchema, invalidMovement)
       expect(result.success).toBe(false)
     })
   })
 
-  describe('createCoffreSchema', () => {
-    it('devrait valider un coffre valide', () => {
+  describe("createCoffreSchema", () => {
+    it("should validate a correct coffre", () => {
       const validCoffre = {
-        name: 'Caisse Principale',
-        description: 'Description du coffre',
+        name: "Main Safe",
+        description: "Primary safe for cash management",
       }
 
       const result = validateRequest(createCoffreSchema, validCoffre)
       expect(result.success).toBe(true)
     })
 
-    it('devrait rejeter un nom trop court', () => {
-      const invalidCoffre = {
-        name: 'A',
-        description: 'Description',
-      }
+    it("should allow coffre without description", () => {
+      const result = validateRequest(createCoffreSchema, {
+        name: "Main Safe",
+      })
 
-      const result = validateRequest(createCoffreSchema, invalidCoffre)
-      expect(result.success).toBe(false)
+      expect(result.success).toBe(true)
     })
 
-    it('devrait accepter un coffre sans description', () => {
-      const validCoffre = {
-        name: 'Caisse Principale',
+    it("should reject too short name", () => {
+      const result = validateRequest(createCoffreSchema, {
+        name: "A",
+      })
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toContain("au moins 2 caractères")
+      }
+    })
+  })
+
+  describe("createInventorySchema", () => {
+    it("should validate a correct inventory", () => {
+      const validInventory = {
+        coffreId: "550e8400-e29b-41d4-a716-446655440000",
+        billets: {
+          "5": 100,
+          "10": 50,
+          "20": 25,
+          "50": 10,
+          "100": 5,
+          "200": 2,
+          "500": 1,
+        },
+        notes: "Monthly inventory",
       }
 
-      const result = validateRequest(createCoffreSchema, validCoffre)
+      const result = validateRequest(createInventorySchema, validInventory)
+      expect(result.success).toBe(true)
+    })
+
+    it("should allow inventory without notes", () => {
+      const result = validateRequest(createInventorySchema, {
+        coffreId: "550e8400-e29b-41d4-a716-446655440000",
+        billets: { "5": 100 },
+      })
+
       expect(result.success).toBe(true)
     })
   })

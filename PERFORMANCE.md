@@ -1,226 +1,207 @@
-# 🚀 Guide d'Optimisation Performance - SafeVault
+# ⚡ Guide d'Optimisation & Performance - SafeVault
 
-## ✅ Optimisations Déjà Implémentées
+## Cache Implémenté
 
-### 1. Cache In-Memory
-- **Localisation**: `lib/cache.ts`
-- **Usage**: Cache des balances, coffres, données utilisateur
-- **TTL**: 5-10 minutes selon le type de données
-- **Nettoyage**: Automatique toutes les 5 minutes
+### Cache In-Memory
+Le système de cache in-memory est actif pour :
 
+#### Balances de coffres (TTL: 5 minutes)
 ```typescript
-import { getCachedCoffreBalance, invalidateCoffreBalance } from '@/lib/cache'
+import { getCachedBalance, invalidateCoffreCache } from "@/lib/cache"
 
-// Utiliser le cache
-const balance = await getCachedCoffreBalance(coffreId, async () => {
+// Utilisation
+const balance = await getCachedBalance(coffreId, async () => {
   return await fetchBalanceFromDB(coffreId)
 })
 
-// Invalider après mutation
-invalidateCoffreBalance(coffreId)
+// Invalidation après mouvement
+invalidateCoffreCache(coffreId)
 ```
 
-### 2. Lazy Loading Composants
-- **Localisation**: `components/ui/lazy-components.tsx`
-- **Composants lazy**: Charts, Historique, Admin Panel
-- **Économie**: ~200KB de JS initial
-
+#### Listes utilisateur (TTL: 2 minutes)
 ```typescript
-import { LazyDashboardCharts } from '@/components/ui/lazy-components'
+import { getCachedUserCoffres, invalidateUserCache } from "@/lib/cache"
 
-// Le composant ne se charge que quand il est visible
-<LazyDashboardCharts data={data} />
+const coffres = await getCachedUserCoffres(userId, fetchFn)
 ```
 
-### 3. Rate Limiting
-- **Protection**: Évite la surcharge du serveur
-- **Implémentation**: In-memory avec nettoyage auto
-- **Limites**: Voir `lib/rate-limit.ts`
+#### Stats dashboard (TTL: 1 minute)
+```typescript
+import { getCachedDashboardStats } from "@/lib/cache"
 
-### 4. Transactions Prisma
-- **Cohérence**: Toutes les mutations critiques sont en transactions
-- **Performance**: Réduit les round-trips DB
+const stats = await getCachedDashboardStats(userId, coffreId, fetchFn)
+```
 
-### 5. Pagination API
-- **Routes**: `/api/movements`, `/api/inventories`
-- **Défaut**: 50 items/page (max 100)
-- **Réduction**: ~80% de données transférées pour les grandes listes
+### Cache API
+```typescript
+import { cache } from "@/lib/cache"
 
-### 6. Index DB Composés
-- **Prisma Schema**: Index sur `(coffreId, createdAt)`, `(userId, createdAt)`
-- **Gains**: Requêtes 5-10x plus rapides sur listes filtrées
+// Wrapper automatique
+const data = await cache.wrap("key", async () => {
+  return await expensiveOperation()
+}, 60000) // TTL en ms
 
-## 📋 Optimisations Recommandées
+// Stats
+const stats = cache.stats()
+console.log(`Cache: ${stats.active} active, ${stats.expired} expired`)
+```
 
-### 7. Optimisation Images (À faire)
+## Optimisations Base de Données
 
-#### Utiliser next/image
-Remplacer les `<img>` par `<Image>` de Next.js :
+### Index Composés
+Ajoutés dans `prisma/schema.prisma` :
+- `(coffreId, createdAt)` sur movements
+- `(userId, createdAt)` sur movements
+
+### Requêtes Optimisées
+- ✅ `select` spécifique au lieu de `include` complet
+- ✅ Pagination avec `skip`/`take`
+- ✅ Requêtes parallèles avec `Promise.all()`
+- ✅ Transactions pour cohérence
 
 ```typescript
-import Image from 'next/image'
+// ✅ BON - Requêtes parallèles
+const [movements, total] = await Promise.all([
+  prisma.movement.findMany({ skip, take: limit }),
+  prisma.movement.count()
+])
 
-// ❌ Avant
-<img src="/icons/logo.png" alt="Logo" width={100} height={100} />
+// ❌ MAU VAIS - Séquentiel
+const movements = await prisma.movement.findMany({ skip, take: limit })
+const total = await prisma.movement.count()
+```
 
-// ✅ Après
-<Image 
-  src="/icons/logo.png" 
-  alt="Logo" 
-  width={100} 
+## Frontend
+
+### Images
+```tsx
+// Utiliser next/image
+import Image from "next/image"
+
+<Image
+  src="/logo.png"
+  width={200}
   height={100}
-  priority // Pour les images above-the-fold
+  alt="Logo"
+  priority // Pour images above-the-fold
 />
 ```
 
-**Gains**: 
-- Lazy loading automatique
-- Responsive images
-- Optimisation format (WebP)
-- Réduction ~60% de bande passante
+### Lazy Loading
+```tsx
+import dynamic from "next/dynamic"
 
-#### Convertir PNG en WebP
-```bash
-# Installer sharp (déjà présent)
-npm install sharp
-
-# Script de conversion
-node scripts/optimize-images.js
-```
-
-### 8. Bundle Splitting (À faire)
-
-#### Dynamic Imports
-Pour les modales et composants conditionnels :
-
-```typescript
-// ❌ Import statique
-import { HeavyModal } from './HeavyModal'
-
-// ✅ Import dynamique
-const HeavyModal = dynamic(() => import('./HeavyModal'), {
+// Charger composant lourd dynamiquement
+const HeavyChart = dynamic(() => import("@/components/HeavyChart"), {
   loading: () => <Spinner />,
-  ssr: false // Si pas besoin de SSR
+  ssr: false, // Si pas nécessaire côté serveur
 })
 ```
 
-### 9. React Query / SWR (Optionnel)
+### Mémoïsation
+```tsx
+import { useMemo, useCallback } from "react"
 
-Pour le cache côté client avec revalidation :
+// Calculs coûteux
+const expensiveValue = useMemo(() => {
+  return heavyCalculation(data)
+}, [data])
 
-```bash
-npm install @tanstack/react-query
+// Callbacks stables
+const handleClick = useCallback(() => {
+  doSomething()
+}, [])
 ```
 
+### Virtualisation pour longues listes
+```bash
+npm install react-window
+```
+
+```tsx
+import { FixedSizeList } from "react-window"
+
+<FixedSizeList
+  height={600}
+  itemCount={1000}
+  itemSize={50}
+  width="100%"
+>
+  {({ index, style }) => (
+    <div style={style}>Item {index}</div>
+  )}
+</FixedSizeList>
+```
+
+## Rate Limiting
+
+### Configuration actuelle
+- **Login**: Timing attack protection (1s delay)
+- **Mutations**: 20 req/min
+- **API GET**: 100 req/min
+- **Export PDF**: 3 req/min
+
+### Monitoring
 ```typescript
-import { useQuery } from '@tanstack/react-query'
+import { getRateLimitStats } from "@/lib/rate-limit"
 
-function DashboardPage() {
-  const { data, isLoading } = useQuery({
-    queryKey: ['dashboard'],
-    queryFn: fetchDashboard,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
-  })
-}
+const stats = getRateLimitStats()
+console.log(`${stats.activeClients} clients, ${stats.totalRequests} requêtes`)
 ```
 
-**Gains**:
-- Cache automatique
-- Revalidation intelligente
-- Moins de requêtes API
-- Meilleure UX
+## Logging Structuré
 
-### 10. CDN pour Assets Statiques (Production)
-
-Configurer Vercel/Netlify CDN ou CloudFront :
-
-```js
-// next.config.js
-module.exports = {
-  assetPrefix: process.env.CDN_URL || '',
-  images: {
-    domains: ['cdn.yourapp.com'],
-  },
-}
-```
-
-### 11. Compression Gzip/Brotli (Vercel auto)
-
-Si déploiement custom :
-
-```bash
-# Nginx
-gzip on;
-gzip_types text/plain text/css application/json application/javascript;
-brotli on;
-brotli_types text/plain text/css application/json application/javascript;
-```
-
-### 12. Database Connection Pooling
-
-Déjà géré par Prisma, mais vérifier la config :
-
-```prisma
-datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
-  // Ajouter si besoin
-  // connection_limit = 10
-}
-```
-
-### 13. Monitoring Performances
-
-#### Web Vitals
-Ajouter dans `app/layout.tsx` :
-
+### Utilisation
 ```typescript
-import { Analytics } from '@vercel/analytics/react'
-import { SpeedInsights } from '@vercel/speed-insights/next'
+import { logger } from "@/lib/logger"
 
-export default function RootLayout({ children }) {
-  return (
-    <html>
-      <body>
-        {children}
-        <Analytics />
-        <SpeedInsights />
-      </body>
-    </html>
-  )
-}
+// Niveaux
+logger.error("Critical error", error, { userId, action })
+logger.warn("Warning message", { context })
+logger.info("Info message", { details })
+logger.debug("Debug info", { data })
+
+// Helpers
+logger.apiRequest("GET", "/api/movements", userId, 150) // 150ms
+logger.userAction("CREATE_MOVEMENT", userId, { amount: 100 })
+logger.performance("fetchData", 1500) // Warn si > 1s
 ```
 
-#### Lighthouse CI
-Voir `.github/workflows/ci.yml` - Déjà configuré pour audits auto.
+### Mesure de performance
+```typescript
+import { measurePerformance } from "@/lib/logger"
 
-## 📊 Métriques Cibles
+const result = await measurePerformance("expensiveOperation", async () => {
+  return await heavyTask()
+})
+// Log automatique du temps d'exécution
+```
 
-### Core Web Vitals
-- **LCP (Largest Contentful Paint)**: < 2.5s ✅
-- **FID (First Input Delay)**: < 100ms ✅
-- **CLS (Cumulative Layout Shift)**: < 0.1 ✅
+## Métriques à Surveiller
 
-### API Performance
-- **P50 (médiane)**: < 200ms ✅
-- **P95**: < 500ms ✅
-- **P99**: < 1s ✅
+### Backend
+- Temps de réponse API (cible: <200ms)
+- Taux d'erreur (<1%)
+- Hit rate du cache (>70%)
+- Requêtes DB par endpoint (<5)
 
-### Bundle Size
-- **First Load JS**: ~100-150KB ✅
-- **Route JS**: < 50KB par route ✅
+### Frontend
+- First Contentful Paint (<1.5s)
+- Time to Interactive (<3.5s)
+- Cumulative Layout Shift (<0.1)
+- Largest Contentful Paint (<2.5s)
 
-## 🔧 Outils de Profiling
+## Outils de Monitoring
 
-### Chrome DevTools
-- **Performance**: Enregistrer une session et analyser
-- **Coverage**: Identifier JS/CSS non utilisé
-- **Network**: Vérifier la cascade de chargement
-
-### Next.js Bundle Analyzer
+### Lighthouse
 ```bash
-npm install @next/bundle-analyzer
+npm install -g @lhci/cli
+lhci autorun --collect.numberOfRuns=3
+```
+
+### Bundle Analyzer
+```bash
+npm install --save-dev @next/bundle-analyzer
 ```
 
 ```js
@@ -229,53 +210,54 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 })
 
-module.exports = withBundleAnalyzer({
-  // config
-})
+module.exports = withBundleAnalyzer(nextConfig)
 ```
 
 ```bash
 ANALYZE=true npm run build
 ```
 
-### Prisma Query Profiling
-```typescript
-// Activer les logs de requêtes
-const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'],
-})
+## Migration vers Redis (Production Multi-Instance)
+
+### Installation
+```bash
+npm install ioredis
 ```
 
-## 🎯 Roadmap Performance
+### Configuration
+```typescript
+// lib/redis.ts
+import Redis from "ioredis"
 
-### Court terme (1-2 semaines)
-- [x] Cache in-memory
-- [x] Lazy loading composants
+export const redis = new Redis(process.env.REDIS_URL)
+
+// Remplacer cache in-memory
+export async function getCached<T>(key: string): Promise<T | null> {
+  const cached = await redis.get(key)
+  return cached ? JSON.parse(cached) : null
+}
+
+export async function setCached(key: string, value: any, ttl: number) {
+  await redis.setex(key, ttl, JSON.stringify(value))
+}
+```
+
+## Checklist Production
+
+- [x] Cache implémenté
+- [x] Index DB optimisés
+- [x] Rate limiting actif
+- [x] Logs structurés
+- [x] Transactions Prisma
 - [x] Pagination API
-- [ ] Convertir images en WebP
-- [ ] Ajouter next/image partout
-
-### Moyen terme (1 mois)
-- [ ] React Query pour cache client
-- [ ] Bundle analyzer et optimisations
 - [ ] CDN pour assets statiques
-- [ ] Redis pour cache (multi-instance)
+- [ ] Redis (si multi-instance)
+- [ ] Compression gzip/brotli
+- [ ] Service Worker PWA
+- [ ] Monitoring temps réel
 
-### Long terme (3-6 mois)
-- [ ] Service Worker pour offline
-- [ ] Incremental Static Regeneration (ISR)
-- [ ] Edge functions pour latence réduite
-- [ ] Database read replicas
+## Ressources
 
-## 📈 Gains Attendus
-
-Avec toutes les optimisations implémentées :
-- **Time to Interactive**: -40%
-- **Bundle Size**: -30%
-- **API Response Time**: -50%
-- **Database Queries**: -60%
-- **Bandwidth**: -50%
-
----
-
-*Dernière mise à jour: $(date +%Y-%m-%d)*
+- [Next.js Performance](https://nextjs.org/docs/advanced-features/measuring-performance)
+- [Prisma Best Practices](https://www.prisma.io/docs/guides/performance-and-optimization)
+- [Web.dev Performance](https://web.dev/performance/)

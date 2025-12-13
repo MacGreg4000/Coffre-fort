@@ -1,30 +1,22 @@
+import { logger } from "@/lib/logger"
+
 // ============================================
-// CACHE IN-MEMORY SIMPLE
+// SYSTÈME DE CACHE IN-MEMORY
 // ============================================
-// Pour production multi-instance: migrer vers Redis
+// Cache simple avec TTL et invalidation. Pour production avec multi-instance, utiliser Redis.
 
 interface CacheEntry<T> {
   value: T
   expiresAt: number
 }
 
-class SimpleCache {
+class Cache {
   private store = new Map<string, CacheEntry<any>>()
-  private cleanupInterval: NodeJS.Timeout | null = null
+  private defaultTTL = 5 * 60 * 1000 // 5 minutes par défaut
 
   constructor() {
-    // Nettoyage automatique toutes les 5 minutes
-    if (typeof window === 'undefined') {
-      this.cleanupInterval = setInterval(() => this.cleanup(), 5 * 60 * 1000)
-    }
-  }
-
-  /**
-   * Définir une valeur dans le cache
-   */
-  set<T>(key: string, value: T, ttlSeconds: number = 300): void {
-    const expiresAt = Date.now() + ttlSeconds * 1000
-    this.store.set(key, { value, expiresAt })
+    // Nettoyage automatique toutes les minutes
+    setInterval(() => this.cleanup(), 60 * 1000)
   }
 
   /**
@@ -36,165 +28,175 @@ class SimpleCache {
     if (!entry) {
       return null
     }
-    
-    // Vérifier si expiré
+
+    // Vérifier l'expiration
     if (Date.now() > entry.expiresAt) {
       this.store.delete(key)
+      logger.debug(`Cache expired: ${key}`)
       return null
     }
-    
-    return entry.value as T
+
+    logger.debug(`Cache hit: ${key}`)
+    return entry.value
   }
 
   /**
-   * Récupérer ou calculer une valeur
+   * Stocker une valeur dans le cache
    */
-  async getOrSet<T>(
-    key: string,
-    factory: () => Promise<T>,
-    ttlSeconds: number = 300
-  ): Promise<T> {
-    // Essayer de récupérer depuis le cache
-    const cached = this.get<T>(key)
-    if (cached !== null) {
-      return cached
-    }
-    
-    // Calculer la valeur
-    const value = await factory()
-    
-    // Stocker dans le cache
-    this.set(key, value, ttlSeconds)
-    
-    return value
+  set<T>(key: string, value: T, ttlMs?: number): void {
+    const ttl = ttlMs || this.defaultTTL
+    const expiresAt = Date.now() + ttl
+
+    this.store.set(key, { value, expiresAt })
+    logger.debug(`Cache set: ${key} (TTL: ${ttl}ms)`)
   }
 
   /**
-   * Invalider une clé
+   * Supprimer une clé spécifique
    */
-  invalidate(key: string): void {
+  delete(key: string): void {
     this.store.delete(key)
+    logger.debug(`Cache deleted: ${key}`)
   }
 
   /**
-   * Invalider toutes les clés commençant par un préfixe
+   * Supprimer toutes les clés correspondant à un pattern
    */
-  invalidatePrefix(prefix: string): void {
+  invalidatePattern(pattern: string): void {
+    let count = 0
     for (const key of this.store.keys()) {
-      if (key.startsWith(prefix)) {
+      if (key.includes(pattern)) {
         this.store.delete(key)
+        count++
       }
     }
+    logger.info(`Cache invalidated pattern: ${pattern} (${count} keys)`)
   }
 
   /**
    * Vider tout le cache
    */
   clear(): void {
+    const size = this.store.size
     this.store.clear()
+    logger.info(`Cache cleared (${size} keys removed)`)
   }
 
   /**
-   * Nettoyer les entrées expirées
+   * Nettoyage des entrées expirées
    */
   private cleanup(): void {
     const now = Date.now()
-    let cleaned = 0
-    
+    let removed = 0
+
     for (const [key, entry] of this.store.entries()) {
       if (now > entry.expiresAt) {
         this.store.delete(key)
-        cleaned++
+        removed++
       }
     }
-    
-    if (cleaned > 0) {
-      console.log(`🧹 Cache cleanup: ${cleaned} entries removed`)
+
+    if (removed > 0) {
+      logger.debug(`Cache cleanup: ${removed} expired entries removed`)
     }
   }
 
   /**
    * Statistiques du cache
    */
-  getStats() {
+  stats() {
     const now = Date.now()
+    let active = 0
     let expired = 0
-    let valid = 0
-    
+
     for (const entry of this.store.values()) {
       if (now > entry.expiresAt) {
         expired++
       } else {
-        valid++
+        active++
       }
     }
-    
+
     return {
       total: this.store.size,
-      valid,
+      active,
       expired,
     }
   }
 
   /**
-   * Nettoyer à la destruction
+   * Wrapper pour fonctions avec cache automatique
    */
-  destroy(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval)
+  async wrap<T>(
+    key: string,
+    fn: () => Promise<T>,
+    ttlMs?: number
+  ): Promise<T> {
+    // Vérifier le cache
+    const cached = this.get<T>(key)
+    if (cached !== null) {
+      return cached
     }
-    this.clear()
+
+    // Exécuter la fonction et cacher le résultat
+    const result = await fn()
+    this.set(key, result, ttlMs)
+    return result
   }
 }
 
 // Export singleton
-export const cache = new SimpleCache()
+export const cache = new Cache()
 
 // ============================================
-// HELPERS POUR CACHING DE DONNÉES COMMUNES
+// HELPERS SPÉCIFIQUES À L'APPLICATION
 // ============================================
 
 /**
- * Cache des balances de coffres (5 minutes)
+ * Cache pour les balances de coffres (5 minutes)
  */
-export async function getCachedCoffreBalance(
+export async function getCachedBalance(
   coffreId: string,
-  fetcher: () => Promise<number>
+  fetchFn: () => Promise<number>
 ): Promise<number> {
-  return cache.getOrSet(`balance:${coffreId}`, fetcher, 300)
+  return cache.wrap(`balance:${coffreId}`, fetchFn, 5 * 60 * 1000)
 }
 
 /**
- * Invalider le cache de balance d'un coffre
+ * Invalider le cache d'un coffre après un mouvement
  */
-export function invalidateCoffreBalance(coffreId: string): void {
-  cache.invalidate(`balance:${coffreId}`)
+export function invalidateCoffreCache(coffreId: string): void {
+  cache.delete(`balance:${coffreId}`)
+  cache.invalidatePattern(`coffre:${coffreId}`)
 }
 
 /**
- * Cache des données utilisateur (10 minutes)
- */
-export async function getCachedUser<T>(
-  userId: string,
-  fetcher: () => Promise<T>
-): Promise<T> {
-  return cache.getOrSet(`user:${userId}`, fetcher, 600)
-}
-
-/**
- * Cache des coffres accessibles (5 minutes)
+ * Cache pour les listes de coffres d'un utilisateur (2 minutes)
  */
 export async function getCachedUserCoffres<T>(
   userId: string,
-  fetcher: () => Promise<T>
+  fetchFn: () => Promise<T>
 ): Promise<T> {
-  return cache.getOrSet(`user-coffres:${userId}`, fetcher, 300)
+  return cache.wrap(`user:${userId}:coffres`, fetchFn, 2 * 60 * 1000)
 }
 
 /**
- * Invalider tout le cache d'un utilisateur
+ * Invalider le cache utilisateur après modification
  */
 export function invalidateUserCache(userId: string): void {
-  cache.invalidatePrefix(`user:${userId}`)
-  cache.invalidatePrefix(`user-coffres:${userId}`)
+  cache.invalidatePattern(`user:${userId}`)
+}
+
+/**
+ * Cache pour les stats dashboard (1 minute)
+ */
+export async function getCachedDashboardStats<T>(
+  userId: string,
+  coffreId: string | null,
+  fetchFn: () => Promise<T>
+): Promise<T> {
+  const key = coffreId 
+    ? `dashboard:${userId}:${coffreId}` 
+    : `dashboard:${userId}:all`
+  return cache.wrap(key, fetchFn, 60 * 1000) // 1 minute
 }

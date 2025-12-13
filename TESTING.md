@@ -1,192 +1,142 @@
-# 🧪 Guide de Testing - SafeVault
-
-## Installation des Dépendances de Test
-
-```bash
-npm install --save-dev \
-  jest \
-  @testing-library/react \
-  @testing-library/jest-dom \
-  @testing-library/user-event \
-  jest-environment-jsdom \
-  @types/jest
-```
+# 🧪 Guide de Tests - SafeVault
 
 ## Configuration
 
-Les fichiers de configuration sont déjà créés :
-- `jest.config.js` - Configuration Jest
-- `jest.setup.js` - Setup global pour les tests
-- `__tests__/` - Dossier contenant tous les tests
-
-## Commandes
-
+### Installation
 ```bash
-# Lancer les tests en mode watch (développement)
-npm test
-
-# Lancer tous les tests une fois
-npm run test:ci
-
-# Lancer les tests avec coverage
-npm run test:coverage
-
-# Voir le rapport de couverture
-open coverage/lcov-report/index.html
+npm install
 ```
 
-## Structure des Tests
+### Variables d'environnement pour tests
+Les variables de test sont configurées automatiquement dans `jest.setup.js`.
+
+## Lancer les tests
+
+```bash
+# Mode watch (développement)
+npm test
+
+# Run une fois
+npm test -- --watchAll=false
+
+# Avec couverture
+npm run test:coverage
+
+# CI/CD
+npm run test:ci
+```
+
+## Structure des tests
 
 ```
 __tests__/
 ├── lib/
-│   ├── validations.test.ts      # Tests des validations Zod
-│   ├── rate-limit.test.ts       # Tests du rate limiting
-│   └── api-utils.test.ts        # Tests des utilitaires API
-├── components/
-│   └── (à venir)                # Tests des composants React
-└── api/
-    └── (à venir)                # Tests d'intégration API
+│   ├── validations.test.ts    # Tests validations Zod
+│   └── rate-limit.test.ts     # Tests rate limiting
+├── api/
+│   └── (à venir) Tests d'intégration API
+└── e2e/
+    └── (à venir) Tests end-to-end
 ```
 
-## Tests Implémentés
+## Couverture de code
 
-### ✅ Validations Zod (`validations.test.ts`)
-- Validation email
-- Validation mot de passe (12+ chars, maj, min, chiffre, spécial)
-- Validation UUID
-- Validation mouvements/coffres/inventaires
+Objectifs de couverture :
+- **Branches**: 70%
+- **Functions**: 70%
+- **Lines**: 70%
+- **Statements**: 70%
 
-### ✅ Rate Limiting (`rate-limit.test.ts`)
-- Autorisation premières requêtes
-- Blocage après limite
-- Différenciation par IP
-- Différenciation par userId
-- Headers corrects
+Zones critiques à 100% :
+- `lib/validations.ts`
+- `lib/rate-limit.ts`
+- `lib/api-utils.ts`
 
-### ✅ API Utils (`api-utils.test.ts`)
-- Gestion erreurs ApiError
-- Gestion erreurs Prisma
-- Extraction IP/User-Agent
-- Pagination
-- Serialization Decimal
+## Mocking
 
-## Objectifs de Couverture
-
-```javascript
-// jest.config.js
-coverageThreshold: {
-  global: {
-    branches: 50,
-    functions: 50,
-    lines: 50,
-    statements: 50,
-  },
-}
-```
-
-### Couverture Actuelle (à mesurer)
-```bash
-npm run test:coverage
-```
-
-## Tests à Ajouter (TODO)
-
-### Composants React
-- [ ] Navbar - Navigation et thème
-- [ ] CaisseInterface - Formulaire mouvements
-- [ ] DashboardStats - Affichage statistiques
-- [ ] HistoriqueList - Liste et filtres
-- [ ] AdminPanel - Gestion utilisateurs/coffres
-
-### Routes API (Intégration)
-- [ ] POST /api/movements - Création mouvement
-- [ ] GET /api/movements - Liste paginée
-- [ ] PUT /api/movements/[id] - Modification (admin)
-- [ ] DELETE /api/movements/[id] - Soft delete (admin)
-- [ ] POST /api/inventories - Création inventaire
-- [ ] GET /api/coffres/balance - Calcul balance
-
-### Tests E2E (Playwright - optionnel)
-- [ ] Flux complet : Login → Mouvement → Historique
-- [ ] Flux admin : Créer utilisateur → Créer coffre
-- [ ] Flux export PDF
-
-## Bonnes Pratiques
-
-### 1. Nommer les tests clairement
+### Prisma
 ```typescript
-// ✅ Bon
-it('devrait rejeter un mot de passe sans majuscule', () => {})
-
-// ❌ Mauvais
-it('test password', () => {})
+import { prisma } from "@/lib/prisma"
+jest.mock("@/lib/prisma")
 ```
 
-### 2. Tester les cas limites
+### NextAuth
 ```typescript
-describe('Pagination', () => {
-  it('devrait gérer page=0', () => {})
-  it('devrait limiter à 100 items max', () => {})
-  it('devrait calculer skip correctement', () => {})
-})
-```
-
-### 3. Mocker les dépendances externes
-```typescript
-jest.mock('@/lib/prisma', () => ({
-  prisma: {
-    user: {
-      findUnique: jest.fn(),
-    },
-  },
+import { getServerSession } from "next-auth"
+jest.mock("next-auth", () => ({
+  getServerSession: jest.fn(),
 }))
 ```
 
-### 4. Nettoyer après chaque test
-```typescript
-afterEach(() => {
-  jest.clearAllMocks()
-})
-```
+## Tests à écrire (TODO)
+
+### Tests d'intégration API
+- [ ] POST /api/movements
+- [ ] GET /api/movements (pagination)
+- [ ] PUT /api/movements/[id]
+- [ ] DELETE /api/movements/[id]
+- [ ] POST /api/inventories
+- [ ] POST /api/admin/users
+- [ ] Rate limiting sur routes
+
+### Tests E2E
+- [ ] Flux de login
+- [ ] Création d'un mouvement
+- [ ] Création d'un inventaire
+- [ ] Export PDF
+- [ ] Gestion admin
 
 ## CI/CD
 
-Les tests s'exécutent automatiquement via GitHub Actions :
-- Sur chaque push vers `main` ou `develop`
-- Sur chaque Pull Request
-- Échec du build si tests échouent ou couverture < 50%
+GitHub Actions s'exécute automatiquement sur :
+- Push sur `main` et `develop`
+- Pull requests
+
+Étapes :
+1. ✅ Lint + TypeCheck
+2. ✅ Tests unitaires
+3. ✅ Build
+4. ✅ Audit sécurité
 
 Voir `.github/workflows/ci.yml` pour la configuration.
 
+## Bonnes pratiques
+
+1. **Nommer les tests clairement**
+   ```typescript
+   it("should reject weak passwords", () => {})
+   ```
+
+2. **Tester les cas limites**
+   - Valeurs nulles/undefined
+   - Chaînes vides
+   - Nombres négatifs
+   - UUIDs invalides
+
+3. **Isoler les tests**
+   - Pas de dépendances entre tests
+   - Nettoyer après chaque test
+   - Utiliser `beforeEach`/`afterEach`
+
+4. **Snapshots avec parcimonie**
+   - Préférer les assertions explicites
+   - Snapshots uniquement pour UI complexe
+
 ## Debugging
 
-### Afficher les logs pendant les tests
 ```bash
-DEBUG=* npm test
-```
-
-### Exécuter un seul fichier de test
-```bash
+# Run un seul fichier
 npm test validations.test.ts
-```
 
-### Exécuter un seul test
-```bash
-npm test -t "devrait rejeter un email invalide"
-```
+# Run avec debug
+node --inspect-brk node_modules/.bin/jest --runInBand
 
-### Mode verbose
-```bash
+# Verbose output
 npm test -- --verbose
 ```
 
 ## Ressources
 
-- [Jest Documentation](https://jestjs.io/docs/getting-started)
-- [Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
+- [Jest Documentation](https://jestjs.io/)
+- [Testing Library](https://testing-library.com/)
 - [Next.js Testing](https://nextjs.org/docs/testing)
-
----
-
-*Pour questions ou ajouts, voir CONTRIBUTING.md*
