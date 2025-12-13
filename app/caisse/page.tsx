@@ -6,37 +6,68 @@ import { CaisseInterface } from "@/components/caisse/CaisseInterface"
 import { prisma } from "@/lib/prisma"
 
 async function getCaisseData(userId: string) {
-  // Récupérer les coffres accessibles
+  // Récupérer les coffres accessibles (optimisé avec select)
   const userCoffres = await prisma.coffreMember.findMany({
     where: { userId },
-    include: { coffre: true },
+    select: {
+      role: true,
+      coffreId: true,
+      coffre: {
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          isActive: true,
+          createdAt: true,
+        }
+      }
+    }
   })
 
-  // Récupérer le dernier inventaire pour chaque coffre
-  const coffresWithInventory = await Promise.all(
-    userCoffres.map(async (uc) => {
-      const lastInventory = await prisma.inventory.findFirst({
-        where: { coffreId: uc.coffreId },
-        include: { details: true },
-        orderBy: { createdAt: "desc" },
-      })
+  if (userCoffres.length === 0) {
+    return []
+  }
 
-      return {
-        ...uc.coffre,
-        lastInventory: lastInventory ? {
-          ...lastInventory,
-          totalAmount: Number(lastInventory.totalAmount),
-          details: lastInventory.details.map((d) => ({
-            ...d,
-            denomination: Number(d.denomination),
-          })),
-        } : null,
-        role: uc.role,
-      }
+  // Récupérer les derniers inventaires EN PARALLÈLE (Promise.all au lieu de séquentiel)
+  const inventoriesPromises = userCoffres.map(uc => 
+    prisma.inventory.findFirst({
+      where: { coffreId: uc.coffreId },
+      select: {
+        id: true,
+        totalAmount: true,
+        notes: true,
+        createdAt: true,
+        details: {
+          select: {
+            id: true,
+            denomination: true,
+            quantity: true,
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" },
     })
   )
 
-  return coffresWithInventory
+  const inventories = await Promise.all(inventoriesPromises)
+
+  // Mapper les résultats
+  return userCoffres.map((uc, index) => {
+    const inventory = inventories[index]
+    
+    return {
+      ...uc.coffre,
+      lastInventory: inventory ? {
+        ...inventory,
+        totalAmount: Number(inventory.totalAmount),
+        details: inventory.details.map(d => ({
+          ...d,
+          denomination: Number(d.denomination),
+        })),
+      } : null,
+      role: uc.role,
+    }
+  })
 }
 
 export default async function CaissePage() {

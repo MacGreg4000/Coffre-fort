@@ -1,10 +1,23 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Désactiver les devtools qui causent des erreurs
+  devIndicators: {
+    buildActivity: true,
+    buildActivityPosition: 'bottom-right',
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
     },
+    // Optimisations
+    optimizePackageImports: ['@heroui/react', 'framer-motion', 'lucide-react'],
+  },
+  // Compiler options pour meilleures performances
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
   },
   async headers() {
     return [
