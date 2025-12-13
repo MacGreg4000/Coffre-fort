@@ -37,10 +37,15 @@ export function Select({
         popoverContent: cn(
           "bg-card/95 backdrop-blur-2xl border border-primary/20 shadow-[var(--shadow-2)]",
           "p-2 rounded-2xl",
+          "data-[slot=base]:px-3 data-[slot=base]:py-2.5 data-[slot=base]:rounded-lg",
           classNames?.popoverContent
         ),
         listbox: cn(
           "p-1.5 gap-1",
+          "[&>li]:px-3 [&>li]:py-2.5 [&>li]:rounded-lg",
+          "[&>li]:hover:bg-primary/10 [&>li]:focus:bg-primary/12",
+          "[&>li]:transition-all [&>li]:text-foreground/90",
+          "[&>li]:font-semibold",
           classNames?.listbox
         ),
         selectorIcon: cn(
@@ -48,10 +53,6 @@ export function Select({
           classNames?.selectorIcon
         ),
         ...classNames,
-      }}
-      itemClasses={{
-        base: "px-3 py-2.5 rounded-lg hover:bg-primary/10 focus:bg-primary/12 transition-all text-foreground/90",
-        title: "font-semibold px-0",
       }}
       {...props}
     />
