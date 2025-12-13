@@ -204,10 +204,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                 }}
                 className="w-full sm:w-72"
               >
-                <SelectItem key="">
-                  Tous les coffres
-                </SelectItem>
-                {data.coffres.map((coffre) => (
+                {[{ id: "", name: "Tous les coffres" }, ...data.coffres].map((coffre) => (
                   <SelectItem key={coffre.id}>
                     {coffre.name}
                   </SelectItem>
