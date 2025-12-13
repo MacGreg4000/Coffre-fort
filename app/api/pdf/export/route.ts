@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
+import { authenticatedRoute } from "@/lib/api-middleware"
+import { EXPORT_RATE_LIMIT } from "@/lib/rate-limit"
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -94,9 +96,8 @@ export async function GET(req: NextRequest) {
   }
 }
 
-
-
-
+// Appliquer le middleware avec rate limiting strict (3 exports/minute)
+export const GET = authenticatedRoute(getHandler, EXPORT_RATE_LIMIT)
 
 
 

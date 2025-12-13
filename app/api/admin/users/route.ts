@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { createUserSchema, validateRequest } from "@/lib/validations"
 import { handleApiError, createAuditLog, ApiError } from "@/lib/api-utils"
+import { adminRoute } from "@/lib/api-middleware"
+import { MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== "ADMIN") {
@@ -67,6 +69,9 @@ export async function POST(req: NextRequest) {
     return handleApiError(error)
   }
 }
+
+// Appliquer le middleware avec rate limiting
+export const POST = adminRoute(postHandler, MUTATION_RATE_LIMIT)
 
 
 

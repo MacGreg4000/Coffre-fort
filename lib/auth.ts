@@ -14,8 +14,10 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
+          // Pause pour ralentir les attaques par timing
+          await new Promise(resolve => setTimeout(resolve, 1000))
           return null
         }
 
@@ -24,6 +26,8 @@ export const authOptions: NextAuthOptions = {
         })
 
         if (!user || !user.isActive) {
+          // Pause pour ralentir les attaques par timing
+          await new Promise(resolve => setTimeout(resolve, 1000))
           return null
         }
 
@@ -33,8 +37,32 @@ export const authOptions: NextAuthOptions = {
         )
 
         if (!isPasswordValid) {
+          // Log tentative échouée pour monitoring
+          await prisma.log.create({
+            data: {
+              action: "LOGIN_FAILED",
+              description: `Tentative de connexion échouée pour ${credentials.email}`,
+              metadata: JSON.stringify({ email: credentials.email }),
+              ipAddress: (req as any)?.headers?.["x-forwarded-for"]?.split(",")[0] || "unknown",
+              userAgent: (req as any)?.headers?.["user-agent"] || "unknown",
+            },
+          }).catch(() => {}) // Ignorer les erreurs de log
+          
+          // Pause pour ralentir les attaques par timing
+          await new Promise(resolve => setTimeout(resolve, 1000))
           return null
         }
+
+        // Log connexion réussie
+        await prisma.log.create({
+          data: {
+            userId: user.id,
+            action: "LOGIN_SUCCESS",
+            description: `Connexion réussie pour ${user.name}`,
+            ipAddress: (req as any)?.headers?.["x-forwarded-for"]?.split(",")[0] || "unknown",
+            userAgent: (req as any)?.headers?.["user-agent"] || "unknown",
+          },
+        }).catch(() => {}) // Ignorer les erreurs de log
 
         return {
           id: user.id,

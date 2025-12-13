@@ -5,8 +5,10 @@ import { prisma } from "@/lib/prisma"
 import { BILLET_DENOMINATIONS } from "@/lib/utils"
 import { createMovementSchema, validateRequest } from "@/lib/validations"
 import { handleApiError, createAuditLog, ApiError, serializeMovement } from "@/lib/api-utils"
+import { authenticatedRoute } from "@/lib/api-middleware"
+import { MUTATION_RATE_LIMIT, API_RATE_LIMIT } from "@/lib/rate-limit"
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -97,7 +99,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
@@ -167,5 +169,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-
-
+// Appliquer le middleware avec rate limiting
+export const POST = authenticatedRoute(postHandler, MUTATION_RATE_LIMIT)
+export const GET = authenticatedRoute(getHandler, API_RATE_LIMIT)
