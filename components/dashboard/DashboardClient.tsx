@@ -142,10 +142,7 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
                 }}
                 className="w-full sm:w-72"
               >
-                <SelectItem key="">
-                  Tous les coffres
-                </SelectItem>
-                {initialCoffres.map((coffre) => (
+                {[{ id: "", name: "Tous les coffres" }, ...initialCoffres].map((coffre) => (
                   <SelectItem key={coffre.id}>
                     {coffre.name}
                   </SelectItem>
