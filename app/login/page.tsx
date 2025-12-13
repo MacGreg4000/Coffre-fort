@@ -54,7 +54,7 @@ function LoginForm() {
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-10 -top-10 h-64 w-64 rounded-full bg-primary/15 blur-[120px]" />
-        <div className="absolute right-0 top-20 h-64 w-64 rounded-full bg-accent/15 blur-[120px]" />
+        <div className="absolute right-0 top-20 h-64 w-64 rounded-full bg-primary/10 blur-[120px]" />
       </div>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}

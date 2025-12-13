@@ -110,6 +110,14 @@ const config = {
             },
           },
         },
+        light: {
+          colors: {
+            primary: {
+              DEFAULT: "#3B82F6",
+              foreground: "#ffffff",
+            },
+          },
+        },
       },
     }),
   ],

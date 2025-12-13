@@ -23,7 +23,7 @@ export function PremiumButton({
     secondary: "bg-secondary hover:bg-secondary/90 text-secondary-foreground",
     success: "bg-success hover:bg-success/90 text-success-foreground",
     danger: "bg-danger hover:bg-danger/90 text-danger-foreground",
-    gradient: "bg-gradient-to-r from-primary via-accent to-primary bg-size-200 hover:bg-pos-100 text-white",
+    gradient: "bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-size-200 hover:bg-pos-100 text-white",
   }
 
   return (
@@ -42,7 +42,7 @@ export function PremiumButton({
             variant === "secondary" && "bg-secondary/40",
             variant === "success" && "bg-success/40",
             variant === "danger" && "bg-danger/40",
-            variant === "gradient" && "bg-gradient-to-r from-primary via-accent to-primary"
+            variant === "gradient" && "bg-gradient-to-r from-primary via-primary/80 to-primary/60"
           )}
           animate={{
             opacity: [0.4, 0.6, 0.4],

@@ -53,7 +53,7 @@ export function PremiumCard({
       {/* Glow effect */}
       {glow && (
         <motion.div
-          className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 -z-10"
+          className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-primary/15 to-primary/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 -z-10"
           animate={{
             opacity: [0.5, 0.8, 0.5],
           }}
@@ -170,7 +170,7 @@ export function FeatureCard({ title, description, icon, action, className }: Fea
     >
       <div className="flex items-start gap-4">
         <motion.div
-          className="flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/30"
+          className="flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30"
           whileHover={{ scale: 1.1, rotate: -5 }}
           transition={{ type: "spring", stiffness: 400, damping: 15 }}
         >

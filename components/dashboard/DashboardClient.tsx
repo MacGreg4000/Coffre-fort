@@ -180,7 +180,7 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
                   <div>
                     <p className="text-xs text-foreground/60 mb-1 font-medium">Montant total</p>
                     <motion.p 
-                      className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+                      className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent"
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: "spring", stiffness: 200, damping: 15 }}

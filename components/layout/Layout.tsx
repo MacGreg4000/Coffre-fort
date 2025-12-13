@@ -13,7 +13,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {/* Décor lumineux */}
           <div className="pointer-events-none fixed inset-0">
             <div className="absolute -left-24 -top-32 h-72 w-72 rounded-full bg-primary/10 blur-[120px]" />
-            <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-accent/10 blur-[120px]" />
+            <div className="absolute right-10 top-10 h-64 w-64 rounded-full bg-primary/8 blur-[120px]" />
             <div className="absolute left-10 bottom-0 h-80 w-80 rounded-full bg-success/10 blur-[140px]" />
           </div>
 

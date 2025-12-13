@@ -16,7 +16,7 @@ export function PremiumInput({ icon, className, ...props }: PremiumInputProps) {
     <div className="relative">
       {/* Glow effect on focus */}
       <motion.div
-        className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur opacity-0 -z-10"
+        className="absolute -inset-0.5 bg-gradient-to-r from-primary/20 via-primary/15 to-primary/20 rounded-2xl blur opacity-0 -z-10"
         animate={{ opacity: isFocused ? 0.6 : 0 }}
         transition={{ duration: 0.3 }}
       />
