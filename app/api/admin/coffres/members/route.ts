@@ -59,7 +59,7 @@ async function postHandler(req: NextRequest) {
         },
       })
 
-      // Créer un log d'audit avec IP/UA
+      // Créer un log d'audit avec IP/UA (dans la transaction)
       await createAuditLog({
         userId: session.user.id,
         coffreId,
@@ -67,6 +67,7 @@ async function postHandler(req: NextRequest) {
         description: `${newMember.user.name} ajouté au coffre ${newMember.coffre.name} avec le rôle ${role}`,
         metadata: { addedUserId: userId, role },
         req,
+        tx, // Passer le contexte de transaction
       })
 
       return newMember

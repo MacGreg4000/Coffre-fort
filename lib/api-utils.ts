@@ -97,6 +97,7 @@ export async function createAuditLog({
   description,
   metadata,
   req,
+  tx,
 }: {
   userId?: string
   coffreId?: string
@@ -106,13 +107,17 @@ export async function createAuditLog({
   description?: string
   metadata?: Record<string, any>
   req: NextRequest
+  tx?: any // Contexte de transaction Prisma optionnel
 }) {
   const { ip, userAgent } = getClientInfo(req)
 
   // Sanitize metadata - supprimer les clés sensibles
   const sanitizedMetadata = metadata ? sanitizeLogMetadata(metadata) : undefined
 
-  return prisma.log.create({
+  // Utiliser le contexte de transaction si fourni, sinon utiliser prisma directement
+  const client = tx || prisma
+
+  return client.log.create({
     data: {
       userId,
       coffreId,

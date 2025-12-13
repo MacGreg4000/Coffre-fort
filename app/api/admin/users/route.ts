@@ -49,13 +49,14 @@ async function postHandler(req: NextRequest) {
         },
       })
 
-      // Créer un log d'audit avec IP/UA
+      // Créer un log d'audit avec IP/UA (dans la transaction)
       await createAuditLog({
         userId: session.user.id,
         action: "USER_CREATED",
         description: `Utilisateur ${name} créé avec le rôle ${role}`,
         metadata: { email, role, createdUserId: newUser.id },
         req,
+        tx, // Passer le contexte de transaction
       })
 
       return newUser

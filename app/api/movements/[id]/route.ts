@@ -91,7 +91,7 @@ export async function PUT(
         },
       })
 
-      // Créer un log d'audit avec IP/UA
+      // Créer un log d'audit avec IP/UA (dans la transaction)
       await createAuditLog({
         userId: session.user.id,
         coffreId: existingMovement.coffreId,
@@ -105,6 +105,7 @@ export async function PUT(
           type 
         },
         req,
+        tx, // Passer le contexte de transaction
       })
 
       return updated
@@ -154,7 +155,7 @@ export async function DELETE(
         data: { deletedAt: new Date() },
       })
 
-      // Créer un log d'audit avec IP/UA
+      // Créer un log d'audit avec IP/UA (dans la transaction)
       await createAuditLog({
         userId: session.user.id,
         coffreId: existingMovement.coffreId,
@@ -166,6 +167,7 @@ export async function DELETE(
           amount: Number(existingMovement.amount),
         },
         req,
+        tx, // Passer le contexte de transaction
       })
     })
 

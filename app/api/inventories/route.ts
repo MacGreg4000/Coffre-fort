@@ -73,7 +73,7 @@ async function postHandler(req: NextRequest) {
         },
       })
 
-      // Créer un log d'audit avec IP/UA
+      // Créer un log d'audit avec IP/UA (dans la transaction)
       await createAuditLog({
         userId: session.user.id,
         coffreId,
@@ -82,6 +82,7 @@ async function postHandler(req: NextRequest) {
         description: `Inventaire de ${totalAmount}€`,
         metadata: { billets, totalAmount },
         req,
+        tx, // Passer le contexte de transaction
       })
 
       return newInventory
