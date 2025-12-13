@@ -1,16 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  // Désactiver les devtools qui causent des erreurs
-  devIndicators: {
-    buildActivity: true,
-    buildActivityPosition: 'bottom-right',
-  },
   experimental: {
     serverActions: {
       bodySizeLimit: '2mb',
     },
-    // Optimisations
+    // Optimisations des imports pour réduire le bundle
     optimizePackageImports: ['@heroui/react', 'framer-motion', 'lucide-react'],
   },
   // Compiler options pour meilleures performances
