@@ -127,6 +127,11 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
   }
 
   const handleDeleteMovement = (movementId: string) => {
+    // Empêcher les doubles suppressions
+    if (deletingMovementId) {
+      return
+    }
+
     confirm(
       "Êtes-vous sûr de vouloir supprimer ce mouvement ? Cette action est irréversible.",
       {
@@ -143,11 +148,19 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
             })
 
             if (response.ok) {
-              router.refresh()
               showToast("Mouvement supprimé avec succès!", "success")
+              // Refresh après un court délai pour assurer la cohérence
+              await new Promise(resolve => setTimeout(resolve, 300))
+              router.refresh()
             } else {
               const error = await response.json()
-              showToast(`Erreur: ${error.error || "Une erreur est survenue"}`, "error")
+              // Message plus clair si déjà supprimé
+              if (response.status === 404) {
+                showToast("Ce mouvement a déjà été supprimé", "warning")
+                router.refresh() // Forcer le refresh pour mettre à jour l'affichage
+              } else {
+                showToast(`Erreur: ${error.error || "Une erreur est survenue"}`, "error")
+              }
             }
           } catch (error) {
             showToast("Erreur lors de la suppression", "error")
