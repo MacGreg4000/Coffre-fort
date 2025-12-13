@@ -102,6 +102,7 @@ model Movement {
   type        MovementType
   amount      Decimal       @db.Decimal(10, 2) // Montant total en euros
   description String?       @db.Text
+  deletedAt   DateTime?     // Soft delete
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -115,6 +116,8 @@ model Movement {
   @@index([userId])
   @@index([type])
   @@index([createdAt])
+  @@index([coffreId, createdAt])
+  @@index([userId, createdAt])
   @@map("movements")
 }
 

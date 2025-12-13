@@ -3,16 +3,25 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { BILLET_DENOMINATIONS } from "@/lib/utils"
+import { createInventorySchema, validateRequest } from "@/lib/validations"
+import { handleApiError, createAuditLog, ApiError, serializeInventory } from "@/lib/api-utils"
 
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      throw new ApiError(401, "Non autorisé")
     }
 
     const body = await req.json()
-    const { coffreId, billets, notes } = body
+    
+    // Validation avec Zod
+    const validation = validateRequest(createInventorySchema, body)
+    if (!validation.success) {
+      throw new ApiError(400, validation.error)
+    }
+
+    const { coffreId, billets, notes } = validation.data
 
     // Vérifier l'accès au coffre
     const member = await prisma.coffreMember.findUnique({
@@ -25,10 +34,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (!member) {
-      return NextResponse.json(
-        { error: "Accès refusé à ce coffre" },
-        { status: 403 }
-      )
+      throw new ApiError(403, "Accès refusé à ce coffre")
     }
 
     // Calculer le montant total
@@ -44,54 +50,44 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Créer l'inventaire
-    const inventory = await prisma.inventory.create({
-      data: {
-        coffreId,
-        totalAmount,
-        notes,
-        details: {
-          create: details.map((d) => ({
-            denomination: d.denomination,
-            quantity: d.quantity,
-          })),
+    // Transaction pour garantir la cohérence
+    const inventory = await prisma.$transaction(async (tx) => {
+      // Créer l'inventaire
+      const newInventory = await tx.inventory.create({
+        data: {
+          coffreId,
+          totalAmount,
+          notes,
+          details: {
+            create: details.map((d) => ({
+              denomination: d.denomination,
+              quantity: d.quantity,
+            })),
+          },
         },
-      },
-      include: {
-        details: true,
-        coffre: true,
-      },
-    })
+        include: {
+          details: true,
+          coffre: true,
+        },
+      })
 
-    // Créer un log
-    await prisma.log.create({
-      data: {
+      // Créer un log d'audit avec IP/UA
+      await createAuditLog({
         userId: session.user.id,
         coffreId,
-        inventoryId: inventory.id,
+        inventoryId: newInventory.id,
         action: "INVENTORY_CREATED",
         description: `Inventaire de ${totalAmount}€`,
-        metadata: JSON.stringify({ billets }),
-      },
+        metadata: { billets, totalAmount },
+        req,
+      })
+
+      return newInventory
     })
 
-    // Convertir les Decimal en Number
-    const serializedInventory = {
-      ...inventory,
-      totalAmount: Number(inventory.totalAmount),
-      details: inventory.details.map((d) => ({
-        ...d,
-        denomination: Number(d.denomination),
-      })),
-    }
-
-    return NextResponse.json(serializedInventory, { status: 201 })
-  } catch (error: any) {
-    console.error("Erreur création inventaire:", error)
-    return NextResponse.json(
-      { error: error.message || "Erreur serveur" },
-      { status: 500 }
-    )
+    return NextResponse.json(serializeInventory(inventory), { status: 201 })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
@@ -99,11 +95,16 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      throw new ApiError(401, "Non autorisé")
     }
 
     const { searchParams } = new URL(req.url)
     const coffreId = searchParams.get("coffreId")
+
+    // Pagination
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"))
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50")))
+    const skip = (page - 1) * limit
 
     // Récupérer les coffres accessibles
     const userCoffres = await prisma.coffreMember.findMany({
@@ -112,37 +113,49 @@ export async function GET(req: NextRequest) {
     })
     const coffreIds = userCoffres.map((uc) => uc.coffreId)
 
-    const inventories = await prisma.inventory.findMany({
-      where: {
-        ...(coffreId && coffreIds.includes(coffreId)
-          ? { coffreId }
-          : { coffreId: { in: coffreIds } }),
-      },
-      include: {
-        coffre: true,
-        details: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 100,
+    if (coffreIds.length === 0) {
+      return NextResponse.json({
+        data: [],
+        pagination: { total: 0, page, limit, totalPages: 0, hasNextPage: false, hasPreviousPage: false }
+      })
+    }
+
+    const whereClause = {
+      ...(coffreId && coffreIds.includes(coffreId)
+        ? { coffreId }
+        : { coffreId: { in: coffreIds } }),
+    }
+
+    // Requêtes parallèles pour la pagination
+    const [inventories, total] = await Promise.all([
+      prisma.inventory.findMany({
+        where: whereClause,
+        include: {
+          coffre: true,
+          details: true,
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.inventory.count({ where: whereClause })
+    ])
+
+    const serializedInventories = inventories.map(serializeInventory)
+
+    return NextResponse.json({
+      data: serializedInventories,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPreviousPage: page > 1,
+      }
     })
-
-    // Convertir les Decimal en Number
-    const serializedInventories = inventories.map((inv) => ({
-      ...inv,
-      totalAmount: Number(inv.totalAmount),
-      details: inv.details.map((d) => ({
-        ...d,
-        denomination: Number(d.denomination),
-      })),
-    }))
-
-    return NextResponse.json(serializedInventories)
-  } catch (error: any) {
-    console.error("Erreur récupération inventaires:", error)
-    return NextResponse.json(
-      { error: error.message || "Erreur serveur" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 

@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { BILLET_DENOMINATIONS } from "@/lib/utils"
+import { updateMovementSchema, validateRequest } from "@/lib/validations"
+import { handleApiError, createAuditLog, ApiError, serializeMovement } from "@/lib/api-utils"
 
 // Modifier un mouvement (uniquement pour les admins)
 export async function PUT(
@@ -12,24 +14,28 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      throw new ApiError(401, "Non autorisé")
     }
 
     // Vérifier que l'utilisateur est admin
     if (session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Accès refusé. Seuls les administrateurs peuvent modifier les mouvements." },
-        { status: 403 }
-      )
+      throw new ApiError(403, "Accès refusé. Seuls les administrateurs peuvent modifier les mouvements.")
     }
 
     const { id: movementId } = await params
     const body = await req.json()
-    const { type, billets, description } = body
+    
+    // Validation avec Zod
+    const validation = validateRequest(updateMovementSchema, body)
+    if (!validation.success) {
+      throw new ApiError(400, validation.error)
+    }
 
-    // Vérifier que le mouvement existe
-    const existingMovement = await prisma.movement.findUnique({
-      where: { id: movementId },
+    const { type, billets, description } = validation.data
+
+    // Vérifier que le mouvement existe et n'est pas supprimé
+    const existingMovement = await prisma.movement.findFirst({
+      where: { id: movementId, deletedAt: null },
       include: {
         coffre: true,
         details: true,
@@ -37,10 +43,7 @@ export async function PUT(
     })
 
     if (!existingMovement) {
-      return NextResponse.json(
-        { error: "Mouvement introuvable" },
-        { status: 404 }
-      )
+      throw new ApiError(404, "Mouvement introuvable")
     }
 
     // Calculer le nouveau montant total
@@ -60,70 +63,60 @@ export async function PUT(
       }
     }
 
-    // Supprimer les anciens détails
-    await prisma.movementDetail.deleteMany({
-      where: { movementId },
-    })
+    // Transaction pour garantir la cohérence
+    const updatedMovement = await prisma.$transaction(async (tx) => {
+      // Supprimer les anciens détails
+      await tx.movementDetail.deleteMany({
+        where: { movementId },
+      })
 
-    // Mettre à jour le mouvement
-    const updatedMovement = await prisma.movement.update({
-      where: { id: movementId },
-      data: {
-        type,
-        amount: Math.abs(totalAmount),
-        description,
-        details: {
-          create: details.map((d) => ({
-            denomination: d.denomination,
-            quantity: d.quantity,
-          })),
+      // Mettre à jour le mouvement
+      const updated = await tx.movement.update({
+        where: { id: movementId },
+        data: {
+          type,
+          amount: Math.abs(totalAmount),
+          description,
+          details: {
+            create: details.map((d) => ({
+              denomination: d.denomination,
+              quantity: d.quantity,
+            })),
+          },
         },
-      },
-      include: {
-        details: true,
-        coffre: true,
-        user: true,
-      },
-    })
+        include: {
+          details: true,
+          coffre: true,
+          user: { select: { id: true, name: true, email: true } },
+        },
+      })
 
-    // Créer un log
-    await prisma.log.create({
-      data: {
+      // Créer un log d'audit avec IP/UA
+      await createAuditLog({
         userId: session.user.id,
         coffreId: existingMovement.coffreId,
-        movementId: updatedMovement.id,
+        movementId: updated.id,
         action: "MOVEMENT_UPDATED",
         description: `Mouvement ${type} modifié: ${Math.abs(totalAmount)}€`,
-        metadata: JSON.stringify({ 
+        metadata: { 
           oldAmount: Number(existingMovement.amount),
           newAmount: Math.abs(totalAmount),
           billets, 
           type 
-        }),
-      },
+        },
+        req,
+      })
+
+      return updated
     })
 
-    // Convertir les Decimal en Number
-    const serializedMovement = {
-      ...updatedMovement,
-      amount: Number(updatedMovement.amount),
-      details: updatedMovement.details.map((d) => ({
-        ...d,
-        denomination: Number(d.denomination),
-      })),
-    }
-
-    return NextResponse.json(serializedMovement)
-  } catch (error: any) {
-    console.error("Erreur modification mouvement:", error)
-    return NextResponse.json(
-      { error: error.message || "Erreur serveur" },
-      { status: 500 }
-    )
+    return NextResponse.json(serializeMovement(updatedMovement))
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
-// Supprimer un mouvement (uniquement pour les admins)
+// Supprimer un mouvement (soft delete - uniquement pour les admins)
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -131,61 +124,54 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      throw new ApiError(401, "Non autorisé")
     }
 
     // Vérifier que l'utilisateur est admin
     if (session.user.role !== "ADMIN") {
-      return NextResponse.json(
-        { error: "Accès refusé. Seuls les administrateurs peuvent supprimer les mouvements." },
-        { status: 403 }
-      )
+      throw new ApiError(403, "Accès refusé. Seuls les administrateurs peuvent supprimer les mouvements.")
     }
 
     const { id: movementId } = await params
 
-    // Vérifier que le mouvement existe
-    const existingMovement = await prisma.movement.findUnique({
-      where: { id: movementId },
+    // Vérifier que le mouvement existe et n'est pas déjà supprimé
+    const existingMovement = await prisma.movement.findFirst({
+      where: { id: movementId, deletedAt: null },
       include: {
         coffre: true,
       },
     })
 
     if (!existingMovement) {
-      return NextResponse.json(
-        { error: "Mouvement introuvable" },
-        { status: 404 }
-      )
+      throw new ApiError(404, "Mouvement introuvable")
     }
 
-    // Créer un log avant la suppression
-    await prisma.log.create({
-      data: {
+    // Transaction pour soft delete + log
+    await prisma.$transaction(async (tx) => {
+      // Soft delete (marquer comme supprimé)
+      await tx.movement.update({
+        where: { id: movementId },
+        data: { deletedAt: new Date() },
+      })
+
+      // Créer un log d'audit avec IP/UA
+      await createAuditLog({
         userId: session.user.id,
         coffreId: existingMovement.coffreId,
         action: "MOVEMENT_DELETED",
         description: `Mouvement ${existingMovement.type} supprimé: ${Number(existingMovement.amount)}€`,
-        metadata: JSON.stringify({ 
+        metadata: { 
           movementId,
           type: existingMovement.type,
           amount: Number(existingMovement.amount),
-        }),
-      },
+        },
+        req,
+      })
     })
 
-    // Supprimer le mouvement (les détails seront supprimés automatiquement grâce à onDelete: Cascade)
-    await prisma.movement.delete({
-      where: { id: movementId },
-    })
-
-    return NextResponse.json({ success: true })
-  } catch (error: any) {
-    console.error("Erreur suppression mouvement:", error)
-    return NextResponse.json(
-      { error: error.message || "Erreur serveur" },
-      { status: 500 }
-    )
+    return NextResponse.json({ success: true, message: "Mouvement supprimé avec succès" })
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
