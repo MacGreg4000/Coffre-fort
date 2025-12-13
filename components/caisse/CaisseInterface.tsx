@@ -12,6 +12,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 import { Textarea } from "@heroui/react"
 import { motion, AnimatePresence } from "framer-motion"
+import { PremiumCard } from "@/components/ui/premium-card"
 
 interface CaisseInterfaceProps {
   coffres: any[]
@@ -195,52 +196,58 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
         </div>
 
         {selectedCoffre && (
-          <motion.div
-            whileHover={{ scale: 1.015 }}
-            transition={{ type: "spring", stiffness: 260, damping: 22 }}
-            className="relative group"
+          <PremiumCard
+            variant="gradient"
+            hover3D
+            glow
+            className="overflow-visible"
           >
-            <div className="absolute -inset-0.5 bg-primary/15 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-            <Card className="bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 shadow-[var(--shadow-1)]">
-              <CardBody className="p-5 sm:p-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-primary/15 border border-primary/20">
-                      <Wallet className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-foreground/60 mb-1">Montant actuel</p>
-                      <p className="text-2xl font-semibold text-primary">
-                        {loadingBalance ? (
-                          <span className="text-foreground/30 animate-pulse">Chargement...</span>
-                        ) : balance !== null ? (
-                          formatCurrency(balance)
-                        ) : (
-                          <span className="text-foreground/30">0,00 €</span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-foreground/50">
-                    Utilisateur : <span className="font-semibold text-foreground/80">{userId}</span>
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <motion.div 
+                    className="p-3 rounded-xl bg-primary/20 border border-primary/30"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  >
+                    <Wallet className="h-5 w-5 text-primary" />
+                  </motion.div>
+                  <div>
+                    <p className="text-xs text-foreground/60 mb-1 font-medium">Montant actuel</p>
+                    <motion.p 
+                      className="text-2xl sm:text-3xl font-bold text-primary"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    >
+                      {loadingBalance ? (
+                        <span className="text-foreground/30 animate-pulse">Chargement...</span>
+                      ) : balance !== null ? (
+                        formatCurrency(balance)
+                      ) : (
+                        <span className="text-foreground/30">0,00 €</span>
+                      )}
+                    </motion.p>
                   </div>
                 </div>
-              </CardBody>
-            </Card>
-          </motion.div>
+                <div className="text-right text-xs text-foreground/60">
+                  <span className="opacity-60">Utilisateur</span>
+                  <p className="font-semibold text-foreground/80 mt-0.5">{userId}</p>
+                </div>
+              </div>
+            </div>
+          </PremiumCard>
         )}
       </div>
 
       {selectedCoffre && (
-        <motion.div
-          whileHover={{ scale: 1.005 }}
-          transition={{ type: "spring", stiffness: 260, damping: 22 }}
-          className="relative group"
-        >
-          <div className="absolute -inset-0.5 bg-primary/15 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-          
-          <Card className="bg-card/70 backdrop-blur-lg border border-border/60 shadow-[var(--shadow-1)]">
-            <CardBody className="p-5 sm:p-6 space-y-6">
+          <PremiumCard
+            variant="glass"
+            hover3D
+            glow
+            className="overflow-visible"
+          >
+            <div className="p-5 sm:p-6 space-y-6">
               {/* Mode sélection avec Tabs HeroUI - Centré */}
               <div className="flex justify-center">
                 <Tabs
@@ -344,9 +351,8 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   </div>
                 </motion.div>
               </AnimatePresence>
-            </CardBody>
-          </Card>
-        </motion.div>
+            </div>
+          </PremiumCard>
       )}
     </div>
   )

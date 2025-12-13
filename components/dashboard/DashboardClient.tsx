@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { Card, CardBody } from "@heroui/react"
 import { DashboardStats } from "./DashboardStats"
-import { Spinner } from "@heroui/react"
+import { Skeleton, SkeletonStats } from "@/components/ui/skeleton"
+import { PremiumCard } from "@/components/ui/premium-card"
+import { PageHeader } from "@/components/ui/page-header"
 import { formatCurrency } from "@/lib/utils"
 import { Wallet, LayoutDashboard } from "lucide-react"
 import { motion } from "framer-motion"
@@ -101,8 +103,13 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
 
   if (loading && !data) {
     return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <Spinner size="lg" color="primary" />
+      <div className="space-y-8">
+        <div className="space-y-3">
+          <Skeleton className="h-8 w-32" />
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-6 w-96 max-w-full" />
+        </div>
+        <SkeletonStats />
       </div>
     )
   }
@@ -153,43 +160,58 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
         </div>
 
         {coffresBalances.length > 0 && (
-          <motion.div
-            whileHover={{ scale: 1.015 }}
-            transition={{ type: "spring", stiffness: 280, damping: 20 }}
-            className="relative group"
+          <PremiumCard
+            variant="gradient"
+            hover3D
+            glow
+            shimmer
+            className="overflow-visible"
           >
-            <div className="absolute -inset-0.5 bg-primary/15 rounded-2xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-            <Card className="bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20">
-              <CardBody className="p-5 sm:p-6">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 rounded-xl bg-primary/15 border border-primary/20">
-                      <Wallet className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-foreground/60 mb-1">Montant total</p>
-                      <p className="text-2xl font-semibold text-primary">
-                        {formatCurrency(totalBalance)}
-                      </p>
-                      <p className="text-xs text-foreground/50">
-                        {coffresBalances.length} coffre{coffresBalances.length > 1 ? "s" : ""}
-                      </p>
-                    </div>
+            <div className="p-5 sm:p-6">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <motion.div 
+                    className="p-3 rounded-xl bg-primary/20 border border-primary/30 backdrop-blur"
+                    whileHover={{ scale: 1.1, rotate: 5 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  >
+                    <Wallet className="h-5 w-5 text-primary" />
+                  </motion.div>
+                  <div>
+                    <p className="text-xs text-foreground/60 mb-1 font-medium">Montant total</p>
+                    <motion.p 
+                      className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                    >
+                      {formatCurrency(totalBalance)}
+                    </motion.p>
+                    <p className="text-xs text-foreground/50 flex items-center gap-1.5 mt-0.5">
+                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                      {coffresBalances.length} coffre{coffresBalances.length > 1 ? "s" : ""}
+                    </p>
                   </div>
-                  {coffresBalances.length > 1 && (
-                    <div className="text-right text-xs text-foreground/60 space-y-1">
-                      {coffresBalances.map((cb) => (
-                        <div key={cb.coffreId} className="flex items-center gap-2 justify-end">
-                          <span>{cb.coffreName}:</span>
-                          <span className="font-semibold text-primary">{formatCurrency(cb.balance)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </CardBody>
-            </Card>
-          </motion.div>
+                {coffresBalances.length > 1 && (
+                  <div className="text-right text-xs text-foreground/60 space-y-1.5">
+                    {coffresBalances.map((cb, index) => (
+                      <motion.div 
+                        key={cb.coffreId} 
+                        className="flex items-center gap-2 justify-end"
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <span className="text-foreground/70">{cb.coffreName}:</span>
+                        <span className="font-bold text-primary">{formatCurrency(cb.balance)}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </PremiumCard>
         )}
       </div>
 
