@@ -97,3 +97,4 @@ export function validateRequest<T>(schema: z.ZodSchema<T>, data: unknown): { suc
     return { success: false, error: "Validation échouée" }
   }
 }
+

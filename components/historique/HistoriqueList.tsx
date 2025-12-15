@@ -156,7 +156,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
               const error = await response.json()
               // Message plus clair si déjà supprimé
               if (response.status === 404) {
-                showToast("Ce mouvement a déjà été supprimé", "warning")
+                showToast("Ce mouvement a déjà été supprimé", "info")
                 router.refresh() // Forcer le refresh pour mettre à jour l'affichage
               } else {
                 showToast(`Erreur: ${error.error || "Une erreur est survenue"}`, "error")

@@ -72,3 +72,4 @@ export const hoverLift = {
     transition: { duration: 0.2 }
   }
 }
+
