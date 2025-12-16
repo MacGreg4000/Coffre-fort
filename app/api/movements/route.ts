@@ -7,6 +7,8 @@ import { createMovementSchema, validateRequest } from "@/lib/validations"
 import { handleApiError, createAuditLog, ApiError, serializeMovement } from "@/lib/api-utils"
 import { authenticatedRoute } from "@/lib/api-middleware"
 import { MUTATION_RATE_LIMIT, API_RATE_LIMIT } from "@/lib/rate-limit"
+import { invalidateCoffreCache, cache } from "@/lib/cache"
+import { logger } from "@/lib/logger"
 
 async function postHandler(req: NextRequest) {
   try {
@@ -93,6 +95,11 @@ async function postHandler(req: NextRequest) {
 
       return newMovement
     })
+
+    // INVALIDER LE CACHE pour ce coffre et le dashboard
+    invalidateCoffreCache(coffreId)
+    cache.invalidatePattern(`dashboard:${session.user.id}`)
+    logger.info(`Cache invalidated for coffre ${coffreId} after movement creation`)
 
     return NextResponse.json(serializeMovement(movement), { status: 201 })
   } catch (error) {

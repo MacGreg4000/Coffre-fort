@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { BILLET_DENOMINATIONS } from "@/lib/utils"
 import { updateMovementSchema, validateRequest } from "@/lib/validations"
 import { handleApiError, createAuditLog, ApiError, serializeMovement } from "@/lib/api-utils"
+import { invalidateCoffreCache, cache } from "@/lib/cache"
+import { logger } from "@/lib/logger"
 
 // Modifier un mouvement (uniquement pour les admins)
 export async function PUT(
@@ -111,6 +113,11 @@ export async function PUT(
       return updated
     })
 
+    // INVALIDER LE CACHE pour ce coffre et le dashboard
+    invalidateCoffreCache(existingMovement.coffreId)
+    cache.invalidatePattern(`dashboard:${session.user.id}`)
+    logger.info(`Cache invalidated for coffre ${existingMovement.coffreId} after movement update`)
+
     return NextResponse.json(serializeMovement(updatedMovement))
   } catch (error) {
     return handleApiError(error)
@@ -171,10 +178,16 @@ export async function DELETE(
       })
     })
 
+    // INVALIDER LE CACHE pour ce coffre et le dashboard
+    invalidateCoffreCache(existingMovement.coffreId)
+    cache.invalidatePattern(`dashboard:${session.user.id}`)
+    logger.info(`Cache invalidated for coffre ${existingMovement.coffreId} after movement deletion`)
+
     return NextResponse.json({ success: true, message: "Mouvement supprimé avec succès" })
   } catch (error) {
     return handleApiError(error)
   }
 }
+
 
 
