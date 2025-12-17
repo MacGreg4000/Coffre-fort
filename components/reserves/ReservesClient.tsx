@@ -776,7 +776,7 @@ export default function ReservesClient() {
 
         {/* Info message */}
         <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-sm text-muted-foreground">
-          💡 <strong>Info :</strong> Toutes les années de 2013 à 2035 sont pré-créées. Cliquez sur <strong>✏️ Éditer</strong> pour modifier les montants.
+          💡 <strong>Info :</strong> Toutes les années de 2013 à 2055 sont pré-créées avec année libérable = année + 5 ans. Cliquez sur <strong>✏️ Éditer</strong> pour modifier les montants.
         </div>
 
         {/* Table header */}

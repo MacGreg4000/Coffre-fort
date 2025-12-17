@@ -15,19 +15,19 @@ export async function POST(req: NextRequest) {
     }
 
     const START_YEAR = 2013
-    const END_YEAR = 2035
-    const currentYear = new Date().getFullYear()
+    const END_YEAR = 2055
 
     // Vérifier les années existantes
     const existingReserves = await prisma.reserve.findMany({
       where: { userId: session.user.id },
-      select: { year: true },
+      select: { year: true, id: true, releaseYear: true },
     })
 
     const existingYears = new Set(existingReserves.map((r) => r.year))
     const yearsToCreate = []
+    const yearsToUpdate = []
 
-    // Créer toutes les années manquantes de 2013 à 2035
+    // Créer toutes les années manquantes de 2013 à 2055
     for (let year = START_YEAR; year <= END_YEAR; year++) {
       if (!existingYears.has(year)) {
         yearsToCreate.push({
@@ -35,32 +35,51 @@ export async function POST(req: NextRequest) {
           year,
           amount: 0,
           released: 0,
-          releaseYear: year < currentYear ? year + 5 : null, // Année libérable = année + 5 ans si passée
+          releaseYear: year + 5, // Année libérable = toujours année + 5 ans
         })
       }
     }
 
-    if (yearsToCreate.length === 0) {
-      return NextResponse.json({
-        message: "Toutes les années sont déjà initialisées",
-        count: 0,
-      })
+    // Mettre à jour les années existantes qui n'ont pas d'année libérable
+    for (const reserve of existingReserves) {
+      if (reserve.releaseYear === null) {
+        yearsToUpdate.push({
+          id: reserve.id,
+          releaseYear: reserve.year + 5,
+        })
+      }
     }
 
     // Créer toutes les années manquantes
-    await prisma.reserve.createMany({
-      data: yearsToCreate,
-    })
+    if (yearsToCreate.length > 0) {
+      await prisma.reserve.createMany({
+        data: yearsToCreate,
+      })
+    }
 
-    logger.info("Années initialisées", {
+    // Mettre à jour les années existantes sans année libérable
+    if (yearsToUpdate.length > 0) {
+      await Promise.all(
+        yearsToUpdate.map((update) =>
+          prisma.reserve.update({
+            where: { id: update.id },
+            data: { releaseYear: update.releaseYear },
+          })
+        )
+      )
+    }
+
+    logger.info("Années initialisées et mises à jour", {
       userId: session.user.id,
-      count: yearsToCreate.length,
+      created: yearsToCreate.length,
+      updated: yearsToUpdate.length,
       range: `${START_YEAR}-${END_YEAR}`,
     })
 
     return NextResponse.json({
-      message: `${yearsToCreate.length} années créées avec succès`,
-      count: yearsToCreate.length,
+      message: `${yearsToCreate.length} années créées, ${yearsToUpdate.length} années mises à jour`,
+      created: yearsToCreate.length,
+      updated: yearsToUpdate.length,
       years: yearsToCreate.map((y) => y.year),
     })
   } catch (err) {
