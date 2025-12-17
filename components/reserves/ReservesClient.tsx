@@ -178,7 +178,7 @@ export default function ReservesClient() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          year: reserve.year,
+          // NE PAS envoyer l'année (elle ne change jamais)
           amount: reserve.amount,
           releaseYear: reserve.releaseYear,
           released: reserve.released,
@@ -186,13 +186,16 @@ export default function ReservesClient() {
         }),
       })
 
-      if (!response.ok) throw new Error("Erreur lors de la modification")
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Erreur lors de la modification")
+      }
 
       showToast("Réserve modifiée avec succès", "success")
       setEditingId(null)
       fetchReserves()
-    } catch (error) {
-      showToast("Erreur lors de la modification", "error")
+    } catch (error: any) {
+      showToast(error.message || "Erreur lors de la modification", "error")
     }
   }
 
@@ -807,23 +810,7 @@ export default function ReservesClient() {
                 >
                   {/* Année */}
                   <div className="flex items-center">
-                    {isEditing ? (
-                      <Input
-                        type="number"
-                        size="sm"
-                        value={reserve.year.toString()}
-                        onChange={(e) => {
-                          const updated = reserves.map((r) =>
-                            r.id === reserve.id
-                              ? { ...r, year: parseInt(e.target.value) || 0 }
-                              : r
-                          )
-                          setReserves(updated)
-                        }}
-                      />
-                    ) : (
-                      <span className="font-semibold">{reserve.year}</span>
-                    )}
+                    <span className="font-semibold">{reserve.year}</span>
                   </div>
 
                   {/* Montant */}
