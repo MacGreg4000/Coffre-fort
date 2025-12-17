@@ -313,7 +313,8 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                       
                       <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                         <CardBody className="p-5">
-                          <div className="flex items-start justify-between gap-4">
+                          {/* Partie haute : En-tête + Description + Boutons */}
+                          <div className="flex items-start justify-between gap-4 mb-4">
                             <div className="flex-1 min-w-0">
                               {/* En-tête avec icône et informations principales */}
                               <div className="flex items-center gap-3 mb-3">
@@ -352,107 +353,13 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
 
                               {/* Description */}
                               {movement.description && (
-                                <p className="text-sm text-foreground/70 mb-3">
+                                <p className="text-sm text-foreground/70">
                                   {movement.description}
                                 </p>
                               )}
 
-                              {/* Détails des billets - Format responsive */}
-                              {movement.details.length > 0 && (
-                                <div className="mt-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
-                                      Détail par billet
-                                    </p>
-                                    {movement.details.length > 3 && (
-                                      <Button
-                                        variant="light"
-                                        size="sm"
-                                        onPress={() => toggleExpand(movement.id)}
-                                        className="text-xs h-6 min-w-0 px-2"
-                                      >
-                                        {isExpanded ? (
-                                          <>
-                                            <ChevronUp className="h-3 w-3 mr-1" />
-                                            Réduire
-                                          </>
-                                        ) : (
-                                          <>
-                                            <ChevronDown className="h-3 w-3 mr-1" />
-                                            Voir tout ({movement.details.length})
-                                          </>
-                                        )}
-                                      </Button>
-                                    )}
-                                  </div>
-
-                                  {/* Grille responsive au lieu de tableau */}
-                                  <div className="space-y-2">
-                                    {(isExpanded || movement.details.length <= 3
-                                      ? movement.details
-                                      : movement.details.slice(0, 3)
-                                    ).map((detail: any, index: number) => (
-                                      <motion.div
-                                        key={detail.id}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="bg-default-50 rounded-lg border border-divider p-3 hover:bg-default-100/50 transition-colors"
-                                      >
-                                        <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
-                                          {/* Dénomination */}
-                                          <div>
-                                            <p className="text-xs text-foreground/60 mb-0.5">Billet</p>
-                                            <p className="font-bold text-primary text-base">
-                                              {formatCurrency(Number(detail.denomination))}
-                                            </p>
-                                          </div>
-                                          
-                                          {/* Quantité */}
-                                          <div className="text-center">
-                                            <p className="text-xs text-foreground/60 mb-1">Qté</p>
-                                            <span className="inline-flex items-center justify-center min-w-[2.5rem] px-2.5 py-1 rounded-md bg-primary/10 text-primary font-bold text-sm">
-                                              {detail.quantity}
-                                            </span>
-                                          </div>
-                                          
-                                          {/* Sous-total */}
-                                          <div className="text-right">
-                                            <p className="text-xs text-foreground/60 mb-0.5">Sous-total</p>
-                                            <p className="font-bold text-foreground text-base">
-                                              {formatCurrency(Number(detail.denomination) * detail.quantity)}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </motion.div>
-                                    ))}
-
-                                    {/* Footer Total */}
-                                    <div className="bg-default-100 rounded-lg border-2 border-primary/30 p-3">
-                                      <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
-                                        <div>
-                                          <p className="text-xs font-bold text-foreground/80 uppercase">Total</p>
-                                        </div>
-                                        <div className="text-center">
-                                          <p className="text-xs font-bold text-primary">
-                                            {movement.details.reduce((sum: number, d: any) => sum + d.quantity, 0)} billets
-                                          </p>
-                                        </div>
-                                        <div className="text-right">
-                                          <p className={`font-bold text-xl ${
-                                            isEntry ? "text-success" : isExit ? "text-danger" : "text-primary"
-                                          }`}>
-                                            {formatCurrency(Number(movement.amount))}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
                               {/* Utilisateur */}
-                              <p className="text-xs text-foreground/50 mt-3">
+                              <p className="text-xs text-foreground/50 mt-2">
                                 Par {movement.user.name}
                               </p>
                             </div>
@@ -492,6 +399,100 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                               )}
                             </div>
                           </div>
+
+                          {/* Détails des billets - Prend toute la largeur EN DESSOUS */}
+                          {movement.details.length > 0 && (
+                            <div className="border-t border-divider pt-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
+                                  Détail par billet
+                                </p>
+                                {movement.details.length > 3 && (
+                                  <Button
+                                    variant="light"
+                                    size="sm"
+                                    onPress={() => toggleExpand(movement.id)}
+                                    className="text-xs h-6 min-w-0 px-2"
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                        Réduire
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                        Voir tout ({movement.details.length})
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* Grille responsive */}
+                              <div className="space-y-2">
+                                {(isExpanded || movement.details.length <= 3
+                                  ? movement.details
+                                  : movement.details.slice(0, 3)
+                                ).map((detail: any, index: number) => (
+                                  <motion.div
+                                    key={detail.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="bg-default-50 rounded-lg border border-divider p-3 hover:bg-default-100/50 transition-colors"
+                                  >
+                                    <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+                                      {/* Dénomination */}
+                                      <div>
+                                        <p className="text-xs text-foreground/60 mb-0.5">Billet</p>
+                                        <p className="font-bold text-primary text-base">
+                                          {formatCurrency(Number(detail.denomination))}
+                                        </p>
+                                      </div>
+                                      
+                                      {/* Quantité */}
+                                      <div className="text-center">
+                                        <p className="text-xs text-foreground/60 mb-1">Qté</p>
+                                        <span className="inline-flex items-center justify-center min-w-[2.5rem] px-2.5 py-1 rounded-md bg-primary/10 text-primary font-bold text-sm">
+                                          {detail.quantity}
+                                        </span>
+                                      </div>
+                                      
+                                      {/* Sous-total */}
+                                      <div className="text-right">
+                                        <p className="text-xs text-foreground/60 mb-0.5">Sous-total</p>
+                                        <p className="font-bold text-foreground text-base">
+                                          {formatCurrency(Number(detail.denomination) * detail.quantity)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                ))}
+
+                                {/* Footer Total */}
+                                <div className="bg-default-100 rounded-lg border-2 border-primary/30 p-3">
+                                  <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+                                    <div>
+                                      <p className="text-xs font-bold text-foreground/80 uppercase">Total</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs font-bold text-primary">
+                                        {movement.details.reduce((sum: number, d: any) => sum + d.quantity, 0)} billets
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className={`font-bold text-xl ${
+                                        isEntry ? "text-success" : isExit ? "text-danger" : "text-primary"
+                                      }`}>
+                                        {formatCurrency(Number(movement.amount))}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </CardBody>
                       </Card>
                     </motion.div>
@@ -525,7 +526,8 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                       
                       <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
                         <CardBody className="p-5">
-                          <div className="flex items-start justify-between gap-4">
+                          {/* Partie haute : En-tête + Notes + Bouton */}
+                          <div className="flex items-start justify-between gap-4 mb-4">
                             <div className="flex-1 min-w-0">
                               {/* En-tête avec icône et informations principales */}
                               <div className="flex items-center gap-3 mb-3">
@@ -549,101 +551,9 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
 
                               {/* Notes */}
                               {inventory.notes && (
-                                <p className="text-sm text-foreground/70 mb-3">
+                                <p className="text-sm text-foreground/70">
                                   {inventory.notes}
                                 </p>
-                              )}
-
-                              {/* Détails des billets - Format responsive */}
-                              {inventory.details.length > 0 && (
-                                <div className="mt-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
-                                      Détail par billet
-                                    </p>
-                                    {inventory.details.length > 3 && (
-                                      <Button
-                                        variant="light"
-                                        size="sm"
-                                        onPress={() => toggleExpand(inventory.id)}
-                                        className="text-xs h-6 min-w-0 px-2"
-                                      >
-                                        {isExpanded ? (
-                                          <>
-                                            <ChevronUp className="h-3 w-3 mr-1" />
-                                            Réduire
-                                          </>
-                                        ) : (
-                                          <>
-                                            <ChevronDown className="h-3 w-3 mr-1" />
-                                            Voir tout ({inventory.details.length})
-                                          </>
-                                        )}
-                                      </Button>
-                                    )}
-                                  </div>
-
-                                  {/* Grille responsive au lieu de tableau */}
-                                  <div className="space-y-2">
-                                    {(isExpanded || inventory.details.length <= 3
-                                      ? inventory.details
-                                      : inventory.details.slice(0, 3)
-                                    ).map((detail: any, index: number) => (
-                                      <motion.div
-                                        key={detail.id}
-                                        initial={{ opacity: 0, x: -10 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: index * 0.05 }}
-                                        className="bg-default-50 rounded-lg border border-divider p-3 hover:bg-default-100/50 transition-colors"
-                                      >
-                                        <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
-                                          {/* Dénomination */}
-                                          <div>
-                                            <p className="text-xs text-foreground/60 mb-0.5">Billet</p>
-                                            <p className="font-bold text-primary text-base">
-                                              {formatCurrency(Number(detail.denomination))}
-                                            </p>
-                                          </div>
-                                          
-                                          {/* Quantité */}
-                                          <div className="text-center">
-                                            <p className="text-xs text-foreground/60 mb-1">Qté</p>
-                                            <span className="inline-flex items-center justify-center min-w-[2.5rem] px-2.5 py-1 rounded-md bg-primary/10 text-primary font-bold text-sm">
-                                              {detail.quantity}
-                                            </span>
-                                          </div>
-                                          
-                                          {/* Sous-total */}
-                                          <div className="text-right">
-                                            <p className="text-xs text-foreground/60 mb-0.5">Sous-total</p>
-                                            <p className="font-bold text-foreground text-base">
-                                              {formatCurrency(Number(detail.denomination) * detail.quantity)}
-                                            </p>
-                                          </div>
-                                        </div>
-                                      </motion.div>
-                                    ))}
-
-                                    {/* Footer Total */}
-                                    <div className="bg-default-100 rounded-lg border-2 border-primary/30 p-3">
-                                      <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
-                                        <div>
-                                          <p className="text-xs font-bold text-foreground/80 uppercase">Total</p>
-                                        </div>
-                                        <div className="text-center">
-                                          <p className="text-xs font-bold text-primary">
-                                            {inventory.details.reduce((sum: number, d: any) => sum + d.quantity, 0)} billets
-                                          </p>
-                                        </div>
-                                        <div className="text-right">
-                                          <p className="font-bold text-xl text-primary">
-                                            {formatCurrency(Number(inventory.totalAmount))}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
                               )}
                             </div>
 
@@ -658,6 +568,98 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                               <Download className="h-4 w-4" />
                             </Button>
                           </div>
+
+                          {/* Détails des billets - Prend toute la largeur EN DESSOUS */}
+                          {inventory.details.length > 0 && (
+                            <div className="border-t border-divider pt-4">
+                              <div className="flex items-center justify-between mb-3">
+                                <p className="text-xs font-semibold text-foreground/70 uppercase tracking-wide">
+                                  Détail par billet
+                                </p>
+                                {inventory.details.length > 3 && (
+                                  <Button
+                                    variant="light"
+                                    size="sm"
+                                    onPress={() => toggleExpand(inventory.id)}
+                                    className="text-xs h-6 min-w-0 px-2"
+                                  >
+                                    {isExpanded ? (
+                                      <>
+                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                        Réduire
+                                      </>
+                                    ) : (
+                                      <>
+                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                        Voir tout ({inventory.details.length})
+                                      </>
+                                    )}
+                                  </Button>
+                                )}
+                              </div>
+
+                              {/* Grille responsive */}
+                              <div className="space-y-2">
+                                {(isExpanded || inventory.details.length <= 3
+                                  ? inventory.details
+                                  : inventory.details.slice(0, 3)
+                                ).map((detail: any, index: number) => (
+                                  <motion.div
+                                    key={detail.id}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: index * 0.05 }}
+                                    className="bg-default-50 rounded-lg border border-divider p-3 hover:bg-default-100/50 transition-colors"
+                                  >
+                                    <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+                                      {/* Dénomination */}
+                                      <div>
+                                        <p className="text-xs text-foreground/60 mb-0.5">Billet</p>
+                                        <p className="font-bold text-primary text-base">
+                                          {formatCurrency(Number(detail.denomination))}
+                                        </p>
+                                      </div>
+                                      
+                                      {/* Quantité */}
+                                      <div className="text-center">
+                                        <p className="text-xs text-foreground/60 mb-1">Qté</p>
+                                        <span className="inline-flex items-center justify-center min-w-[2.5rem] px-2.5 py-1 rounded-md bg-primary/10 text-primary font-bold text-sm">
+                                          {detail.quantity}
+                                        </span>
+                                      </div>
+                                      
+                                      {/* Sous-total */}
+                                      <div className="text-right">
+                                        <p className="text-xs text-foreground/60 mb-0.5">Sous-total</p>
+                                        <p className="font-bold text-foreground text-base">
+                                          {formatCurrency(Number(detail.denomination) * detail.quantity)}
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </motion.div>
+                                ))}
+
+                                {/* Footer Total */}
+                                <div className="bg-default-100 rounded-lg border-2 border-primary/30 p-3">
+                                  <div className="grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+                                    <div>
+                                      <p className="text-xs font-bold text-foreground/80 uppercase">Total</p>
+                                    </div>
+                                    <div className="text-center">
+                                      <p className="text-xs font-bold text-primary">
+                                        {inventory.details.reduce((sum: number, d: any) => sum + d.quantity, 0)} billets
+                                      </p>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="font-bold text-xl text-primary">
+                                        {formatCurrency(Number(inventory.totalAmount))}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </CardBody>
                       </Card>
                     </motion.div>
