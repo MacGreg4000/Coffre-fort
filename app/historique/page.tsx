@@ -5,6 +5,10 @@ import { Layout } from "@/components/layout/Layout"
 import { HistoriqueList } from "@/components/historique/HistoriqueList"
 import { prisma } from "@/lib/prisma"
 
+// Forcer la revalidation à chaque requête (pas de cache)
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 async function getHistoriqueData(userId: string) {
   // Récupérer les coffres accessibles
   const userCoffres = await prisma.coffreMember.findMany({
@@ -13,9 +17,12 @@ async function getHistoriqueData(userId: string) {
   })
   const coffreIds = userCoffres.map((uc) => uc.coffreId)
 
-  // Récupérer les mouvements
+  // Récupérer les mouvements (exclure les supprimés)
   const movements = await prisma.movement.findMany({
-    where: { coffreId: { in: coffreIds } },
+    where: { 
+      coffreId: { in: coffreIds },
+      deletedAt: null, // CRITIQUE : Exclure les mouvements supprimés
+    },
     include: {
       coffre: true,
       user: true,
