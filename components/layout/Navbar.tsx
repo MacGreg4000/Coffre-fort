@@ -10,6 +10,7 @@ import {
   LayoutDashboard as LayoutDashboardIcon,
   Wallet,
   History,
+  Calculator,
   Settings,
   LogOut,
   SunMedium,
@@ -28,6 +29,7 @@ export function Navbar() {
     { href: "/dashboard", icon: LayoutDashboardIcon, label: "Dashboard" },
     { href: "/caisse", icon: Wallet, label: "Caisse" },
     { href: "/historique", icon: History, label: "Historique" },
+    { href: "/reserves", icon: Calculator, label: "Réserves" },
     ...(session?.user?.role === "ADMIN"
       ? [{ href: "/admin", icon: Settings, label: "Admin" }]
       : [])
