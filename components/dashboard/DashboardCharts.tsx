@@ -395,14 +395,21 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     return { chartData, maxBalance }
   }, [data, selectedPeriod])
 
-  // Graphique 4: Répartition par coffre
+  // Graphique 4: Répartition par coffre (solde net par coffre)
   const coffreDistributionData = (() => {
     const stats = data.statsByCoffre || []
     const coffreMap = new Map<string, number>()
     
+    // Calculer le solde net par coffre (ENTRY - EXIT)
     stats.forEach((stat: any) => {
       const existing = coffreMap.get(stat.coffreName) || 0
-      coffreMap.set(stat.coffreName, existing + stat.amount)
+      
+      // ENTRY → ajouter, EXIT → soustraire
+      if (stat.type === "ENTRY") {
+        coffreMap.set(stat.coffreName, existing + stat.amount)
+      } else if (stat.type === "EXIT") {
+        coffreMap.set(stat.coffreName, existing - stat.amount)
+      }
     })
     
     const entries = Array.from(coffreMap.entries())
