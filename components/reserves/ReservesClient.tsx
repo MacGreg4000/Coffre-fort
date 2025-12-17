@@ -98,9 +98,20 @@ export default function ReservesClient() {
     notes: "",
   })
 
-  // Charger les réserves
+  // Charger les réserves + initialiser les années si besoin
   useEffect(() => {
-    fetchReserves()
+    const initializeAndFetch = async () => {
+      try {
+        // Initialiser les années (2013-2035) si pas encore fait
+        await fetch("/api/reserves/initialize", { method: "POST" })
+        // Puis charger les réserves
+        await fetchReserves()
+      } catch (error) {
+        console.error("Erreur initialisation:", error)
+        fetchReserves() // Charger quand même
+      }
+    }
+    initializeAndFetch()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -124,6 +135,13 @@ export default function ReservesClient() {
   // Ajouter une réserve
   const handleAdd = async () => {
     try {
+      // Vérifier si l'année existe déjà
+      const existingYear = reserves.find((r) => r.year === formData.year)
+      if (existingYear) {
+        showToast(`L'année ${formData.year} existe déjà. Modifiez-la directement dans le tableau.`, "error")
+        return
+      }
+
       const response = await fetch("/api/reserves", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -743,96 +761,23 @@ export default function ReservesClient() {
         className="glass-effect rounded-3xl p-6 border border-border/50 shadow-lg"
       >
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <h3 className="text-xl font-semibold">Détail des Réserves</h3>
-          <div className="flex gap-2">
-            <Button
-              color="success"
-              variant="flat"
-              startContent={<Download className="w-4 h-4" />}
-              onPress={handleExportPDF}
-              isLoading={isExportingPDF}
-              className="font-semibold"
-            >
-              Exporter PDF
-            </Button>
-            <Button
-              color="primary"
-              startContent={<Plus className="w-4 h-4" />}
-              onPress={() => setIsAddingNew(true)}
-              className="font-semibold"
-            >
-              Ajouter
-            </Button>
-          </div>
+          <h3 className="text-xl font-semibold">Détail des Réserves ({reserves.length} années)</h3>
+          <Button
+            color="success"
+            variant="flat"
+            startContent={<Download className="w-4 h-4" />}
+            onPress={handleExportPDF}
+            isLoading={isExportingPDF}
+            className="font-semibold"
+          >
+            Exporter PDF
+          </Button>
         </div>
 
-        {/* Formulaire d'ajout */}
-        <AnimatePresence>
-          {isAddingNew && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-4 p-4 glass-effect rounded-2xl border border-primary/30"
-            >
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                <Input
-                  type="number"
-                  label="Année"
-                  value={formData.year.toString()}
-                  onChange={(e) =>
-                    setFormData({ ...formData, year: parseInt(e.target.value) || 0 })
-                  }
-                />
-                <Input
-                  type="number"
-                  label="Montant (€)"
-                  value={formData.amount.toString()}
-                  onChange={(e) =>
-                    setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })
-                  }
-                />
-                <Input
-                  type="number"
-                  label="Année libérable"
-                  value={formData.releaseYear?.toString() || ""}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      releaseYear: e.target.value ? parseInt(e.target.value) : null,
-                    })
-                  }
-                />
-                <Input
-                  type="number"
-                  label="Libéré (€)"
-                  value={formData.released.toString()}
-                  onChange={(e) =>
-                    setFormData({ ...formData, released: parseFloat(e.target.value) || 0 })
-                  }
-                />
-                <div className="flex gap-2">
-                  <Button
-                    color="success"
-                    startContent={<Save className="w-4 h-4" />}
-                    onPress={handleAdd}
-                    className="flex-1"
-                  >
-                    Sauvegarder
-                  </Button>
-                  <Button
-                    color="danger"
-                    variant="light"
-                    isIconOnly
-                    onPress={() => setIsAddingNew(false)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Info message */}
+        <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-sm text-muted-foreground">
+          💡 <strong>Info :</strong> Toutes les années de 2013 à 2035 sont pré-créées. Cliquez sur <strong>✏️ Éditer</strong> pour modifier les montants.
+        </div>
 
         {/* Table header */}
         <div className="hidden md:grid grid-cols-6 gap-4 px-4 py-3 bg-muted/30 rounded-xl mb-2 font-semibold text-sm">
@@ -1013,7 +958,7 @@ export default function ReservesClient() {
 
           {reserves.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
-              Aucune réserve enregistrée. Cliquez sur &quot;Ajouter&quot; pour commencer.
+              Chargement des années en cours...
             </div>
           )}
         </div>
