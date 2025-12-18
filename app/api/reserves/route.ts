@@ -31,13 +31,16 @@ export async function GET(req: NextRequest) {
     })
 
     // Calculer les statistiques
-    const total = reserves.reduce((sum, r) => sum + Number(r.amount), 0)
-    const totalReleased = reserves.reduce((sum, r) => sum + Number(r.released), 0)
+    // Ne compter que les réserves avec un montant > 0 (exclure les années pré-créées avec amount = 0)
+    const reservesWithAmount = reserves.filter((r) => Number(r.amount) > 0)
+    const total = reservesWithAmount.reduce((sum, r) => sum + Number(r.amount), 0)
+    const totalReleased = reservesWithAmount.reduce((sum, r) => sum + Number(r.released), 0)
     const totalReleasable = total - totalReleased
 
     logger.info("Réserves récupérées", {
       userId: session.user.id,
       count: reserves.length,
+      countWithAmount: reservesWithAmount.length,
       total,
       totalReleased,
       totalReleasable,
@@ -49,7 +52,7 @@ export async function GET(req: NextRequest) {
         total,
         totalReleased,
         totalReleasable,
-        count: reserves.length,
+        count: reservesWithAmount.length, // Compter uniquement les réserves avec montant > 0
       },
     })
   } catch (err) {
