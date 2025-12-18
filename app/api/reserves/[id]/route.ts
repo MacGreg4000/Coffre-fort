@@ -9,9 +9,9 @@ import { z } from "zod"
 const updateReserveSchema = z.object({
   year: z.number().int().min(2000).max(2100).optional(),
   amount: z.number().min(0).optional(),
-  releaseYear: z.number().int().min(2000).max(2100).optional(),
+  releaseYear: z.number().int().min(2000).max(2100).nullable().optional(),
   released: z.number().min(0).optional(),
-  notes: z.string().optional(),
+  notes: z.string().nullable().optional(),
 })
 
 // ============================================

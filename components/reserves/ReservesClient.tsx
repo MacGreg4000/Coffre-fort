@@ -174,27 +174,57 @@ export default function ReservesClient() {
       const reserve = reserves.find((r) => r.id === id)
       if (!reserve) return
 
+      // Préparer les données avec conversion explicite
+      const updateData: any = {}
+      
+      // Convertir amount en number (éviter NaN)
+      if (typeof reserve.amount === 'number' && !isNaN(reserve.amount)) {
+        updateData.amount = reserve.amount
+      } else {
+        updateData.amount = parseFloat(String(reserve.amount)) || 0
+      }
+
+      // Convertir releaseYear (peut être null)
+      if (reserve.releaseYear !== null && reserve.releaseYear !== undefined) {
+        const releaseYearNum = typeof reserve.releaseYear === 'number' 
+          ? reserve.releaseYear 
+          : parseInt(String(reserve.releaseYear))
+        if (!isNaN(releaseYearNum)) {
+          updateData.releaseYear = releaseYearNum
+        } else {
+          updateData.releaseYear = null
+        }
+      } else {
+        updateData.releaseYear = null
+      }
+
+      // Convertir released en number (éviter NaN)
+      if (typeof reserve.released === 'number' && !isNaN(reserve.released)) {
+        updateData.released = reserve.released
+      } else {
+        updateData.released = parseFloat(String(reserve.released)) || 0
+      }
+
+      // Notes (peut être null ou string)
+      updateData.notes = reserve.notes || null
+
       const response = await fetch(`/api/reserves/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          // NE PAS envoyer l'année (elle ne change jamais)
-          amount: reserve.amount,
-          releaseYear: reserve.releaseYear,
-          released: reserve.released,
-          notes: reserve.notes,
-        }),
+        body: JSON.stringify(updateData),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.error || "Erreur lors de la modification")
+        console.error("Erreur API:", errorData)
+        throw new Error(errorData.error || errorData.details?.[0]?.message || "Erreur lors de la modification")
       }
 
       showToast("Réserve modifiée avec succès", "success")
       setEditingId(null)
       fetchReserves()
     } catch (error: any) {
+      console.error("Erreur handleUpdate:", error)
       showToast(error.message || "Erreur lors de la modification", "error")
     }
   }
@@ -924,14 +954,19 @@ export default function ReservesClient() {
                       <Input
                         type="number"
                         size="sm"
-                        value={reserve.amount.toString()}
+                        step="0.01"
+                        value={typeof reserve.amount === 'number' ? reserve.amount.toString() : String(reserve.amount || 0)}
                         onChange={(e) => {
-                          const updated = reserves.map((r) =>
-                            r.id === reserve.id
-                              ? { ...r, amount: parseFloat(e.target.value) || 0 }
-                              : r
-                          )
-                          setReserves(updated)
+                          const value = e.target.value
+                          const numValue = value === "" ? 0 : parseFloat(value)
+                          if (!isNaN(numValue)) {
+                            const updated = reserves.map((r) =>
+                              r.id === reserve.id
+                                ? { ...r, amount: numValue }
+                                : r
+                            )
+                            setReserves(updated)
+                          }
                         }}
                       />
                     ) : (
@@ -949,13 +984,14 @@ export default function ReservesClient() {
                         size="sm"
                         value={reserve.releaseYear?.toString() || ""}
                         onChange={(e) => {
+                          const value = e.target.value
                           const updated = reserves.map((r) =>
                             r.id === reserve.id
                               ? {
                                   ...r,
-                                  releaseYear: e.target.value
-                                    ? parseInt(e.target.value)
-                                    : null,
+                                  releaseYear: value === "" || value === "0"
+                                    ? null
+                                    : (parseInt(value) || null),
                                 }
                               : r
                           )
@@ -973,14 +1009,19 @@ export default function ReservesClient() {
                       <Input
                         type="number"
                         size="sm"
-                        value={reserve.released.toString()}
+                        step="0.01"
+                        value={typeof reserve.released === 'number' ? reserve.released.toString() : String(reserve.released || 0)}
                         onChange={(e) => {
-                          const updated = reserves.map((r) =>
-                            r.id === reserve.id
-                              ? { ...r, released: parseFloat(e.target.value) || 0 }
-                              : r
-                          )
-                          setReserves(updated)
+                          const value = e.target.value
+                          const numValue = value === "" ? 0 : parseFloat(value)
+                          if (!isNaN(numValue)) {
+                            const updated = reserves.map((r) =>
+                              r.id === reserve.id
+                                ? { ...r, released: numValue }
+                                : r
+                            )
+                            setReserves(updated)
+                          }
                         }}
                       />
                     ) : (
