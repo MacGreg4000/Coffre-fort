@@ -124,6 +124,11 @@
   .safe-area-top {
     padding-top: env(safe-area-inset-top);
   }
+
+  /* Glass effect pour conteneurs avec effet de verre */
+  .glass-effect {
+    @apply backdrop-blur-md bg-card/60 border border-border/60;
+  }
   
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom);

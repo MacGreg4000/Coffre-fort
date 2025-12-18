@@ -136,24 +136,33 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
         </p>
       </div>
 
-      {/* Onglets */}
+      {/* Onglets - Centrés et mis en valeur */}
       <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="w-full justify-start overflow-x-auto">
-          <TabsTrigger value="all" className="flex items-center gap-2">
-            <LayoutDashboard className="h-4 w-4" />
-            Tous les coffres
-          </TabsTrigger>
-          {initialCoffres.map((coffre) => (
-            <TabsTrigger key={coffre.id} value={coffre.id} className="flex items-center gap-2">
-              <Wallet className="h-4 w-4" />
-              {coffre.name}
-            </TabsTrigger>
-          ))}
-          <TabsTrigger value="reserves" className="flex items-center gap-2">
-            <Calculator className="h-4 w-4" />
-            Réserves
-          </TabsTrigger>
-        </TabsList>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex justify-center w-full mb-6"
+        >
+          <div className="glass-effect rounded-3xl p-4 border border-border/60 shadow-lg backdrop-blur-md bg-card/80 w-full max-w-4xl">
+            <TabsList className="w-full justify-center overflow-x-auto gap-1">
+              <TabsTrigger value="all" className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold">
+                <LayoutDashboard className="h-4 w-4" />
+                Tous les coffres
+              </TabsTrigger>
+              {initialCoffres.map((coffre) => (
+                <TabsTrigger key={coffre.id} value={coffre.id} className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold">
+                  <Wallet className="h-4 w-4" />
+                  {coffre.name}
+                </TabsTrigger>
+              ))}
+              <TabsTrigger value="reserves" className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold">
+                <Calculator className="h-4 w-4" />
+                Réserves
+              </TabsTrigger>
+            </TabsList>
+          </div>
+        </motion.div>
 
         {/* Contenu : Tous les coffres */}
         <TabsContent value="all" className="space-y-6 mt-6">
