@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/page-header"
 import { formatCurrency } from "@/lib/utils"
 import { Wallet, LayoutDashboard, Calculator } from "lucide-react"
 import { motion } from "framer-motion"
-import ReservesClient from "@/components/reserves/ReservesClient"
+import { ReservesSummary } from "@/components/reserves/ReservesSummary"
 
 interface DashboardClientProps {
   initialCoffres: any[]
@@ -262,10 +262,10 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
                 Réserves de Liquidation
               </h2>
               <p className="text-muted-foreground mt-2">
-                Gérez et suivez les réserves que vous pouvez vous libérer depuis votre société
+                Vue d&apos;ensemble des réserves que vous pouvez vous libérer depuis votre société
               </p>
             </div>
-            <ReservesClient />
+            <ReservesSummary />
           </div>
         </TabsContent>
       </Tabs>
