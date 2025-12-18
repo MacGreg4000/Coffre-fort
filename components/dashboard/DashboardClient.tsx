@@ -1,15 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Select, SelectItem } from "@/components/ui/select-heroui"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Card, CardBody } from "@heroui/react"
 import { DashboardStats } from "./DashboardStats"
 import { Skeleton, SkeletonStats } from "@/components/ui/skeleton"
 import { PremiumCard } from "@/components/ui/premium-card"
 import { PageHeader } from "@/components/ui/page-header"
 import { formatCurrency } from "@/lib/utils"
-import { Wallet, LayoutDashboard } from "lucide-react"
+import { Wallet, LayoutDashboard, Calculator } from "lucide-react"
 import { motion } from "framer-motion"
+import ReservesClient from "@/components/reserves/ReservesClient"
 
 interface DashboardClientProps {
   initialCoffres: any[]
@@ -35,14 +36,19 @@ interface CoffreBalance {
 }
 
 export function DashboardClient({ initialCoffres }: DashboardClientProps) {
-  const [selectedCoffreId, setSelectedCoffreId] = useState<string>("")
+  const [selectedTab, setSelectedTab] = useState<string>("all")
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [coffresBalances, setCoffresBalances] = useState<CoffreBalance[]>([])
 
+  // Déterminer le coffreId sélectionné depuis l'onglet
+  const selectedCoffreId = selectedTab === "all" || selectedTab === "reserves" ? "" : selectedTab
+
   useEffect(() => {
-    fetchDashboardData(selectedCoffreId)
-  }, [selectedCoffreId])
+    if (selectedTab !== "reserves") {
+      fetchDashboardData(selectedCoffreId)
+    }
+  }, [selectedTab, selectedCoffreId])
 
   // Charger les balances de tous les coffres
   useEffect(() => {
@@ -62,11 +68,11 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
             } else {
               const errorData = await res.json().catch(() => ({}))
               console.error(`Erreur API pour ${coffre.name} (${res.status}):`, errorData)
-            return {
-              coffreId: coffre.id,
-              coffreName: coffre.name,
-              balance: 0,
-            }
+              return {
+                coffreId: coffre.id,
+                coffreName: coffre.name,
+                balance: 0,
+              }
             }
           } catch (error) {
             console.error(`Erreur fetch pour ${coffre.name}:`, error)
@@ -101,7 +107,7 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
 
   const totalBalance = coffresBalances.reduce((sum, cb) => sum + cb.balance, 0)
 
-  if (loading && !data) {
+  if (loading && !data && selectedTab !== "reserves") {
     return (
       <div className="space-y-8">
         <div className="space-y-3">
@@ -114,108 +120,155 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
     )
   }
 
-  if (!data) {
-    return (
-      <p className="text-foreground/60 text-center py-8">
-        Aucune donnée disponible
-      </p>
-    )
-  }
-
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Hero header */}
-      <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] items-center">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <LayoutDashboard className="h-4 w-4" />
-            Vue d’ensemble
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
-            Dashboard financier
-          </h1>
-          <p className="text-foreground/70">
-            Visualisez vos coffres, balances et indicateurs clés avec une interface fluide et responsive.
-          </p>
-          {initialCoffres.length > 0 && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <Select
-                label="Filtrer par coffre"
-                placeholder="Tous les coffres"
-                selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as string
-                  setSelectedCoffreId(selected || "")
-                }}
-                className="w-full sm:w-72"
-              >
-                {[{ id: "", name: "Tous les coffres" }, ...initialCoffres].map((coffre) => (
-                  <SelectItem key={coffre.id}>
-                    {coffre.name}
-                  </SelectItem>
-                ))}
-              </Select>
-            </div>
-          )}
+      <div className="space-y-4">
+        <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          <LayoutDashboard className="h-4 w-4" />
+          Vue d&apos;ensemble
         </div>
+        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
+          Dashboard financier
+        </h1>
+        <p className="text-foreground/70">
+          Visualisez vos coffres, balances et réserves avec une interface fluide et responsive.
+        </p>
+      </div>
 
-      {coffresBalances.length > 0 && (
-          <PremiumCard
-            variant="gradient"
-            hover3D
-            glow
-            shimmer
-            className="overflow-visible"
-          >
-            <div className="p-5 sm:p-6">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <motion.div 
-                    className="p-3 rounded-xl bg-primary/20 border border-primary/30 backdrop-blur"
-                    whileHover={{ scale: 1.1, rotate: 5 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
-                  >
-                    <Wallet className="h-5 w-5 text-primary" />
-                  </motion.div>
-                  <div>
-                    <p className="text-xs text-foreground/60 mb-1 font-medium">Montant total</p>
-                    <motion.p 
-                      className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      transition={{ type: "spring", stiffness: 200, damping: 15 }}
+      {/* Onglets */}
+      <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <TabsList className="w-full justify-start overflow-x-auto">
+          <TabsTrigger value="all" className="flex items-center gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            Tous les coffres
+          </TabsTrigger>
+          {initialCoffres.map((coffre) => (
+            <TabsTrigger key={coffre.id} value={coffre.id} className="flex items-center gap-2">
+              <Wallet className="h-4 w-4" />
+              {coffre.name}
+            </TabsTrigger>
+          ))}
+          <TabsTrigger value="reserves" className="flex items-center gap-2">
+            <Calculator className="h-4 w-4" />
+            Réserves
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Contenu : Tous les coffres */}
+        <TabsContent value="all" className="space-y-6 mt-6">
+          {coffresBalances.length > 0 && (
+            <PremiumCard
+              variant="gradient"
+              hover3D
+              glow
+              shimmer
+              className="overflow-visible"
+            >
+              <div className="p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <motion.div 
+                      className="p-3 rounded-xl bg-primary/20 border border-primary/30 backdrop-blur"
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 15 }}
                     >
-                      {formatCurrency(totalBalance)}
-                    </motion.p>
-                    <p className="text-xs text-foreground/50 flex items-center gap-1.5 mt-0.5">
-                      <span className="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                      {coffresBalances.length} coffre{coffresBalances.length > 1 ? "s" : ""}
-                    </p>
+                      <Wallet className="h-5 w-5 text-primary" />
+                    </motion.div>
+                    <div>
+                      <p className="text-xs text-foreground/60 mb-1 font-medium">Montant total</p>
+                      <motion.p 
+                        className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                      >
+                        {formatCurrency(totalBalance)}
+                      </motion.p>
+                      <p className="text-xs text-foreground/50 flex items-center gap-1.5 mt-0.5">
+                        <span className="inline-block w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
+                        {coffresBalances.length} coffre{coffresBalances.length > 1 ? "s" : ""}
+                      </p>
+                    </div>
+                  </div>
+                  {coffresBalances.length > 1 && (
+                    <div className="text-right text-xs text-foreground/60 space-y-1.5">
+                      {coffresBalances.map((cb, index) => (
+                        <motion.div 
+                          key={cb.coffreId} 
+                          className="flex items-center gap-2 justify-end"
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                        >
+                          <span className="text-foreground/70">{cb.coffreName}:</span>
+                          <span className="font-bold text-primary">{formatCurrency(cb.balance)}</span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </PremiumCard>
+          )}
+          {!loading && data && <DashboardStats data={data} />}
+        </TabsContent>
+
+        {/* Contenu : Chaque coffre individuel */}
+        {initialCoffres.map((coffre) => (
+          <TabsContent key={coffre.id} value={coffre.id} className="space-y-6 mt-6">
+            {coffresBalances.length > 0 && (
+              <PremiumCard
+                variant="gradient"
+                hover3D
+                glow
+                shimmer
+                className="overflow-visible"
+              >
+                <div className="p-5 sm:p-6">
+                  <div className="flex items-center gap-3">
+                    <motion.div 
+                      className="p-3 rounded-xl bg-primary/20 border border-primary/30 backdrop-blur"
+                      whileHover={{ scale: 1.1, rotate: 5 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                    >
+                      <Wallet className="h-5 w-5 text-primary" />
+                    </motion.div>
+                    <div>
+                      <p className="text-xs text-foreground/60 mb-1 font-medium">{coffre.name}</p>
+                      <motion.p 
+                        className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent"
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ type: "spring", stiffness: 200, damping: 15 }}
+                      >
+                        {formatCurrency(coffresBalances.find(cb => cb.coffreId === coffre.id)?.balance || 0)}
+                      </motion.p>
+                    </div>
                   </div>
                 </div>
-                {coffresBalances.length > 1 && (
-                  <div className="text-right text-xs text-foreground/60 space-y-1.5">
-                    {coffresBalances.map((cb, index) => (
-                      <motion.div 
-                        key={cb.coffreId} 
-                        className="flex items-center gap-2 justify-end"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                      >
-                        <span className="text-foreground/70">{cb.coffreName}:</span>
-                        <span className="font-bold text-primary">{formatCurrency(cb.balance)}</span>
-                      </motion.div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </PremiumCard>
-        )}
-        </div>
+              </PremiumCard>
+            )}
+            {!loading && data && <DashboardStats data={data} />}
+          </TabsContent>
+        ))}
 
-      <DashboardStats data={data} />
+        {/* Contenu : Réserves de liquidation */}
+        <TabsContent value="reserves" className="space-y-6 mt-6">
+          <div className="space-y-4">
+            <div>
+              <h2 className="text-xl font-semibold text-foreground flex items-center gap-2">
+                <Calculator className="h-5 w-5 text-primary" />
+                Réserves de Liquidation
+              </h2>
+              <p className="text-muted-foreground mt-2">
+                Gérez et suivez les réserves que vous pouvez vous libérer depuis votre société
+              </p>
+            </div>
+            <ReservesClient />
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
