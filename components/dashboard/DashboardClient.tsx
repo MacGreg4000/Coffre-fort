@@ -144,7 +144,7 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
           transition={{ duration: 0.3 }}
           className="flex justify-center w-full mb-6"
         >
-          <div className="glass-effect rounded-3xl p-4 border border-border/60 shadow-lg backdrop-blur-md bg-card/80 w-full max-w-4xl">
+          <div className="glass-effect rounded-3xl p-4 border-2 border-primary/40 shadow-lg backdrop-blur-md bg-card/80 w-full max-w-4xl">
             <TabsList className="w-full justify-center overflow-x-auto gap-1">
               <TabsTrigger value="all" className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold">
                 <LayoutDashboard className="h-4 w-4" />
