@@ -145,8 +145,8 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
           className="flex justify-center w-full mb-6"
         >
           <div className="glass-effect rounded-3xl p-2 sm:p-4 border-2 border-primary/40 shadow-lg backdrop-blur-md bg-card/80 w-full">
-            <div className="overflow-x-auto -mx-2 sm:-mx-4 px-2 sm:px-4">
-              <TabsList className="inline-flex justify-center sm:justify-center justify-start gap-1 min-w-max">
+            <div className="overflow-x-auto -mx-2 sm:-mx-4 px-2 sm:px-4 flex justify-center">
+              <TabsList className="inline-flex justify-center gap-1 min-w-max">
               <TabsTrigger value="all" className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold flex-shrink-0">
                 <LayoutDashboard className="h-4 w-4" />
                 Tous les coffres
