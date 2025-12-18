@@ -175,27 +175,27 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
             du total saisi. L’interface est fluide et responsive.
           </p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-            <Select
-              label="Coffre"
+        <Select
+          label="Coffre"
               placeholder="Sélectionnez un coffre"
               isRequired
-              selectedKeys={selectedCoffre ? [selectedCoffre] : []}
-              onSelectionChange={(keys) => {
-                const selected = Array.from(keys)[0] as string
-                setSelectedCoffre(selected || null)
-              }}
+          selectedKeys={selectedCoffre ? [selectedCoffre] : []}
+          onSelectionChange={(keys) => {
+            const selected = Array.from(keys)[0] as string
+            setSelectedCoffre(selected || null)
+          }}
               className="w-full sm:w-72"
-            >
-              {coffres.map((coffre) => (
-                <SelectItem key={coffre.id}>
-                  {coffre.name}
-                </SelectItem>
-              ))}
-            </Select>
+        >
+          {coffres.map((coffre) => (
+            <SelectItem key={coffre.id}>
+              {coffre.name}
+            </SelectItem>
+          ))}
+        </Select>
           </div>
-        </div>
+      </div>
 
-        {selectedCoffre && (
+      {selectedCoffre && (
           <PremiumCard
             variant="gradient"
             hover3D
@@ -235,9 +235,9 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   <p className="font-semibold text-foreground/80 mt-0.5">{userId}</p>
                 </div>
               </div>
-            </div>
+        </div>
           </PremiumCard>
-        )}
+      )}
       </div>
 
       {selectedCoffre && (
@@ -300,27 +300,27 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                   transition={{ duration: 0.25, ease: "easeInOut" }}
                   className="space-y-5"
                 >
-                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-                    {BILLET_DENOMINATIONS.map((denomination) => (
-                      <BilletInput
-                        key={denomination}
-                        denomination={denomination}
-                        quantity={billets[denomination] || 0}
-                        onChange={handleBilletChange}
-                      />
-                    ))}
-                  </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                      {BILLET_DENOMINATIONS.map((denomination) => (
+                        <BilletInput
+                          key={denomination}
+                          denomination={denomination}
+                          quantity={billets[denomination] || 0}
+                          onChange={handleBilletChange}
+                        />
+                      ))}
+                    </div>
 
                   <Card className="bg-muted/40 border border-border/60">
                     <CardBody className="p-4 flex items-center justify-between">
                       <span className="text-sm font-medium text-foreground/80">
                         Total saisi
-                      </span>
-                      <span className="text-2xl font-bold text-primary">
-                        {formatCurrency(calculateTotal())}
-                      </span>
-                    </CardBody>
-                  </Card>
+                          </span>
+                          <span className="text-2xl font-bold text-primary">
+                            {formatCurrency(calculateTotal())}
+                          </span>
+                      </CardBody>
+                    </Card>
 
                   {/* Description et bouton */}
                   <div className="space-y-4">

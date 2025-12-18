@@ -359,7 +359,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     
     // Si pas de données, retourner un tableau vide
     if (balanceData.length === 0) {
-      return {
+    return {
         chartData: {
           labels: [],
           datasets: [],
@@ -391,7 +391,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
         },
       ],
     }
-    
+
     return { chartData, maxBalance }
   }, [data, selectedPeriod])
 
@@ -406,7 +406,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
       
       // ENTRY → ajouter, EXIT → soustraire
       if (stat.type === "ENTRY") {
-        coffreMap.set(stat.coffreName, existing + stat.amount)
+      coffreMap.set(stat.coffreName, existing + stat.amount)
       } else if (stat.type === "EXIT") {
         coffreMap.set(stat.coffreName, existing - stat.amount)
       }
@@ -673,17 +673,17 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                     options={{
                       ...chartOptions,
                       indexAxis: "y" as const,
-                    plugins: {
-                      ...chartOptions.plugins,
-                      legend: {
-                        display: false,
-                      },
+                      plugins: {
+                        ...chartOptions.plugins,
+                        legend: {
+                          display: false,
+                        },
                       tooltip: {
                         ...chartOptions.plugins.tooltip,
                         backgroundColor: "rgba(18, 18, 20, 0.92)",
                         borderColor: "rgba(59, 130, 246, 0.35)",
                       },
-                    },
+                      },
                     }}
                   />
                 </div>

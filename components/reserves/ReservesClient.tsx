@@ -412,97 +412,187 @@ export default function ReservesClient() {
       const doc = new jsPDF()
       const pageWidth = doc.internal.pageSize.getWidth()
       const pageHeight = doc.internal.pageSize.getHeight()
-      let yPos = 20
+      const margin = 15
+      const headerHeight = 35
+      let yPos = headerHeight
 
-      // En-tête
-      doc.setFontSize(20)
-      doc.setTextColor(59, 130, 246)
-      doc.text("Réserves de Liquidation", pageWidth / 2, yPos, { align: "center" })
+      // Fonction helper pour dessiner un header professionnel
+      const drawHeader = (pageNum: number, totalPages: number) => {
+        // Bandeau bleu en haut
+        doc.setFillColor(59, 130, 246)
+        doc.rect(0, 0, pageWidth, headerHeight, "F")
+        
+        // Titre principal
+        doc.setTextColor(255, 255, 255)
+        doc.setFontSize(22)
+        doc.setFont("helvetica", "bold")
+        doc.text("RÉSERVES DE LIQUIDATION", pageWidth / 2, 18, { align: "center" })
+        
+        // Sous-titre
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "normal")
+        doc.setTextColor(255, 255, 255)
+        doc.text(
+          `Rapport financier - ${new Date().toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" })}`,
+          pageWidth / 2,
+          28,
+          { align: "center" }
+        )
+        
+        // Ligne de séparation
+        doc.setDrawColor(200, 200, 200)
+        doc.setLineWidth(0.5)
+        doc.line(0, headerHeight, pageWidth, headerHeight)
+      }
+
+      // Fonction helper pour footer
+      const drawFooter = (pageNum: number, totalPages: number) => {
+        const footerY = pageHeight - 15
+        
+        // Ligne de séparation
+        doc.setDrawColor(200, 200, 200)
+        doc.setLineWidth(0.3)
+        doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5)
+        
+        // Numéro de page
+        doc.setFontSize(8)
+        doc.setTextColor(100, 100, 100)
+        doc.setFont("helvetica", "normal")
+        doc.text(
+          `Page ${pageNum} / ${totalPages}`,
+          pageWidth / 2,
+          footerY,
+          { align: "center" }
+        )
+        
+        // Logo/Nom app
+        doc.text(
+          "SafeVault",
+          pageWidth - margin,
+          footerY,
+          { align: "right" }
+        )
+      }
+
+      // Page 1 - Header
+      drawHeader(1, 1)
+
+      // Section Résumé Financier avec titre stylisé
+      yPos += 5
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(30, 30, 30)
+      doc.text("RÉSUMÉ FINANCIER", margin, yPos)
       
       yPos += 10
-      doc.setFontSize(10)
-      doc.setTextColor(100, 100, 100)
-      doc.text(`Généré le ${new Date().toLocaleDateString("fr-FR")} à ${new Date().toLocaleTimeString("fr-FR")}`, pageWidth / 2, yPos, { align: "center" })
-      
-      yPos += 15
 
-      // Cartes statistiques
-      doc.setFontSize(14)
-      doc.setTextColor(0, 0, 0)
-      doc.text("Résumé Financier", 14, yPos)
-      yPos += 8
+      // Cartes statistiques améliorées avec bordures arrondies simulées
+      const cardWidth = (pageWidth - 2 * margin - 10) / 3
+      const cardHeight = 32
+      const cardSpacing = 5
 
-      const cardWidth = (pageWidth - 40) / 3
-      const cardHeight = 25
-
-      // Total
+      // Carte 1: Total
       doc.setFillColor(59, 130, 246)
-      doc.rect(14, yPos, cardWidth, cardHeight, "F")
+      doc.roundedRect(margin, yPos, cardWidth, cardHeight, 2, 2, "F")
       doc.setTextColor(255, 255, 255)
-      doc.setFontSize(10)
-      doc.text("Total Réserves", 14 + cardWidth / 2, yPos + 8, { align: "center" })
-      doc.setFontSize(14)
-      doc.text(`${formatCurrency(stats.total)} €`, 14 + cardWidth / 2, yPos + 18, { align: "center" })
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.text("TOTAL RÉSERVES", margin + cardWidth / 2, yPos + 10, { align: "center" })
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.text(`${formatCurrency(stats.total)} €`, margin + cardWidth / 2, yPos + 22, { align: "center" })
 
-      // Libéré
+      // Carte 2: Libéré
       doc.setFillColor(34, 197, 94)
-      doc.rect(14 + cardWidth + 4, yPos, cardWidth, cardHeight, "F")
-      doc.setFontSize(10)
-      doc.text("Libéré", 14 + cardWidth + 4 + cardWidth / 2, yPos + 8, { align: "center" })
-      doc.setFontSize(14)
-      doc.text(`${formatCurrency(stats.totalReleased)} €`, 14 + cardWidth + 4 + cardWidth / 2, yPos + 18, { align: "center" })
+      doc.roundedRect(margin + cardWidth + cardSpacing, yPos, cardWidth, cardHeight, 2, 2, "F")
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.text("LIBÉRÉ", margin + cardWidth + cardSpacing + cardWidth / 2, yPos + 10, { align: "center" })
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.text(`${formatCurrency(stats.totalReleased)} €`, margin + cardWidth + cardSpacing + cardWidth / 2, yPos + 22, { align: "center" })
 
-      // Disponible
+      // Carte 3: Disponible
       doc.setFillColor(251, 146, 60)
-      doc.rect(14 + 2 * (cardWidth + 4), yPos, cardWidth, cardHeight, "F")
-      doc.setFontSize(10)
-      doc.text("Disponible", 14 + 2 * (cardWidth + 4) + cardWidth / 2, yPos + 8, { align: "center" })
-      doc.setFontSize(14)
-      doc.text(`${formatCurrency(stats.totalReleasable)} €`, 14 + 2 * (cardWidth + 4) + cardWidth / 2, yPos + 18, { align: "center" })
+      doc.roundedRect(margin + 2 * (cardWidth + cardSpacing), yPos, cardWidth, cardHeight, 2, 2, "F")
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "normal")
+      doc.text("DISPONIBLE", margin + 2 * (cardWidth + cardSpacing) + cardWidth / 2, yPos + 10, { align: "center" })
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.text(`${formatCurrency(stats.totalReleasable)} €`, margin + 2 * (cardWidth + cardSpacing) + cardWidth / 2, yPos + 22, { align: "center" })
 
-      yPos += cardHeight + 15
+      yPos += cardHeight + 20
 
-      // Graphique 1: Évolution
+      // Graphique 1: Évolution avec titre stylisé
       if (lineChartRef.current) {
-        doc.setFontSize(12)
-        doc.setTextColor(0, 0, 0)
-        doc.text("Évolution des Réserves", 14, yPos)
-        yPos += 5
+        doc.setFontSize(14)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(30, 30, 30)
+        doc.text("ÉVOLUTION DES RÉSERVES", margin, yPos)
+        
+        yPos += 3
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "italic")
+        doc.setTextColor(100, 100, 100)
+        doc.text("Évolution chronologique des montants de réserves", margin, yPos)
+        
+        yPos += 8
 
         const chartImage = lineChartRef.current.toBase64Image()
-        const chartWidth = pageWidth - 28
-        const chartHeight = 60
-        doc.addImage(chartImage, "PNG", 14, yPos, chartWidth, chartHeight)
-        yPos += chartHeight + 10
+        const chartWidth = pageWidth - 2 * margin
+        const chartHeight = 70
+        doc.addImage(chartImage, "PNG", margin, yPos, chartWidth, chartHeight)
+        yPos += chartHeight + 15
       }
 
       // Nouvelle page si nécessaire
-      if (yPos > pageHeight - 80) {
+      if (yPos > pageHeight - 100) {
         doc.addPage()
-        yPos = 20
+        drawHeader(2, 2)
+        yPos = headerHeight + 10
       }
 
       // Graphique 2: Répartition par décennie
       if (barChartRef.current && reserves.length > 0) {
-        doc.setFontSize(12)
-        doc.text("Répartition par Décennie", 14, yPos)
-        yPos += 5
+        doc.setFontSize(14)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(30, 30, 30)
+        doc.text("RÉPARTITION PAR DÉCENNIE", margin, yPos)
+        
+        yPos += 3
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "italic")
+        doc.setTextColor(100, 100, 100)
+        doc.text("Agrégation des montants par période de 10 ans", margin, yPos)
+        
+        yPos += 8
 
         const chartImage = barChartRef.current.toBase64Image()
-        const chartWidth = pageWidth - 28
-        const chartHeight = 60
-        doc.addImage(chartImage, "PNG", 14, yPos, chartWidth, chartHeight)
-        yPos += chartHeight + 10
+        const chartWidth = pageWidth - 2 * margin
+        const chartHeight = 70
+        doc.addImage(chartImage, "PNG", margin, yPos, chartWidth, chartHeight)
+        yPos += chartHeight + 15
       }
 
       // Nouvelle page pour le tableau
       doc.addPage()
-      yPos = 20
+      drawHeader(3, 3)
+      yPos = headerHeight + 10
 
-      // Tableau des réserves
+      // Tableau des réserves avec titre
       doc.setFontSize(14)
-      doc.text("Détail des Réserves", 14, yPos)
-      yPos += 8
+      doc.setFont("helvetica", "bold")
+      doc.setTextColor(30, 30, 30)
+      doc.text("DÉTAIL DES RÉSERVES", margin, yPos)
+      
+      yPos += 3
+      doc.setFontSize(9)
+      doc.setFont("helvetica", "italic")
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Total : ${reserves.length} années (2013-2055)`, margin, yPos)
+      
+      yPos += 10
 
       const tableData = reserves
         .sort((a, b) => a.year - b.year)
@@ -518,24 +608,30 @@ export default function ReservesClient() {
         startY: yPos,
         head: [["Année", "Montant", "Année Libérable", "Libéré", "Disponible"]],
         body: tableData,
-        theme: "grid",
+        theme: "striped",
         headStyles: {
-          fillColor: [59, 130, 246],
+          fillColor: [30, 30, 30],
+          textColor: [255, 255, 255],
           fontSize: 10,
           fontStyle: "bold",
           halign: "center",
+          cellPadding: 4,
         },
         bodyStyles: {
           fontSize: 9,
           halign: "center",
+          cellPadding: 3,
+          textColor: [50, 50, 50],
         },
         alternateRowStyles: {
-          fillColor: [245, 247, 250],
+          fillColor: [248, 249, 250],
         },
         columnStyles: {
-          1: { halign: "right" },
-          3: { halign: "right" },
-          4: { halign: "right" },
+          0: { halign: "center", fontStyle: "bold" },
+          1: { halign: "right", fontStyle: "bold", textColor: [59, 130, 246] },
+          2: { halign: "center" },
+          3: { halign: "right", textColor: [34, 197, 94] },
+          4: { halign: "right", textColor: [251, 146, 60], fontStyle: "bold" },
         },
         foot: [[
           "TOTAL",
@@ -545,31 +641,58 @@ export default function ReservesClient() {
           `${formatCurrency(stats.totalReleasable)} €`,
         ]],
         footStyles: {
-          fillColor: [230, 230, 230],
+          fillColor: [240, 240, 240],
           fontSize: 10,
           fontStyle: "bold",
           halign: "center",
+          textColor: [30, 30, 30],
+        },
+        margin: { left: margin, right: margin },
+        styles: {
+          lineColor: [200, 200, 200],
+          lineWidth: 0.3,
         },
       })
 
-      // Graphique 3: Doughnut (nouvelle page si espace disponible)
-      const finalY = (doc as any).lastAutoTable.finalY || yPos + 100
+      // Graphique 3: Doughnut
+      const finalY = (doc as any).lastAutoTable?.finalY || yPos + 100
       
-      if (finalY < pageHeight - 80 && doughnutChartRef.current) {
-        yPos = finalY + 15
-        doc.setFontSize(12)
-        doc.text("Répartition Libéré / Disponible", 14, yPos)
-        yPos += 5
+      if (finalY < pageHeight - 100 && doughnutChartRef.current) {
+        yPos = finalY + 20
+        doc.setFontSize(14)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(30, 30, 30)
+        doc.text("RÉPARTITION LIBÉRÉ / DISPONIBLE", margin, yPos)
+        
+        yPos += 3
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "italic")
+        doc.setTextColor(100, 100, 100)
+        doc.text("Visualisation du ratio entre montants libérés et disponibles", margin, yPos)
+        
+        yPos += 8
 
         const chartImage = doughnutChartRef.current.toBase64Image()
-        const chartSize = 70
+        const chartSize = 75
         doc.addImage(chartImage, "PNG", (pageWidth - chartSize) / 2, yPos, chartSize, chartSize)
       } else if (doughnutChartRef.current) {
         doc.addPage()
-        yPos = 20
-        doc.setFontSize(12)
-        doc.text("Répartition Libéré / Disponible", 14, yPos)
-        yPos += 5
+        const totalPages = doc.internal.pages.length - 1
+        drawHeader(totalPages, totalPages)
+        yPos = headerHeight + 10
+        
+        doc.setFontSize(14)
+        doc.setFont("helvetica", "bold")
+        doc.setTextColor(30, 30, 30)
+        doc.text("RÉPARTITION LIBÉRÉ / DISPONIBLE", margin, yPos)
+        
+        yPos += 3
+        doc.setFontSize(9)
+        doc.setFont("helvetica", "italic")
+        doc.setTextColor(100, 100, 100)
+        doc.text("Visualisation du ratio entre montants libérés et disponibles", margin, yPos)
+        
+        yPos += 8
 
         const chartImage = doughnutChartRef.current.toBase64Image()
         const chartSize = 80
@@ -580,20 +703,7 @@ export default function ReservesClient() {
       const pageCount = doc.internal.pages.length - 1
       for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i)
-        doc.setFontSize(8)
-        doc.setTextColor(150, 150, 150)
-        doc.text(
-          `Page ${i} / ${pageCount}`,
-          pageWidth / 2,
-          pageHeight - 10,
-          { align: "center" }
-        )
-        doc.text(
-          "SafeVault - Gestion des Réserves",
-          pageWidth - 14,
-          pageHeight - 10,
-          { align: "right" }
-        )
+        drawFooter(i, pageCount)
       }
 
       // Sauvegarder le PDF
@@ -948,3 +1058,4 @@ export default function ReservesClient() {
     </div>
   )
 }
+

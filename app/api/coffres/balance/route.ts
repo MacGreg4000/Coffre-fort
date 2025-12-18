@@ -39,12 +39,12 @@ export async function GET(req: NextRequest) {
     // Utiliser le cache pour la balance (5 minutes)
     const balance = await getCachedBalance(coffreId, async () => {
       logger.info(`Calculating balance for coffre ${coffreId}`)
-      
-      // Récupérer le dernier inventaire
-      const lastInventory = await prisma.inventory.findFirst({
-        where: { coffreId },
-        orderBy: { createdAt: "desc" },
-      })
+
+    // Récupérer le dernier inventaire
+    const lastInventory = await prisma.inventory.findFirst({
+      where: { coffreId },
+      orderBy: { createdAt: "desc" },
+    })
 
       let calculatedBalance = 0
 
@@ -52,18 +52,18 @@ export async function GET(req: NextRequest) {
         // Si on a un inventaire, l'utiliser comme point de départ
         calculatedBalance = Number(lastInventory.totalAmount)
 
-        // Calculer le solde : dernier inventaire + entrées - sorties depuis le dernier inventaire
-        const movements = await prisma.movement.findMany({
-          where: {
-            coffreId,
+    // Calculer le solde : dernier inventaire + entrées - sorties depuis le dernier inventaire
+    const movements = await prisma.movement.findMany({
+      where: {
+        coffreId,
             deletedAt: null, // Important : exclure les mouvements supprimés
-            createdAt: { gte: lastInventory.createdAt },
-            type: { in: ["ENTRY", "EXIT"] },
-          },
-        })
+        createdAt: { gte: lastInventory.createdAt },
+        type: { in: ["ENTRY", "EXIT"] },
+      },
+    })
 
-        movements.forEach((movement) => {
-          if (movement.type === "ENTRY") {
+    movements.forEach((movement) => {
+      if (movement.type === "ENTRY") {
             calculatedBalance += Number(movement.amount)
           } else if (movement.type === "EXIT") {
             calculatedBalance -= Number(movement.amount)
@@ -83,9 +83,9 @@ export async function GET(req: NextRequest) {
         allMovements.forEach((movement) => {
           if (movement.type === "ENTRY") {
             calculatedBalance += Number(movement.amount)
-          } else if (movement.type === "EXIT") {
+      } else if (movement.type === "EXIT") {
             calculatedBalance -= Number(movement.amount)
-          }
+      }
         })
       }
 

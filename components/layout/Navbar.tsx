@@ -6,12 +6,12 @@ import { usePathname } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Button } from "@heroui/react"
-import {
+import { 
   LayoutDashboard as LayoutDashboardIcon,
-  Wallet,
-  History,
+  Wallet, 
+  History, 
   Calculator,
-  Settings,
+  Settings, 
   LogOut,
   SunMedium,
   Moon,

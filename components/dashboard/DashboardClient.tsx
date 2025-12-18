@@ -62,11 +62,11 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
             } else {
               const errorData = await res.json().catch(() => ({}))
               console.error(`Erreur API pour ${coffre.name} (${res.status}):`, errorData)
-              return {
-                coffreId: coffre.id,
-                coffreName: coffre.name,
-                balance: 0,
-              }
+            return {
+              coffreId: coffre.id,
+              coffreName: coffre.name,
+              balance: 0,
+            }
             }
           } catch (error) {
             console.error(`Erreur fetch pour ${coffre.name}:`, error)
@@ -159,7 +159,7 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
           )}
         </div>
 
-        {coffresBalances.length > 0 && (
+      {coffresBalances.length > 0 && (
           <PremiumCard
             variant="gradient"
             hover3D
@@ -206,14 +206,14 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
                         <span className="text-foreground/70">{cb.coffreName}:</span>
                         <span className="font-bold text-primary">{formatCurrency(cb.balance)}</span>
                       </motion.div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
             </div>
           </PremiumCard>
         )}
-      </div>
+        </div>
 
       <DashboardStats data={data} />
     </div>

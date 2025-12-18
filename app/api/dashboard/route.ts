@@ -24,10 +24,10 @@ export async function GET(req: NextRequest) {
       async () => {
         logger.info(`Calculating dashboard stats for user ${session.user.id}${coffreId ? ` and coffre ${coffreId}` : ""}`)
         
-        const now = new Date()
-        const monthStart = startOfMonth(now)
-        const monthEnd = endOfMonth(now)
-        const thirtyDaysAgo = subDays(now, 30)
+    const now = new Date()
+    const monthStart = startOfMonth(now)
+    const monthEnd = endOfMonth(now)
+    const thirtyDaysAgo = subDays(now, 30)
 
     // Récupérer les coffres accessibles par l'utilisateur
     const userCoffres = await prisma.coffreMember.findMany({
@@ -41,20 +41,20 @@ export async function GET(req: NextRequest) {
       ? [coffreId]
       : coffreIds
 
-        // Statistiques mensuelles (mouvements)
-        const movements = await prisma.movement.findMany({
-          where: {
-            coffreId: { in: filteredCoffreIds },
+    // Statistiques mensuelles (mouvements)
+    const movements = await prisma.movement.findMany({
+      where: {
+        coffreId: { in: filteredCoffreIds },
             deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-            createdAt: { gte: monthStart, lte: monthEnd },
-          },
-          include: {
-            coffre: true,
-            user: true,
-            details: true,
-          },
-          orderBy: { createdAt: "desc" },
-        })
+        createdAt: { gte: monthStart, lte: monthEnd },
+      },
+      include: {
+        coffre: true,
+        user: true,
+        details: true,
+      },
+      orderBy: { createdAt: "desc" },
+    })
 
     // Calculer les totaux
     const totalEntries = movements
@@ -78,18 +78,18 @@ export async function GET(req: NextRequest) {
       take: 5,
     })
 
-        // Données pour graphiques (par coffre) - mouvements
-        const statsByCoffre = await prisma.movement.groupBy({
-          by: ["coffreId", "type"],
-          where: {
-            coffreId: { in: filteredCoffreIds },
+    // Données pour graphiques (par coffre) - mouvements
+    const statsByCoffre = await prisma.movement.groupBy({
+      by: ["coffreId", "type"],
+      where: {
+        coffreId: { in: filteredCoffreIds },
             deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-            createdAt: { gte: monthStart, lte: monthEnd },
-          },
-          _sum: {
-            amount: true,
-          },
-        })
+        createdAt: { gte: monthStart, lte: monthEnd },
+      },
+      _sum: {
+        amount: true,
+      },
+    })
 
     // Données des inventaires pour les graphiques (derniers 30 jours)
     const recentInventories = await prisma.inventory.findMany({
@@ -184,17 +184,17 @@ export async function GET(req: NextRequest) {
     const twelveMonthsAgo = new Date(now)
     twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12)
     
-        // Récupérer tous les mouvements des 12 derniers mois
-        const allMonthlyMovements = await prisma.movement.findMany({
-          where: {
-            coffreId: { in: filteredCoffreIds },
+    // Récupérer tous les mouvements des 12 derniers mois
+    const allMonthlyMovements = await prisma.movement.findMany({
+      where: {
+        coffreId: { in: filteredCoffreIds },
             deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-            createdAt: { gte: twelveMonthsAgo },
-          },
-          select: {
-            createdAt: true,
-          },
-        })
+        createdAt: { gte: twelveMonthsAgo },
+      },
+      select: {
+        createdAt: true,
+      },
+    })
     
     // Grouper par mois
     const monthlyActivityMap = new Map<string, number>()
@@ -217,15 +217,15 @@ export async function GET(req: NextRequest) {
 
         // Répartition des billets (tous les mouvements et inventaires des 30 derniers jours)
         const allMovementsForBills = await prisma.movement.findMany({
-          where: {
-            coffreId: { in: filteredCoffreIds },
+      where: {
+        coffreId: { in: filteredCoffreIds },
             deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-            createdAt: { gte: thirtyDaysAgo },
-          },
-          include: {
-            details: true,
-          },
-        })
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      include: {
+        details: true,
+      },
+    })
 
     const allInventoriesForBills = await prisma.inventory.findMany({
       where: {
@@ -239,7 +239,7 @@ export async function GET(req: NextRequest) {
 
         // Calculer la répartition des billets ACTUELLE (pas historique)
         // On part du dernier inventaire et on applique les mouvements
-        const billDistribution = new Map<number, number>()
+    const billDistribution = new Map<number, number>()
 
         // Pour chaque coffre, calculer la répartition actuelle
         for (const coffreId of filteredCoffreIds) {
@@ -253,10 +253,10 @@ export async function GET(req: NextRequest) {
           if (lastInventory) {
             // Partir du dernier inventaire
             lastInventory.details.forEach((detail) => {
-              const denom = Number(detail.denomination)
-              const current = billDistribution.get(denom) || 0
-              billDistribution.set(denom, current + detail.quantity)
-            })
+        const denom = Number(detail.denomination)
+        const current = billDistribution.get(denom) || 0
+        billDistribution.set(denom, current + detail.quantity)
+      })
 
             // Appliquer les mouvements depuis le dernier inventaire
             const movementsSinceInventory = await prisma.movement.findMany({
@@ -271,12 +271,12 @@ export async function GET(req: NextRequest) {
 
             movementsSinceInventory.forEach((movement) => {
               movement.details.forEach((detail) => {
-                const denom = Number(detail.denomination)
-                const current = billDistribution.get(denom) || 0
+        const denom = Number(detail.denomination)
+        const current = billDistribution.get(denom) || 0
                 
                 // ENTRY → ajouter, EXIT → soustraire
                 if (movement.type === "ENTRY") {
-                  billDistribution.set(denom, current + detail.quantity)
+        billDistribution.set(denom, current + detail.quantity)
                 } else if (movement.type === "EXIT") {
                   billDistribution.set(denom, Math.max(0, current - detail.quantity))
                 }
@@ -310,18 +310,18 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Top utilisateurs par activité
-        const userActivity = await prisma.movement.groupBy({
-          by: ["userId"],
-          where: {
-            coffreId: { in: filteredCoffreIds },
+    // Top utilisateurs par activité
+    const userActivity = await prisma.movement.groupBy({
+      by: ["userId"],
+      where: {
+        coffreId: { in: filteredCoffreIds },
             deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-            createdAt: { gte: monthStart, lte: monthEnd },
-          },
-          _count: {
-            id: true,
-          },
-        })
+        createdAt: { gte: monthStart, lte: monthEnd },
+      },
+      _count: {
+        id: true,
+      },
+    })
 
     const userIds = userActivity.map((u) => u.userId)
     const users = await prisma.user.findMany({
@@ -402,24 +402,24 @@ export async function GET(req: NextRequest) {
       .slice(0, 5)
 
         return {
-          movements: serializedMovements,
-          totalEntries,
-          totalExits,
-          inventories: serializedInventories,
-          recentInventories: serializedRecentInventories,
+      movements: serializedMovements,
+      totalEntries,
+      totalExits,
+      inventories: serializedInventories,
+      recentInventories: serializedRecentInventories,
           allMovements: serializedAllMovements,
           allInventories: serializedAllInventories,
           totalBalance,
-          statsByCoffre: statsByCoffre.map((stat) => ({
-            coffreId: stat.coffreId,
-            coffreName: coffreMap.get(stat.coffreId) || "Inconnu",
-            type: stat.type,
-            amount: Number(stat._sum.amount || 0),
-          })),
-          coffres: userCoffres.map((uc) => uc.coffre),
-          monthlyActivity: monthlyActivity,
-          billDistribution: billDistributionData,
-          topUsers: topUsersData,
+      statsByCoffre: statsByCoffre.map((stat) => ({
+        coffreId: stat.coffreId,
+        coffreName: coffreMap.get(stat.coffreId) || "Inconnu",
+        type: stat.type,
+        amount: Number(stat._sum.amount || 0),
+      })),
+      coffres: userCoffres.map((uc) => uc.coffre),
+      monthlyActivity: monthlyActivity,
+      billDistribution: billDistributionData,
+      topUsers: topUsersData,
         }
       }
     )

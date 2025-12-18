@@ -205,26 +205,26 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
           <p className="text-foreground/70">
             Consultez et exportez vos mouvements, filtrez par coffre et parcourez les détails des billets.
           </p>
-          {data.coffres.length > 0 && (
+      {data.coffres.length > 0 && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-              <Select
-                label="Filtrer par coffre"
+          <Select
+            label="Filtrer par coffre"
                 placeholder="Tous les coffres"
-                selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
-                onSelectionChange={(keys) => {
-                  const selected = Array.from(keys)[0] as string
-                  setSelectedCoffreId(selected || "")
-                }}
+            selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
+            onSelectionChange={(keys) => {
+              const selected = Array.from(keys)[0] as string
+              setSelectedCoffreId(selected || "")
+            }}
                 className="w-full sm:w-72"
-              >
+          >
                 {[{ id: "", name: "Tous les coffres" }, ...data.coffres].map((coffre) => (
-                  <SelectItem key={coffre.id}>
-                    {coffre.name}
-                  </SelectItem>
+                <SelectItem key={coffre.id}>
+                  {coffre.name}
+                </SelectItem>
                 ))}
-              </Select>
-            </div>
-          )}
+          </Select>
+        </div>
+      )}
         </div>
 
         <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
@@ -398,7 +398,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                                 </>
                               )}
                             </div>
-                          </div>
+                                      </div>
 
                           {/* Détails des billets - Prend toute la largeur EN DESSOUS */}
                           {movement.details.length > 0 && (
@@ -408,24 +408,24 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                                   Détail par billet
                                 </p>
                                 {movement.details.length > 3 && (
-                                  <Button
-                                    variant="light"
-                                    size="sm"
-                                    onPress={() => toggleExpand(movement.id)}
+                                      <Button
+                                        variant="light"
+                                        size="sm"
+                                        onPress={() => toggleExpand(movement.id)}
                                     className="text-xs h-6 min-w-0 px-2"
-                                  >
-                                    {isExpanded ? (
-                                      <>
-                                        <ChevronUp className="h-3 w-3 mr-1" />
+                                      >
+                                        {isExpanded ? (
+                                          <>
+                                            <ChevronUp className="h-3 w-3 mr-1" />
                                         Réduire
-                                      </>
-                                    ) : (
-                                      <>
-                                        <ChevronDown className="h-3 w-3 mr-1" />
+                                          </>
+                                        ) : (
+                                          <>
+                                            <ChevronDown className="h-3 w-3 mr-1" />
                                         Voir tout ({movement.details.length})
-                                      </>
-                                    )}
-                                  </Button>
+                                          </>
+                                        )}
+                                      </Button>
                                 )}
                               </div>
 
@@ -435,8 +435,8 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                                   ? movement.details
                                   : movement.details.slice(0, 3)
                                 ).map((detail: any, index: number) => (
-                                  <motion.div
-                                    key={detail.id}
+                                        <motion.div
+                                              key={detail.id}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: index * 0.05 }}
@@ -456,7 +456,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                                         <p className="text-xs text-foreground/60 mb-1">Qté</p>
                                         <span className="inline-flex items-center justify-center min-w-[2.5rem] px-2.5 py-1 rounded-md bg-primary/10 text-primary font-bold text-sm">
                                           {detail.quantity}
-                                        </span>
+                                            </span>
                                       </div>
                                       
                                       {/* Sous-total */}
@@ -467,7 +467,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                                         </p>
                                       </div>
                                     </div>
-                                  </motion.div>
+                                        </motion.div>
                                 ))}
 
                                 {/* Footer Total */}
