@@ -81,6 +81,8 @@ export default function ReservesClient() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [isExportingPDF, setIsExportingPDF] = useState(false)
+  // État pour stocker les valeurs en cours de saisie (format texte avec virgule)
+  const [editingValues, setEditingValues] = useState<Record<string, { amount?: string; released?: string }>>({})
 
   // Refs pour les graphiques (pour export PDF)
   const lineChartRef = useRef<any>(null)
@@ -220,6 +222,12 @@ export default function ReservesClient() {
 
       showToast("Réserve modifiée avec succès", "success")
       setEditingId(null)
+      // Nettoyer les valeurs d'édition
+      setEditingValues(prev => {
+        const newValues = { ...prev }
+        delete newValues[id]
+        return newValues
+      })
       fetchReserves()
     } catch (error: any) {
       console.error("Erreur handleUpdate:", error)
@@ -928,14 +936,39 @@ export default function ReservesClient() {
                   <div className="flex items-center justify-end">
                     {isEditing ? (
                       <Input
-                        type="number"
+                        type="text"
                         size="sm"
-                        step="0.01"
-                        value={typeof reserve.amount === 'number' ? reserve.amount.toString() : String(reserve.amount || 0)}
+                        placeholder="0,00"
+                        value={editingValues[reserve.id]?.amount ?? (typeof reserve.amount === 'number' 
+                          ? reserve.amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
+                          : String(reserve.amount || 0))}
                         onChange={(e) => {
-                          const value = e.target.value
-                          const numValue = value === "" ? 0 : parseFloat(value)
-                          if (!isNaN(numValue)) {
+                          // Accepter virgule ET point comme séparateur décimal
+                          let value = e.target.value
+                          // Remplacer le point par une virgule pour l'affichage français
+                          value = value.replace(/\./g, ',')
+                          // Garder uniquement les chiffres et virgule
+                          value = value.replace(/[^\d,]/g, '')
+                          // S'assurer qu'il n'y a qu'une seule virgule
+                          const parts = value.split(',')
+                          if (parts.length > 2) {
+                            value = parts[0] + ',' + parts.slice(1).join('')
+                          }
+                          // Limiter à 2 décimales après la virgule
+                          if (parts.length === 2 && parts[1].length > 2) {
+                            value = parts[0] + ',' + parts[1].substring(0, 2)
+                          }
+                          
+                          // Sauvegarder la valeur texte pour l'affichage
+                          setEditingValues(prev => ({
+                            ...prev,
+                            [reserve.id]: { ...prev[reserve.id], amount: value }
+                          }))
+                          
+                          // Convertir en nombre (remplacer virgule par point pour parseFloat)
+                          const numValue = value === "" || value === "," ? 0 : parseFloat(value.replace(',', '.'))
+                          
+                          if (!isNaN(numValue) && numValue >= 0) {
                             const updated = reserves.map((r) =>
                               r.id === reserve.id
                                 ? { ...r, amount: numValue }
@@ -943,6 +976,14 @@ export default function ReservesClient() {
                             )
                             setReserves(updated)
                           }
+                        }}
+                        onBlur={() => {
+                          // Nettoyer la valeur d'édition après la perte de focus
+                          setEditingValues(prev => {
+                            const newValues = { ...prev }
+                            delete newValues[reserve.id]?.amount
+                            return newValues
+                          })
                         }}
                       />
                     ) : (
@@ -983,14 +1024,39 @@ export default function ReservesClient() {
                   <div className="flex items-center justify-end">
                     {isEditing ? (
                       <Input
-                        type="number"
+                        type="text"
                         size="sm"
-                        step="0.01"
-                        value={typeof reserve.released === 'number' ? reserve.released.toString() : String(reserve.released || 0)}
+                        placeholder="0,00"
+                        value={editingValues[reserve.id]?.released ?? (typeof reserve.released === 'number' 
+                          ? reserve.released.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: false })
+                          : String(reserve.released || 0))}
                         onChange={(e) => {
-                          const value = e.target.value
-                          const numValue = value === "" ? 0 : parseFloat(value)
-                          if (!isNaN(numValue)) {
+                          // Accepter virgule ET point comme séparateur décimal
+                          let value = e.target.value
+                          // Remplacer le point par une virgule pour l'affichage français
+                          value = value.replace(/\./g, ',')
+                          // Garder uniquement les chiffres et virgule
+                          value = value.replace(/[^\d,]/g, '')
+                          // S'assurer qu'il n'y a qu'une seule virgule
+                          const parts = value.split(',')
+                          if (parts.length > 2) {
+                            value = parts[0] + ',' + parts.slice(1).join('')
+                          }
+                          // Limiter à 2 décimales après la virgule
+                          if (parts.length === 2 && parts[1].length > 2) {
+                            value = parts[0] + ',' + parts[1].substring(0, 2)
+                          }
+                          
+                          // Sauvegarder la valeur texte pour l'affichage
+                          setEditingValues(prev => ({
+                            ...prev,
+                            [reserve.id]: { ...prev[reserve.id], released: value }
+                          }))
+                          
+                          // Convertir en nombre (remplacer virgule par point pour parseFloat)
+                          const numValue = value === "" || value === "," ? 0 : parseFloat(value.replace(',', '.'))
+                          
+                          if (!isNaN(numValue) && numValue >= 0) {
                             const updated = reserves.map((r) =>
                               r.id === reserve.id
                                 ? { ...r, released: numValue }
@@ -998,6 +1064,14 @@ export default function ReservesClient() {
                             )
                             setReserves(updated)
                           }
+                        }}
+                        onBlur={() => {
+                          // Nettoyer la valeur d'édition après la perte de focus
+                          setEditingValues(prev => {
+                            const newValues = { ...prev }
+                            delete newValues[reserve.id]?.released
+                            return newValues
+                          })
                         }}
                       />
                     ) : (
@@ -1031,7 +1105,15 @@ export default function ReservesClient() {
                           color="danger"
                           variant="light"
                           isIconOnly
-                          onPress={() => setEditingId(null)}
+                          onPress={() => {
+                            setEditingId(null)
+                            // Nettoyer les valeurs d'édition lors de l'annulation
+                            setEditingValues(prev => {
+                              const newValues = { ...prev }
+                              delete newValues[reserve.id]
+                              return newValues
+                            })
+                          }}
                         >
                           <X className="w-4 h-4" />
                         </Button>
