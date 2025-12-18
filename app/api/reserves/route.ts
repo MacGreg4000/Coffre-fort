@@ -30,11 +30,22 @@ export async function GET(req: NextRequest) {
       orderBy: { year: "asc" },
     })
 
-    // Calculer les statistiques
-    // Ne compter que les réserves avec un montant > 0 (exclure les années pré-créées avec amount = 0)
-    const reservesWithAmount = reserves.filter((r) => Number(r.amount) > 0)
-    const total = reservesWithAmount.reduce((sum, r) => sum + Number(r.amount), 0)
-    const totalReleased = reservesWithAmount.reduce((sum, r) => sum + Number(r.released), 0)
+    // Filtrer uniquement les réserves avec un montant > 0 pour les statistiques
+    // (exclure les réserves pré-créées avec amount = 0 qui ne représentent pas de vraies réserves)
+    const reservesWithAmount = reserves.filter((r) => {
+      const amount = Number(r.amount)
+      return amount > 0
+    })
+
+    // Calculer les statistiques uniquement sur les réserves avec montant > 0
+    const total = reservesWithAmount.reduce((sum, r) => {
+      return sum + Number(r.amount)
+    }, 0)
+    
+    const totalReleased = reservesWithAmount.reduce((sum, r) => {
+      return sum + Number(r.released)
+    }, 0)
+    
     const totalReleasable = total - totalReleased
 
     logger.info("Réserves récupérées", {
