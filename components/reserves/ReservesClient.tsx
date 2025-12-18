@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import {
   Plus,
   Pencil,
-  Trash2,
   Save,
   X,
   TrendingUp,
@@ -80,7 +79,6 @@ export default function ReservesClient() {
   })
   const [loading, setLoading] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
   const [isAddingNew, setIsAddingNew] = useState(false)
   const [isExportingPDF, setIsExportingPDF] = useState(false)
 
@@ -229,28 +227,6 @@ export default function ReservesClient() {
     }
   }
 
-  // Supprimer une réserve
-  const handleDelete = async (id: string) => {
-    if (deletingId) return
-
-    try {
-      setDeletingId(id)
-      const response = await fetch(`/api/reserves/${id}`, {
-        method: "DELETE",
-      })
-
-      if (!response.ok) throw new Error("Erreur lors de la suppression")
-
-      showToast("Réserve supprimée avec succès", "success")
-      setTimeout(() => {
-        fetchReserves()
-        setDeletingId(null)
-      }, 300)
-    } catch (error) {
-      showToast("Erreur lors de la suppression", "error")
-      setDeletingId(null)
-    }
-  }
 
   // Graphique 1: Évolution des montants
   const lineChartData = useMemo(() => {
@@ -1070,16 +1046,6 @@ export default function ReservesClient() {
                           onPress={() => setEditingId(reserve.id)}
                         >
                           <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          color="danger"
-                          variant="light"
-                          isIconOnly
-                          isLoading={deletingId === reserve.id}
-                          onPress={() => handleDelete(reserve.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </>
                     )}
