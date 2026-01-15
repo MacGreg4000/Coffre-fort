@@ -15,6 +15,8 @@ import {
   LogOut,
   SunMedium,
   Moon,
+  Boxes,
+  KeyRound,
 } from "lucide-react"
 import { useTheme } from "@/components/theme/theme-provider"
 import { cn } from "@/lib/utils"
@@ -30,6 +32,8 @@ export function Navbar() {
     { href: "/caisse", icon: Wallet, label: "Caisse" },
     { href: "/historique", icon: History, label: "Historique" },
     { href: "/reserves", icon: Calculator, label: "Réserves" },
+    { href: "/actifs", icon: Boxes, label: "Actifs" },
+    { href: "/password-files", icon: KeyRound, label: "Fichiers MDP" },
     ...(session?.user?.role === "ADMIN"
       ? [{ href: "/admin", icon: Settings, label: "Admin" }]
       : [])

@@ -41,7 +41,6 @@ interface DashboardChartsProps {
     recentInventories?: any[]
     monthlyActivity?: any[]
     billDistribution?: any[]
-    topUsers?: any[]
     allMovements?: any[] // Tous les mouvements pour l'évolution du solde
     allInventories?: any[] // Tous les inventaires pour l'évolution du solde
     totalBalance?: number // Solde total pour l'échelle Y
@@ -331,23 +330,6 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     }
   })()
 
-  // Graphique 5: Top utilisateurs
-  const topUsersData = (() => {
-    const users = data.topUsers || []
-    return {
-      labels: users.map((u: any) => u.name),
-      datasets: [
-        {
-          label: "Nombre de mouvements",
-          data: users.map((u: any) => u.count),
-          backgroundColor: "rgba(59, 130, 246, 0.6)",
-          borderColor: "#3B82F6",
-          borderWidth: 2,
-          borderRadius: 6,
-        },
-      ],
-    }
-  })()
 
   return (
     <div className="space-y-6">
@@ -496,45 +478,6 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
           </Card>
         </motion.div>
 
-        {/* Graphique 5: Top utilisateurs */}
-        {data.topUsers && data.topUsers.length > 0 && (
-          <motion.div
-            whileHover={{ scale: 1.01 }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-            className="relative group"
-          >
-            {/* Halo lumineux au survol */}
-            <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-            
-            <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-              <CardHeader>
-                <h3 className="text-lg font-semibold">Top utilisateurs (activité)</h3>
-              </CardHeader>
-              <CardBody>
-                <div className="h-64">
-                  <Bar
-                    data={topUsersData}
-                    options={{
-                      ...chartOptions,
-                      indexAxis: "y" as const,
-                      plugins: {
-                        ...chartOptions.plugins,
-                        legend: {
-                          display: false,
-                        },
-                      tooltip: {
-                        ...chartOptions.plugins.tooltip,
-                        backgroundColor: "rgba(18, 18, 20, 0.92)",
-                        borderColor: "rgba(59, 130, 246, 0.35)",
-                      },
-                      },
-                    }}
-                  />
-                </div>
-              </CardBody>
-            </Card>
-          </motion.div>
-        )}
       </div>
     </div>
   )

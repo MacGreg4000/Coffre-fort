@@ -23,7 +23,10 @@ async function getHandler(_req: NextRequest) {
       where: { userId: session.user.id },
       include: {
         coffre: { select: { id: true, name: true } },
-        events: { orderBy: { date: "desc" }, take: 1 },
+        events: { 
+          orderBy: { date: "desc" },
+          // Récupérer tous les événements pour calculer prix d'achat, vente et valeur marché
+        },
       },
       orderBy: { updatedAt: "desc" },
     })

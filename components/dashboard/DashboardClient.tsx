@@ -11,8 +11,8 @@ import { formatCurrency } from "@/lib/utils"
 import { Wallet, LayoutDashboard, Calculator, KeyRound, Boxes } from "lucide-react"
 import { motion } from "framer-motion"
 import { ReservesSummary } from "@/components/reserves/ReservesSummary"
-import { AssetsClient } from "@/components/assets/AssetsClient"
-import { PasswordFilesClient } from "@/components/passwords/PasswordFilesClient"
+import { AssetsStats } from "@/components/dashboard/AssetsStats"
+import { PasswordFilesStats } from "@/components/dashboard/PasswordFilesStats"
 import { Select, SelectItem } from "@/components/ui/select-heroui"
 
 interface DashboardClientProps {
@@ -29,7 +29,6 @@ interface DashboardData {
   coffres: any[]
   monthlyActivity?: any[]
   billDistribution?: any[]
-  topUsers?: any[]
 }
 
 interface CoffreBalance {
@@ -275,12 +274,12 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
 
         {/* Contenu : Actifs */}
         <TabsContent value="assets" className="space-y-6 mt-6">
-          <AssetsClient initialCoffres={initialCoffres} />
+          <AssetsStats />
         </TabsContent>
 
         {/* Contenu : Fichiers gestionnaire de mots de passe */}
         <TabsContent value="passwords" className="space-y-6 mt-6">
-          <PasswordFilesClient />
+          <PasswordFilesStats />
         </TabsContent>
       </Tabs>
     </div>

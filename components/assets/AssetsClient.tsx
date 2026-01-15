@@ -23,6 +23,25 @@ type Asset = {
   updatedAt: string
 }
 
+// Helper pour extraire les prix pertinents d'un actif
+// Les événements sont déjà triés par date décroissante, donc on prend le premier de chaque type
+function getAssetPrices(asset: Asset) {
+  const events = asset.events || []
+  // Trouver le dernier événement de chaque type (premier dans la liste triée par date desc)
+  const purchase = events.find((e) => e.type === "PURCHASE")
+  const sale = events.find((e) => e.type === "SALE")
+  const valuation = events.find((e) => e.type === "VALUATION")
+  
+  return {
+    purchasePrice: purchase?.amount ? Number(purchase.amount) : null,
+    purchaseDate: purchase?.date || null,
+    salePrice: sale?.amount ? Number(sale.amount) : null,
+    saleDate: sale?.date || null,
+    marketValue: valuation?.amount ? Number(valuation.amount) : null,
+    valuationDate: valuation?.date || null,
+  }
+}
+
 export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] }) {
   const { showToast } = useToast()
   const { confirm, ConfirmModal } = useConfirmModal()
@@ -282,13 +301,14 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
           </Card>
         ) : (
           assets.map((asset) => {
+            const prices = getAssetPrices(asset)
             const lastEvent = asset.events?.[0]
             return (
               <motion.div key={asset.id} whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 300, damping: 20 }}>
                 <Card className="bg-card/70 backdrop-blur border border-border/60">
                   <CardBody className="p-5">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="font-semibold text-primary truncate">{asset.name}</p>
                           {asset.category && (
@@ -304,20 +324,56 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
                           ) : (
                             <span className="opacity-70">Non localisé</span>
                           )}
-                          {lastEvent && (
-                            <span className="opacity-80">
-                              Dernier événement: <b>{lastEvent.type}</b>
-                              {typeof lastEvent.amount === "number" ? ` · ${formatCurrency(lastEvent.amount)}` : ""}
-                            </span>
-                          )}
                         </div>
                         {asset.description && <p className="mt-2 text-sm text-foreground/75">{asset.description}</p>}
+                        
+                        {/* Informations de prix */}
+                        <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 pt-3 border-t border-border/30">
+                          {prices.purchasePrice !== null && (
+                            <div className="flex flex-col gap-1">
+                              <p className="text-xs text-foreground/50">Prix d&apos;achat</p>
+                              <p className="text-sm font-semibold text-success">{formatCurrency(prices.purchasePrice)}</p>
+                              {prices.purchaseDate && (
+                                <p className="text-xs text-foreground/40">
+                                  {new Date(prices.purchaseDate).toLocaleDateString("fr-FR")}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {prices.salePrice !== null && (
+                            <div className="flex flex-col gap-1">
+                              <p className="text-xs text-foreground/50">Prix de vente</p>
+                              <p className="text-sm font-semibold text-danger">{formatCurrency(prices.salePrice)}</p>
+                              {prices.saleDate && (
+                                <p className="text-xs text-foreground/40">
+                                  {new Date(prices.saleDate).toLocaleDateString("fr-FR")}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {prices.marketValue !== null && (
+                            <div className="flex flex-col gap-1">
+                              <p className="text-xs text-foreground/50">Valeur marché</p>
+                              <p className="text-sm font-semibold text-primary">{formatCurrency(prices.marketValue)}</p>
+                              {prices.valuationDate && (
+                                <p className="text-xs text-foreground/40">
+                                  {new Date(prices.valuationDate).toLocaleDateString("fr-FR")}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                          {prices.purchasePrice === null && prices.salePrice === null && prices.marketValue === null && (
+                            <div className="col-span-3 text-xs text-foreground/50 italic">
+                              Aucun prix enregistré. Ajoutez un événement (achat, vente ou estimation).
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button variant="bordered" onPress={() => openEventModal(asset)}>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <Button variant="bordered" size="sm" onPress={() => openEventModal(asset)}>
                           Ajouter événement
                         </Button>
-                        <Button isIconOnly color="danger" variant="light" onPress={() => handleDelete(asset)} aria-label="Supprimer">
+                        <Button isIconOnly color="danger" variant="light" size="sm" onPress={() => handleDelete(asset)} aria-label="Supprimer">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>

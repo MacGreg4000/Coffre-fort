@@ -289,27 +289,6 @@ export async function GET(req: NextRequest) {
           }
         })
 
-    // Top utilisateurs par activité
-    const userActivity = await prisma.movement.groupBy({
-      by: ["userId"],
-      where: {
-        coffreId: { in: filteredCoffreIds },
-            deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-        createdAt: { gte: monthStart, lte: monthEnd },
-      },
-      _count: {
-        id: true,
-      },
-    })
-
-    const userIds = userActivity.map((u) => u.userId)
-    const users = await prisma.user.findMany({
-      where: { id: { in: userIds } },
-      select: { id: true, name: true },
-    })
-
-    const userMap = new Map(users.map((u) => [u.id, u.name]))
-
     const coffreNames = await prisma.coffre.findMany({
       where: { id: { in: filteredCoffreIds } },
       select: { id: true, name: true },
@@ -371,15 +350,6 @@ export async function GET(req: NextRequest) {
       value: (billDistribution.get(denom) || 0) * denom,
     }))
 
-    // Préparer les données des top utilisateurs
-    const topUsersData = userActivity
-      .map((u) => ({
-        name: userMap.get(u.userId) || "Inconnu",
-        count: u._count.id,
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-
         return {
       movements: serializedMovements,
       totalEntries,
@@ -398,7 +368,6 @@ export async function GET(req: NextRequest) {
       coffres: userCoffres.map((uc) => uc.coffre),
       monthlyActivity: monthlyActivity,
       billDistribution: billDistributionData,
-      topUsers: topUsersData,
         }
       }
     )
