@@ -135,50 +135,50 @@ export async function GET(req: NextRequest) {
           orderBy: { createdAt: "asc" },
         })
 
-    // Calculer le solde total actuel pour chaque coffre
-    let totalBalance = 0
-    for (const coffreId of filteredCoffreIds) {
-      const lastInventory = await prisma.inventory.findFirst({
-        where: { coffreId },
-        orderBy: { createdAt: "desc" },
-      })
+    // Calculer le solde total actuel pour chaque coffre (en parallèle)
+    const balances = await Promise.all(
+      filteredCoffreIds.map(async (coffreId) => {
+        const lastInventory = await prisma.inventory.findFirst({
+          where: { coffreId },
+          orderBy: { createdAt: "desc" },
+        })
 
-      let balance = 0
-      if (lastInventory) {
-        balance = Number(lastInventory.totalAmount)
-        const movementsAfterInventory = await prisma.movement.findMany({
-          where: {
-            coffreId,
-            deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-            createdAt: { gte: lastInventory.createdAt },
-            type: { in: ["ENTRY", "EXIT"] },
-          },
-        })
-        movementsAfterInventory.forEach((movement) => {
-          if (movement.type === "ENTRY") {
-            balance += Number(movement.amount)
-          } else if (movement.type === "EXIT") {
-            balance -= Number(movement.amount)
-          }
-        })
-      } else {
-        const allMovementsForCoffre = await prisma.movement.findMany({
-          where: {
-            coffreId,
-            deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-            type: { in: ["ENTRY", "EXIT"] },
-          },
-        })
-        allMovementsForCoffre.forEach((movement) => {
-          if (movement.type === "ENTRY") {
-            balance += Number(movement.amount)
-          } else if (movement.type === "EXIT") {
-            balance -= Number(movement.amount)
-          }
-        })
-      }
-      totalBalance += balance
-    }
+        let balance = 0
+        if (lastInventory) {
+          balance = Number(lastInventory.totalAmount)
+          const movementsAfterInventory = await prisma.movement.findMany({
+            where: {
+              coffreId,
+              deletedAt: null,
+              createdAt: { gte: lastInventory.createdAt },
+              type: { in: ["ENTRY", "EXIT"] },
+            },
+            select: { type: true, amount: true },
+          })
+          movementsAfterInventory.forEach((movement) => {
+            if (movement.type === "ENTRY") balance += Number(movement.amount)
+            if (movement.type === "EXIT") balance -= Number(movement.amount)
+          })
+        } else {
+          const allMovementsForCoffre = await prisma.movement.findMany({
+            where: {
+              coffreId,
+              deletedAt: null,
+              type: { in: ["ENTRY", "EXIT"] },
+            },
+            select: { type: true, amount: true },
+          })
+          allMovementsForCoffre.forEach((movement) => {
+            if (movement.type === "ENTRY") balance += Number(movement.amount)
+            if (movement.type === "EXIT") balance -= Number(movement.amount)
+          })
+        }
+
+        return balance
+      })
+    )
+
+    const totalBalance = balances.reduce((sum, b) => sum + b, 0)
 
     // Données pour activité mensuelle (12 derniers mois)
     const twelveMonthsAgo = new Date(now)
@@ -215,100 +215,79 @@ export async function GET(req: NextRequest) {
       }
     })
 
-        // Répartition des billets (tous les mouvements et inventaires des 30 derniers jours)
-        const allMovementsForBills = await prisma.movement.findMany({
-      where: {
-        coffreId: { in: filteredCoffreIds },
-            deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
-        createdAt: { gte: thirtyDaysAgo },
-      },
-      include: {
-        details: true,
-      },
-    })
-
-    const allInventoriesForBills = await prisma.inventory.findMany({
-      where: {
-        coffreId: { in: filteredCoffreIds },
-        createdAt: { gte: thirtyDaysAgo },
-      },
-      include: {
-        details: true,
-      },
-    })
-
         // Calculer la répartition des billets ACTUELLE (pas historique)
         // On part du dernier inventaire et on applique les mouvements
     const billDistribution = new Map<number, number>()
 
-        // Pour chaque coffre, calculer la répartition actuelle
-        for (const coffreId of filteredCoffreIds) {
-          // Récupérer le dernier inventaire du coffre
-          const lastInventory = await prisma.inventory.findFirst({
-            where: { coffreId },
-            include: { details: true },
-            orderBy: { createdAt: "desc" },
-          })
+        // Pour chaque coffre, calculer la répartition actuelle (en parallèle)
+        const perCoffreBillMaps = await Promise.all(
+          filteredCoffreIds.map(async (coffreId) => {
+            const local = new Map<number, number>()
 
-          if (lastInventory) {
-            // Partir du dernier inventaire
-            lastInventory.details.forEach((detail) => {
-        const denom = Number(detail.denomination)
-        const current = billDistribution.get(denom) || 0
-        billDistribution.set(denom, current + detail.quantity)
-      })
-
-            // Appliquer les mouvements depuis le dernier inventaire
-            const movementsSinceInventory = await prisma.movement.findMany({
-              where: {
-                coffreId,
-                deletedAt: null,
-                createdAt: { gte: lastInventory.createdAt },
-                type: { in: ["ENTRY", "EXIT"] },
-              },
+            const lastInventory = await prisma.inventory.findFirst({
+              where: { coffreId },
               include: { details: true },
+              orderBy: { createdAt: "desc" },
             })
 
-            movementsSinceInventory.forEach((movement) => {
-              movement.details.forEach((detail) => {
-        const denom = Number(detail.denomination)
-        const current = billDistribution.get(denom) || 0
-                
-                // ENTRY → ajouter, EXIT → soustraire
-                if (movement.type === "ENTRY") {
-        billDistribution.set(denom, current + detail.quantity)
-                } else if (movement.type === "EXIT") {
-                  billDistribution.set(denom, Math.max(0, current - detail.quantity))
-                }
-              })
-            })
-          } else {
-            // Pas d'inventaire : calculer depuis le début
-            const allMovementsForCoffre = await prisma.movement.findMany({
-              where: {
-                coffreId,
-                deletedAt: null,
-                type: { in: ["ENTRY", "EXIT"] },
-              },
-              include: { details: true },
-              orderBy: { createdAt: "asc" },
-            })
-
-            allMovementsForCoffre.forEach((movement) => {
-              movement.details.forEach((detail) => {
+            if (lastInventory) {
+              // Base = inventaire
+              lastInventory.details.forEach((detail) => {
                 const denom = Number(detail.denomination)
-                const current = billDistribution.get(denom) || 0
-                
-                // ENTRY → ajouter, EXIT → soustraire
-                if (movement.type === "ENTRY") {
-                  billDistribution.set(denom, current + detail.quantity)
-                } else if (movement.type === "EXIT") {
-                  billDistribution.set(denom, Math.max(0, current - detail.quantity))
-                }
+                local.set(denom, (local.get(denom) || 0) + detail.quantity)
               })
-            })
+
+              // Appliquer les mouvements depuis le dernier inventaire
+              const movementsSinceInventory = await prisma.movement.findMany({
+                where: {
+                  coffreId,
+                  deletedAt: null,
+                  createdAt: { gte: lastInventory.createdAt },
+                  type: { in: ["ENTRY", "EXIT"] },
+                },
+                include: { details: true },
+              })
+
+              movementsSinceInventory.forEach((movement) => {
+                movement.details.forEach((detail) => {
+                  const denom = Number(detail.denomination)
+                  const current = local.get(denom) || 0
+                  if (movement.type === "ENTRY") local.set(denom, current + detail.quantity)
+                  if (movement.type === "EXIT") local.set(denom, Math.max(0, current - detail.quantity))
+                })
+              })
+            } else {
+              // Pas d'inventaire : calculer depuis le début
+              const allMovementsForCoffre = await prisma.movement.findMany({
+                where: {
+                  coffreId,
+                  deletedAt: null,
+                  type: { in: ["ENTRY", "EXIT"] },
+                },
+                include: { details: true },
+                orderBy: { createdAt: "asc" },
+              })
+
+              allMovementsForCoffre.forEach((movement) => {
+                movement.details.forEach((detail) => {
+                  const denom = Number(detail.denomination)
+                  const current = local.get(denom) || 0
+                  if (movement.type === "ENTRY") local.set(denom, current + detail.quantity)
+                  if (movement.type === "EXIT") local.set(denom, Math.max(0, current - detail.quantity))
+                })
+              })
+            }
+
+            return local
+          })
+        )
+
+        // Merge des maps par coffre dans billDistribution (global)
+        perCoffreBillMaps.forEach((local) => {
+          for (const [denom, qty] of local.entries()) {
+            billDistribution.set(denom, (billDistribution.get(denom) || 0) + qty)
           }
-        }
+        })
 
     // Top utilisateurs par activité
     const userActivity = await prisma.movement.groupBy({

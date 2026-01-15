@@ -1,36 +1,29 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+import { publicRoute } from "@/lib/api-middleware"
+import { AUTH_RATE_LIMIT } from "@/lib/rate-limit"
+import { ApiError, createAuditLog, handleApiError } from "@/lib/api-utils"
+import { createUserSchema, validateRequest } from "@/lib/validations"
 
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     // Vérifier qu'aucun utilisateur n'existe déjà
     const userCount = await prisma.user.count()
     
     if (userCount > 0) {
-      return NextResponse.json(
-        { error: "Un administrateur existe déjà. Utilisez la page de connexion." },
-        { status: 403 }
-      )
+      throw new ApiError(403, "Un administrateur existe déjà. Utilisez la page de connexion.")
     }
 
     const body = await req.json()
-    const { email, password, name } = body
-
-    // Validation
-    if (!email || !password || !name) {
-      return NextResponse.json(
-        { error: "Tous les champs sont requis" },
-        { status: 400 }
-      )
+    
+    // Validation: réutiliser les règles fortes de création d'utilisateur
+    const validation = validateRequest(createUserSchema, body)
+    if (!validation.success) {
+      throw new ApiError(400, validation.error)
     }
 
-    if (password.length < 6) {
-      return NextResponse.json(
-        { error: "Le mot de passe doit contenir au moins 6 caractères" },
-        { status: 400 }
-      )
-    }
+    const { email, password, name } = validation.data
 
     // Vérifier si l'email existe déjà (au cas où)
     const existingUser = await prisma.user.findUnique({
@@ -38,34 +31,33 @@ export async function POST(req: NextRequest) {
     })
 
     if (existingUser) {
-      return NextResponse.json(
-        { error: "Cet email est déjà utilisé" },
-        { status: 400 }
-      )
+      throw new ApiError(409, "Cet email est déjà utilisé")
     }
 
-    // Hasher le mot de passe
-    const hashedPassword = await bcrypt.hash(password, 10)
+    const admin = await prisma.$transaction(async (tx) => {
+      // Hasher le mot de passe (aligné avec /api/admin/users)
+      const hashedPassword = await bcrypt.hash(password, 12)
 
-    // Créer l'administrateur
-    const admin = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role: "ADMIN",
-        isActive: true,
-      },
-    })
+      const created = await tx.user.create({
+        data: {
+          email,
+          password: hashedPassword,
+          name,
+          role: "ADMIN",
+          isActive: true,
+        },
+      })
 
-    // Créer un log
-    await prisma.log.create({
-      data: {
-        userId: admin.id,
+      await createAuditLog({
+        userId: created.id,
         action: "SETUP_COMPLETED",
         description: `Premier administrateur créé: ${name}`,
-        metadata: JSON.stringify({ email, role: "ADMIN" }),
-      },
+        metadata: { email, role: "ADMIN" },
+        req,
+        tx,
+      })
+
+      return created
     })
 
     return NextResponse.json(
@@ -81,15 +73,12 @@ export async function POST(req: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error: any) {
-    console.error("Erreur création admin:", error)
-    return NextResponse.json(
-      { error: error.message || "Erreur serveur" },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
 
+export const POST = publicRoute(postHandler, AUTH_RATE_LIMIT)
 
 
 

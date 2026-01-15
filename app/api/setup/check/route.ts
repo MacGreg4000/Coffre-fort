@@ -1,23 +1,22 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { publicRoute } from "@/lib/api-middleware"
+import { API_RATE_LIMIT } from "@/lib/rate-limit"
+import { handleApiError } from "@/lib/api-utils"
 
-export async function GET() {
+async function getHandler(_req: NextRequest) {
   try {
-    // Vérifier si au moins un utilisateur existe
     const userCount = await prisma.user.count()
-
     return NextResponse.json({
       needsSetup: userCount === 0,
       userCount,
     })
-  } catch (error: any) {
-    console.error("Erreur vérification setup:", error)
-    return NextResponse.json(
-      { error: "Erreur serveur", needsSetup: false },
-      { status: 500 }
-    )
+  } catch (error) {
+    return handleApiError(error)
   }
 }
+
+export const GET = publicRoute(getHandler, API_RATE_LIMIT)
 
 
 

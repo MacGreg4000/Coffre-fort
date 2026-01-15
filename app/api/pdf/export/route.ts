@@ -26,8 +26,9 @@ async function getHandler(req: NextRequest) {
     // Récupérer les données
     let data: any
     if (type === "movement") {
-      data = await prisma.movement.findUnique({
-        where: { id },
+      // Ne pas exporter un mouvement supprimé (soft delete)
+      data = await prisma.movement.findFirst({
+        where: { id, deletedAt: null },
         include: {
           coffre: true,
           user: true,

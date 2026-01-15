@@ -112,7 +112,7 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
         showToast("Mouvement enregistré avec succès!", "success")
       } else {
         const error = await response.json()
-        showToast(`Erreur: ${error.message || "Une erreur est survenue"}`, "error")
+        showToast(`Erreur: ${error.error || error.message || "Une erreur est survenue"}`, "error")
       }
     } catch (error) {
       showToast("Erreur lors de l'enregistrement", "error")
@@ -149,7 +149,7 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
         showToast("Inventaire enregistré avec succès!", "success")
       } else {
         const error = await response.json()
-        showToast(`Erreur: ${error.message || "Une erreur est survenue"}`, "error")
+        showToast(`Erreur: ${error.error || error.message || "Une erreur est survenue"}`, "error")
       }
     } catch (error) {
       showToast("Erreur lors de l'enregistrement", "error")
@@ -229,10 +229,6 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                       )}
                     </motion.p>
                   </div>
-                </div>
-                <div className="text-right text-xs text-foreground/60">
-                  <span className="opacity-60">Utilisateur</span>
-                  <p className="font-semibold text-foreground/80 mt-0.5">{userId}</p>
                 </div>
               </div>
         </div>

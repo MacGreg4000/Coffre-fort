@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth"
 import { Layout } from "@/components/layout/Layout"
 import { AdminPanel } from "@/components/admin/AdminPanel"
 import { prisma } from "@/lib/prisma"
+import { computeCoffreBalanceInfo } from "@/lib/balance"
 
 async function getAdminData() {
   const users = await prisma.user.findMany({
@@ -34,7 +35,15 @@ async function getAdminData() {
     orderBy: { createdAt: "desc" },
   })
 
-  return { users, coffres }
+  // Calculer la balance de chaque coffre (en parallèle) pour pouvoir renommer/supprimer avec règles serveur
+  const coffresWithBalance = await Promise.all(
+    coffres.map(async (coffre) => {
+      const info = await computeCoffreBalanceInfo(prisma, coffre.id)
+      return { ...coffre, balance: info.balance }
+    })
+  )
+
+  return { users, coffres: coffresWithBalance }
 }
 
 export default async function AdminPage() {

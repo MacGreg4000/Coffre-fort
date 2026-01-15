@@ -163,10 +163,30 @@ export async function getCachedBalance(
 }
 
 /**
+ * Cache pour la balance + métadonnées du dernier inventaire (5 minutes)
+ * Objectif: éviter une requête DB supplémentaire sur chaque GET /balance quand le cache hit.
+ */
+export async function getCachedBalanceInfo(
+  coffreId: string,
+  fetchFn: () => Promise<{
+    balance: number
+    lastInventoryDate: Date | null
+    lastInventoryAmount: number
+  }>
+): Promise<{
+  balance: number
+  lastInventoryDate: Date | null
+  lastInventoryAmount: number
+}> {
+  return cache.wrap(`balanceInfo:${coffreId}`, fetchFn, 5 * 60 * 1000)
+}
+
+/**
  * Invalider le cache d'un coffre après un mouvement
  */
 export function invalidateCoffreCache(coffreId: string): void {
   cache.delete(`balance:${coffreId}`)
+  cache.delete(`balanceInfo:${coffreId}`)
   cache.invalidatePattern(`coffre:${coffreId}`)
 }
 

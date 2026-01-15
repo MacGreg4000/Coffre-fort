@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button, Input, Card, CardHeader, CardBody, CardFooter } from "@heroui/react"
 import { Wallet, Loader2 } from "lucide-react"
 
 export default function SetupPage() {
@@ -58,8 +55,25 @@ export default function SetupPage() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError("Le mot de passe doit contenir au moins 6 caractères")
+    // Mot de passe fort (aligné avec la création d'utilisateurs)
+    if (formData.password.length < 12) {
+      setError("Le mot de passe doit contenir au moins 12 caractères")
+      return
+    }
+    if (!/[A-Z]/.test(formData.password)) {
+      setError("Le mot de passe doit contenir au moins une majuscule")
+      return
+    }
+    if (!/[a-z]/.test(formData.password)) {
+      setError("Le mot de passe doit contenir au moins une minuscule")
+      return
+    }
+    if (!/[0-9]/.test(formData.password)) {
+      setError("Le mot de passe doit contenir au moins un chiffre")
+      return
+    }
+    if (!/[^A-Za-z0-9]/.test(formData.password)) {
+      setError("Le mot de passe doit contenir au moins un caractère spécial")
       return
     }
 
@@ -98,10 +112,10 @@ export default function SetupPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyber-dark to-cyber-dark-lighter">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-cyber-gold mx-auto mb-4" />
-          <p className="text-muted-foreground">Vérification...</p>
+          <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-foreground/60">Vérification...</p>
         </div>
       </div>
     )
@@ -112,127 +126,99 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-cyber-dark to-cyber-dark-lighter p-4 sm:p-6">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-10 -top-10 h-64 w-64 rounded-full bg-primary/15 blur-[120px]" />
+        <div className="absolute right-0 top-20 h-64 w-64 rounded-full bg-primary/10 blur-[120px]" />
+      </div>
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        className="w-full max-w-md relative z-10"
       >
-        <Card className="cyber-card glow-gold">
-          <CardHeader className="text-center">
+        <Card className="bg-card/70 backdrop-blur-xl border border-border/60 shadow-[var(--shadow-2)]">
+          <CardHeader className="text-center space-y-2">
             <motion.div
               initial={{ rotate: -10 }}
               animate={{ rotate: 0 }}
               transition={{ type: "spring", stiffness: 200 }}
               className="flex justify-center mb-4"
             >
-              <Wallet className="h-16 w-16 text-cyber-gold" />
+              <Wallet className="h-14 w-14 text-primary" />
             </motion.div>
-            <CardTitle className="text-3xl">Configuration Initiale</CardTitle>
-            <CardDescription className="text-foreground/70">
-              Créez le premier administrateur pour SafeGuard
-            </CardDescription>
+            <h1 className="text-3xl font-semibold text-foreground">Configuration initiale</h1>
+            <p className="text-foreground/70">Créez le premier administrateur pour SafeGuard</p>
           </CardHeader>
-          <CardContent>
+          <CardBody>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nom complet</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="Jean Dupont"
-                  value={formData.name}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                  required
-                  disabled={creating}
-                />
-              </div>
+              <Input
+                type="text"
+                label="Nom complet"
+                placeholder="Jean Dupont"
+                value={formData.name}
+                onValueChange={(v) => setFormData({ ...formData, name: v })}
+                isRequired
+                isDisabled={creating}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="admin@example.com"
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                  required
-                  disabled={creating}
-                />
-              </div>
+              <Input
+                type="email"
+                label="Email"
+                placeholder="admin@example.com"
+                value={formData.email}
+                onValueChange={(v) => setFormData({ ...formData, email: v })}
+                isRequired
+                isDisabled={creating}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData({ ...formData, password: e.target.value })
-                  }
-                  required
-                  disabled={creating}
-                  minLength={6}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Minimum 6 caractères
-                </p>
-              </div>
+              <Input
+                type="password"
+                label="Mot de passe"
+                placeholder="••••••••••••"
+                description="Minimum 12 caractères, avec majuscule, minuscule, chiffre et caractère spécial"
+                value={formData.password}
+                onValueChange={(v) => setFormData({ ...formData, password: v })}
+                isRequired
+                isDisabled={creating}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmer le mot de passe</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.confirmPassword}
-                  onChange={(e) =>
-                    setFormData({ ...formData, confirmPassword: e.target.value })
-                  }
-                  required
-                  disabled={creating}
-                />
-              </div>
+              <Input
+                type="password"
+                label="Confirmer le mot de passe"
+                placeholder="••••••••••••"
+                value={formData.confirmPassword}
+                onValueChange={(v) => setFormData({ ...formData, confirmPassword: v })}
+                isRequired
+                isDisabled={creating}
+              />
 
               {error && (
                 <motion.p
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="text-sm text-destructive text-center p-3 rounded-lg bg-destructive/10 border border-destructive/20"
+                  className="text-sm text-danger text-center p-3 rounded-lg bg-danger/10 border border-danger/20"
                 >
                   {error}
                 </motion.p>
               )}
 
-              <div className="bg-cyber-dark/50 border border-cyber-gold/20 rounded-lg p-3">
-                <p className="text-xs text-muted-foreground text-center">
-                  ⚠️ Ce compte aura tous les droits d&apos;administration. 
-                  Assurez-vous de choisir un mot de passe fort.
-                </p>
-              </div>
-
               <Button
                 type="submit"
+                color="primary"
                 className="w-full"
-                disabled={creating}
+                isLoading={creating}
+                size="lg"
               >
-                {creating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Création en cours...
-                  </>
-                ) : (
-                  "Créer l&apos;administrateur"
-                )}
+                {creating ? "Création en cours..." : "Créer l’administrateur"}
               </Button>
             </form>
-          </CardContent>
+          </CardBody>
+          <CardFooter className="pt-0">
+            <div className="w-full rounded-lg bg-primary/5 border border-primary/15 p-3 text-xs text-foreground/70">
+              Ce compte aura tous les droits d’administration. Choisis un mot de passe fort.
+            </div>
+          </CardFooter>
         </Card>
       </motion.div>
     </div>

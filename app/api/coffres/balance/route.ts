@@ -2,21 +2,25 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { getCachedBalance } from "@/lib/cache"
+import { getCachedBalanceInfo } from "@/lib/cache"
+import { authenticatedRoute } from "@/lib/api-middleware"
+import { API_RATE_LIMIT } from "@/lib/rate-limit"
+import { ApiError, handleApiError } from "@/lib/api-utils"
 import { logger } from "@/lib/logger"
+import { computeCoffreBalanceInfo } from "@/lib/balance"
 
-export async function GET(req: NextRequest) {
+async function getHandler(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {
-      return NextResponse.json({ error: "Non autorisé" }, { status: 401 })
+      throw new ApiError(401, "Non autorisé")
     }
 
     const { searchParams } = new URL(req.url)
     const coffreId = searchParams.get("coffreId")
 
     if (!coffreId) {
-      return NextResponse.json({ error: "coffreId requis" }, { status: 400 })
+      throw new ApiError(400, "coffreId requis")
     }
 
     // Vérifier l'accès au coffre
@@ -30,87 +34,28 @@ export async function GET(req: NextRequest) {
     })
 
     if (!member) {
-      return NextResponse.json(
-        { error: "Accès refusé à ce coffre" },
-        { status: 403 }
-      )
+      throw new ApiError(403, "Accès refusé à ce coffre")
     }
 
-    // Utiliser le cache pour la balance (5 minutes)
-    const balance = await getCachedBalance(coffreId, async () => {
+    // Utiliser le cache pour la balance + métadonnées (5 minutes)
+    const result = await getCachedBalanceInfo(coffreId, async () => {
       logger.info(`Calculating balance for coffre ${coffreId}`)
-
-    // Récupérer le dernier inventaire
-    const lastInventory = await prisma.inventory.findFirst({
-      where: { coffreId },
-      orderBy: { createdAt: "desc" },
-    })
-
-      let calculatedBalance = 0
-
-      if (lastInventory) {
-        // Si on a un inventaire, l'utiliser comme point de départ
-        calculatedBalance = Number(lastInventory.totalAmount)
-
-    // Calculer le solde : dernier inventaire + entrées - sorties depuis le dernier inventaire
-    const movements = await prisma.movement.findMany({
-      where: {
-        coffreId,
-            deletedAt: null, // Important : exclure les mouvements supprimés
-        createdAt: { gte: lastInventory.createdAt },
-        type: { in: ["ENTRY", "EXIT"] },
-      },
-    })
-
-    movements.forEach((movement) => {
-      if (movement.type === "ENTRY") {
-            calculatedBalance += Number(movement.amount)
-          } else if (movement.type === "EXIT") {
-            calculatedBalance -= Number(movement.amount)
-          }
-        })
-      } else {
-        // Pas d'inventaire : calculer la balance à partir de tous les mouvements
-        const allMovements = await prisma.movement.findMany({
-          where: {
-            coffreId,
-            deletedAt: null, // Important : exclure les mouvements supprimés
-            type: { in: ["ENTRY", "EXIT"] },
-          },
-          orderBy: { createdAt: "asc" },
-        })
-
-        allMovements.forEach((movement) => {
-          if (movement.type === "ENTRY") {
-            calculatedBalance += Number(movement.amount)
-      } else if (movement.type === "EXIT") {
-            calculatedBalance -= Number(movement.amount)
+      const info = await computeCoffreBalanceInfo(prisma, coffreId)
+      return {
+        balance: info.balance,
+        lastInventoryDate: info.lastInventoryDate,
+        lastInventoryAmount: info.lastInventoryAmount,
       }
-        })
-      }
-
-      return calculatedBalance
     })
 
-    // Récupérer les infos du dernier inventaire pour le retour
-    const lastInventory = await prisma.inventory.findFirst({
-      where: { coffreId },
-      orderBy: { createdAt: "desc" },
-    })
-
-    return NextResponse.json({
-      balance,
-      lastInventoryDate: lastInventory?.createdAt || null,
-      lastInventoryAmount: lastInventory ? Number(lastInventory.totalAmount) : 0,
-    })
+    return NextResponse.json(result)
   } catch (error: any) {
-    console.error("Erreur calcul balance:", error)
-    return NextResponse.json(
-      { error: error.message || "Erreur serveur" },
-      { status: 500 }
-    )
+    return handleApiError(error)
   }
 }
+
+// Appliquer le middleware (auth + rate limiting)
+export const GET = authenticatedRoute(getHandler, API_RATE_LIMIT)
 
 
 

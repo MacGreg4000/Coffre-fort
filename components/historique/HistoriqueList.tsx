@@ -32,6 +32,10 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
   const isAdmin = session?.user?.role === "ADMIN"
   const [selectedTab, setSelectedTab] = useState<string>("movements")
   const [selectedCoffreId, setSelectedCoffreId] = useState<string>("")
+  const [search, setSearch] = useState<string>("")
+  const [typeFilter, setTypeFilter] = useState<string>("") // "" = tous
+  const [minAmount, setMinAmount] = useState<string>("")
+  const [maxAmount, setMaxAmount] = useState<string>("")
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { confirm, ConfirmModal } = useConfirmModal()
@@ -181,14 +185,60 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
 
   // Filtrer les données par coffre
   const filteredMovements = useMemo(() => {
-    if (!selectedCoffreId) return data.movements
-    return data.movements.filter((m) => m.coffreId === selectedCoffreId)
-  }, [data.movements, selectedCoffreId])
+    let list = data.movements
+    if (selectedCoffreId) list = list.filter((m) => m.coffreId === selectedCoffreId)
+    if (typeFilter) list = list.filter((m) => m.type === typeFilter)
+
+    const q = search.trim().toLowerCase()
+    if (q) {
+      list = list.filter((m) => {
+        const hay = [
+          m?.coffre?.name,
+          m?.user?.name,
+          m?.description,
+          String(m?.amount ?? ""),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+        return hay.includes(q)
+      })
+    }
+
+    const min = minAmount.trim() ? Number(minAmount.replace(",", ".")) : null
+    const max = maxAmount.trim() ? Number(maxAmount.replace(",", ".")) : null
+    if (min !== null && !isNaN(min)) list = list.filter((m) => Number(m.amount) >= min)
+    if (max !== null && !isNaN(max)) list = list.filter((m) => Number(m.amount) <= max)
+
+    return list
+  }, [data.movements, selectedCoffreId, search, typeFilter, minAmount, maxAmount])
 
   const filteredInventories = useMemo(() => {
-    if (!selectedCoffreId) return data.inventories
-    return data.inventories.filter((inv) => inv.coffreId === selectedCoffreId)
-  }, [data.inventories, selectedCoffreId])
+    let list = data.inventories
+    if (selectedCoffreId) list = list.filter((inv) => inv.coffreId === selectedCoffreId)
+
+    const q = search.trim().toLowerCase()
+    if (q) {
+      list = list.filter((inv) => {
+        const hay = [
+          inv?.coffre?.name,
+          inv?.notes,
+          String(inv?.totalAmount ?? ""),
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+        return hay.includes(q)
+      })
+    }
+
+    const min = minAmount.trim() ? Number(minAmount.replace(",", ".")) : null
+    const max = maxAmount.trim() ? Number(maxAmount.replace(",", ".")) : null
+    if (min !== null && !isNaN(min)) list = list.filter((inv) => Number(inv.totalAmount) >= min)
+    if (max !== null && !isNaN(max)) list = list.filter((inv) => Number(inv.totalAmount) <= max)
+
+    return list
+  }, [data.inventories, selectedCoffreId, search, minAmount, maxAmount])
 
   return (
     <div className="space-y-8">
@@ -223,8 +273,46 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                 </SelectItem>
                 ))}
           </Select>
+          <Select
+            label="Type"
+            placeholder="Tous"
+            selectedKeys={typeFilter ? [typeFilter] : []}
+            onSelectionChange={(keys) => {
+              const selected = Array.from(keys)[0] as string
+              setTypeFilter(selected || "")
+            }}
+            className="w-full sm:w-56"
+            isDisabled={selectedTab !== "movements"}
+          >
+            <SelectItem key="">Tous</SelectItem>
+            <SelectItem key="ENTRY">Entrée</SelectItem>
+            <SelectItem key="EXIT">Sortie</SelectItem>
+            <SelectItem key="INVENTORY">Inventaire</SelectItem>
+          </Select>
         </div>
       )}
+
+          {/* Filtres rapides */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Input
+              label="Recherche"
+              placeholder="Coffre, utilisateur, description, montant…"
+              value={search}
+              onValueChange={setSearch}
+            />
+            <Input
+              label="Montant min (€)"
+              placeholder="0"
+              value={minAmount}
+              onValueChange={setMinAmount}
+            />
+            <Input
+              label="Montant max (€)"
+              placeholder="1000"
+              value={maxAmount}
+              onValueChange={setMaxAmount}
+            />
+          </div>
         </div>
 
         <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">

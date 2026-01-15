@@ -6,11 +6,13 @@ import { Button } from "@heroui/react"
 import { Input } from "@heroui/react"
 import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { Tabs, Tab } from "@heroui/react"
-import { UserPlus, Wallet, Save, Users, Shield, Mail, User } from "lucide-react"
+import { UserPlus, Wallet, Save, Users, Shield, Mail, User, Pencil, Trash2, X, Download } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 import { Textarea } from "@heroui/react"
 import { motion, AnimatePresence } from "framer-motion"
+import { useConfirmModal } from "@/components/ui/confirm-modal"
+import { formatCurrency } from "@/lib/utils"
 
 interface AdminPanelProps {
   data: {
@@ -22,10 +24,44 @@ interface AdminPanelProps {
 export function AdminPanel({ data }: AdminPanelProps) {
   const router = useRouter()
   const { showToast } = useToast()
+  const { confirm, ConfirmModal } = useConfirmModal()
   const [loading, setLoading] = useState<string | null>(null)
   const [selectedTab, setSelectedTab] = useState<string>("users")
   const [selectedUsers, setSelectedUsers] = useState<Record<string, string>>({})
   const [selectedRoles, setSelectedRoles] = useState<Record<string, string>>({})
+  const [editingCoffreId, setEditingCoffreId] = useState<string | null>(null)
+  const [editingCoffreName, setEditingCoffreName] = useState<string>("")
+
+  const handleExportOffline = async () => {
+    setLoading("export-offline")
+    try {
+      const response = await fetch("/api/export/offline")
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData?.error || "Erreur lors de l'export")
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+
+      const dispo = response.headers.get("Content-Disposition") || ""
+      const match = dispo.match(/filename="([^"]+)"/)
+      a.download = match?.[1] || `safevault-offline-${new Date().toISOString().slice(0, 10)}.zip`
+
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+
+      showToast("Export offline téléchargé", "success")
+    } catch (e: any) {
+      showToast(e.message || "Erreur export offline", "error")
+    } finally {
+      setLoading(null)
+    }
+  }
 
   const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -50,7 +86,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
         showToast("Utilisateur créé avec succès!", "success")
       } else {
         const error = await response.json()
-        showToast(`Erreur: ${error.message || "Une erreur est survenue"}`, "error")
+        showToast(`Erreur: ${error.error || error.message || "Une erreur est survenue"}`, "error")
       }
     } catch (error) {
       showToast("Erreur lors de la création", "error")
@@ -91,6 +127,82 @@ export function AdminPanel({ data }: AdminPanelProps) {
     }
   }
 
+  const handleStartEditCoffre = (coffre: any) => {
+    setEditingCoffreId(coffre.id)
+    setEditingCoffreName(coffre.name || "")
+  }
+
+  const handleCancelEditCoffre = () => {
+    setEditingCoffreId(null)
+    setEditingCoffreName("")
+  }
+
+  const handleUpdateCoffreName = async (coffreId: string) => {
+    if (!editingCoffreName.trim()) {
+      showToast("Le nom du coffre ne peut pas être vide", "error")
+      return
+    }
+
+    setLoading(`update-coffre-${coffreId}`)
+    try {
+      const response = await fetch("/api/admin/coffres", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: coffreId,
+          data: { name: editingCoffreName.trim() },
+        }),
+      })
+
+      const result = await response.json().catch(() => ({}))
+      if (response.ok) {
+        showToast("Coffre mis à jour avec succès!", "success")
+        handleCancelEditCoffre()
+        router.refresh()
+      } else {
+        showToast(`Erreur: ${result.error || result.message || "Une erreur est survenue"}`, "error")
+      }
+    } catch (error) {
+      showToast("Erreur lors de la mise à jour du coffre", "error")
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleDeleteCoffre = async (coffre: any) => {
+    confirm(
+      `Supprimer définitivement le coffre "${coffre.name}" ?\n\nCette action est irréversible et supprimera aussi tout l'historique (mouvements, inventaires, logs).`,
+      {
+        title: "Suppression définitive du coffre",
+        confirmLabel: "Supprimer",
+        cancelLabel: "Annuler",
+        confirmColor: "danger",
+        onConfirm: async () => {
+          setLoading(`delete-coffre-${coffre.id}`)
+          try {
+            const response = await fetch("/api/admin/coffres", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ id: coffre.id }),
+            })
+
+            const result = await response.json().catch(() => ({}))
+            if (response.ok) {
+              showToast("Coffre supprimé définitivement", "success")
+              router.refresh()
+            } else {
+              showToast(`Erreur: ${result.error || result.message || "Une erreur est survenue"}`, "error")
+            }
+          } catch (error) {
+            showToast("Erreur lors de la suppression du coffre", "error")
+          } finally {
+            setLoading(null)
+          }
+        },
+      }
+    )
+  }
+
   const handleAddMember = async (coffreId: string) => {
     const userId = selectedUsers[coffreId]
     const role = selectedRoles[coffreId] || "MEMBER"
@@ -115,7 +227,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
         showToast("Membre ajouté avec succès!", "success")
       } else {
         const error = await response.json()
-        showToast(`Erreur: ${error.message || "Une erreur est survenue"}`, "error")
+        showToast(`Erreur: ${error.error || error.message || "Une erreur est survenue"}`, "error")
       }
     } catch (error) {
       showToast("Erreur lors de l'ajout", "error")
@@ -131,7 +243,18 @@ export function AdminPanel({ data }: AdminPanelProps) {
           <Shield className="h-4 w-4" />
           Administration
         </div>
-        <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Gestion des accès et coffres</h1>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">Gestion des accès et coffres</h1>
+          <Button
+            color="primary"
+            variant="flat"
+            startContent={<Download className="h-4 w-4" />}
+            onPress={handleExportOffline}
+            isLoading={loading === "export-offline"}
+          >
+            Export offline (ZIP)
+          </Button>
+        </div>
         <p className="text-foreground/70">
           Créez des utilisateurs, affectez des rôles et gérez les coffres et membres avec une interface modernisée.
         </p>
@@ -396,7 +519,68 @@ export function AdminPanel({ data }: AdminPanelProps) {
                               <div className="p-2 rounded-lg bg-primary/10">
                                 <Wallet className="h-5 w-5 text-primary" />
                               </div>
-                              <h4 className="font-semibold text-primary text-lg">{coffre.name}</h4>
+                              <div className="flex-1 min-w-0">
+                                {editingCoffreId === coffre.id ? (
+                                  <Input
+                                    size="sm"
+                                    label="Nom"
+                                    value={editingCoffreName}
+                                    onValueChange={setEditingCoffreName}
+                                  />
+                                ) : (
+                                  <h4 className="font-semibold text-primary text-lg truncate">{coffre.name}</h4>
+                                )}
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                {editingCoffreId === coffre.id ? (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      isIconOnly
+                                      color="primary"
+                                      onPress={() => handleUpdateCoffreName(coffre.id)}
+                                      isLoading={loading === `update-coffre-${coffre.id}`}
+                                      aria-label="Enregistrer"
+                                    >
+                                      <Save className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      isIconOnly
+                                      variant="light"
+                                      onPress={handleCancelEditCoffre}
+                                      aria-label="Annuler"
+                                    >
+                                      <X className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Button
+                                      size="sm"
+                                      isIconOnly
+                                      variant="light"
+                                      onPress={() => handleStartEditCoffre(coffre)}
+                                      aria-label="Renommer"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      isIconOnly
+                                      color="danger"
+                                      variant="light"
+                                      onPress={() => handleDeleteCoffre(coffre)}
+                                      isDisabled={Number(coffre.balance || 0) !== 0}
+                                      isLoading={loading === `delete-coffre-${coffre.id}`}
+                                      aria-label="Supprimer"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
                             </div>
                             {coffre.description && (
                               <p className="text-sm text-foreground/70 ml-11">
@@ -406,7 +590,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                           </div>
 
                           {/* Statistiques */}
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-4 gap-2">
                             <div className="text-center p-2 rounded-lg bg-default-200">
                               <p className="text-xs text-foreground/60 mb-1">Mouvements</p>
                               <p className="text-sm font-bold text-primary">{coffre._count.movements}</p>
@@ -419,7 +603,16 @@ export function AdminPanel({ data }: AdminPanelProps) {
                               <p className="text-xs text-foreground/60 mb-1">Membres</p>
                               <p className="text-sm font-bold text-primary">{coffre.members.length}</p>
                             </div>
+                            <div className="text-center p-2 rounded-lg bg-default-200">
+                              <p className="text-xs text-foreground/60 mb-1">Solde</p>
+                              <p className={`text-sm font-bold ${Number(coffre.balance || 0) === 0 ? "text-success" : "text-warning"}`}>
+                                {formatCurrency(Number(coffre.balance || 0))}
+                              </p>
+                            </div>
                           </div>
+                          <p className="text-xs text-foreground/55">
+                            Suppression définitive possible uniquement si le solde est à <b>0,00 €</b>.
+                          </p>
 
                           {/* Ajouter un membre */}
                           <div className="space-y-2">
@@ -514,6 +707,8 @@ export function AdminPanel({ data }: AdminPanelProps) {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {ConfirmModal}
     </div>
   )
 }

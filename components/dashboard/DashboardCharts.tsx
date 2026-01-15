@@ -86,113 +86,6 @@ const chartOptions = {
 
 export function DashboardCharts({ data }: DashboardChartsProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>("1m")
-  // Graphique 1: Évolution du solde cumulé dans le temps
-  const balanceEvolutionData = (() => {
-    const recentInventories = data.recentInventories || []
-    const movements = data.movements || []
-    
-    // Trier tous les événements (inventaires + mouvements) par date
-    const allEvents: Array<{ date: Date; type: 'inventory' | 'movement'; amount: number }> = []
-    
-    // Ajouter les inventaires
-    recentInventories.forEach((inv: any) => {
-      allEvents.push({
-        date: new Date(inv.createdAt),
-        type: 'inventory',
-        amount: Number(inv.totalAmount),
-      })
-    })
-    
-    // Ajouter les mouvements
-    movements.forEach((mov: any) => {
-      if (mov.type === "ENTRY") {
-        allEvents.push({
-          date: new Date(mov.createdAt),
-          type: 'movement',
-          amount: Number(mov.amount),
-        })
-      } else if (mov.type === "EXIT") {
-        allEvents.push({
-          date: new Date(mov.createdAt),
-          type: 'movement',
-          amount: -Number(mov.amount),
-        })
-      }
-    })
-    
-    // Trier par date
-    allEvents.sort((a, b) => a.date.getTime() - b.date.getTime())
-    
-    // Calculer le solde cumulé
-    let currentBalance = 0
-    const balanceData: Array<{ date: string; balance: number }> = []
-    
-    // Si on a des inventaires, utiliser le dernier comme point de départ
-    if (recentInventories.length > 0) {
-      const lastInventory = recentInventories
-        .map((inv: any) => ({ date: new Date(inv.createdAt), amount: Number(inv.totalAmount) }))
-        .sort((a: any, b: any) => b.date.getTime() - a.date.getTime())[0]
-      
-      // Trouver tous les mouvements après le dernier inventaire
-      const movementsAfterInventory = allEvents.filter(
-        (e) => e.date > lastInventory.date && e.type === 'movement'
-      )
-      
-      // Calculer le solde à partir du dernier inventaire
-      currentBalance = lastInventory.amount
-      balanceData.push({
-        date: lastInventory.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
-        balance: currentBalance,
-      })
-      
-      // Ajouter les mouvements après l'inventaire
-      movementsAfterInventory.forEach((event) => {
-        currentBalance += event.amount
-        balanceData.push({
-          date: event.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
-          balance: currentBalance,
-        })
-      })
-    } else {
-      // Pas d'inventaire, calculer depuis le début
-      allEvents.forEach((event) => {
-        if (event.type === 'inventory') {
-          currentBalance = event.amount
-        } else {
-          currentBalance += event.amount
-        }
-        balanceData.push({
-          date: event.date.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" }),
-          balance: currentBalance,
-        })
-      })
-    }
-    
-    // Si pas de données, retourner un tableau vide
-    if (balanceData.length === 0) {
-      return {
-        labels: [],
-        datasets: [],
-      }
-    }
-    
-    return {
-      labels: balanceData.map((d) => d.date),
-      datasets: [
-        {
-          label: "Solde",
-          data: balanceData.map((d) => d.balance),
-          borderColor: "#3B82F6",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-        },
-      ],
-    }
-  })()
-
   // Graphique 2: Répartition des billets avec couleurs réelles des billets d'euro
   const billDistributionData = (() => {
     const bills = data.billDistribution || []
@@ -458,56 +351,84 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
 
   return (
     <div className="space-y-6">
-      {/* Graphique 1: Évolution du solde */}
-      <motion.div
-        whileHover={{ scale: 1.01 }}
-        transition={{ type: "spring", stiffness: 300, damping: 20 }}
-        className="relative group"
-      >
-        {/* Halo lumineux au survol */}
-        <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-        
-        <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-          <CardHeader>
-            <h3 className="text-lg font-semibold">Évolution du solde</h3>
-          </CardHeader>
-          <CardBody>
-            <div className="h-80">
-              {balanceEvolutionData.labels.length === 0 ? (
-                <div className="h-full flex items-center justify-center text-foreground/60">
-                  Aucune donnée disponible
-                </div>
-              ) : (
-                <Line 
-                  data={balanceEvolutionData} 
-                  options={{
-                    ...chartOptions,
-                    plugins: {
-                      ...chartOptions.plugins,
-                      legend: {
-                        display: false,
-                      },
-                      tooltip: {
-                        ...chartOptions.plugins.tooltip,
-                        backgroundColor: "rgba(18, 18, 20, 0.92)",
-                        borderColor: "rgba(59, 130, 246, 0.35)",
-                        callbacks: {
-                          label: (context: any) => {
-                            return `Solde: ${formatCurrency(context.parsed.y)}`
+      {/* Graphiques en grille */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Graphique 1: Évolution du solde avec sélecteur de période */}
+        <motion.div
+          whileHover={{ scale: 1.01 }}
+          transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          className="relative group lg:col-span-2"
+        >
+          <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
+          <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Évolution du solde</h3>
+                <p className="text-xs text-foreground/60 mt-1">
+                  Choisis une période pour voir l’évolution (inventaires + mouvements).
+                </p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {(["1d", "1w", "1m", "1y", "5y"] as TimePeriod[]).map((period) => {
+                  const isSelected = selectedPeriod === period
+                  return (
+                    <Button
+                      key={period}
+                      size="sm"
+                      variant={isSelected ? "solid" : "bordered"}
+                      color={isSelected ? "primary" : "default"}
+                      onPress={() => setSelectedPeriod(period)}
+                      className="min-w-12"
+                    >
+                      {period === "1d" ? "1j" : period === "1w" ? "1sem" : period === "1m" ? "1mois" : period === "1y" ? "1an" : "5ans"}
+                    </Button>
+                  )
+                })}
+              </div>
+            </CardHeader>
+            <CardBody>
+              <div className="h-72">
+                {balanceEvolutionPeriodData.chartData.labels.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-foreground/60">
+                    Aucune donnée disponible
+                  </div>
+                ) : (
+                  <Line 
+                    data={balanceEvolutionPeriodData.chartData} 
+                    options={{
+                      ...chartOptions,
+                      scales: {
+                        ...chartOptions.scales,
+                        y: {
+                          ...chartOptions.scales.y,
+                          min: 0,
+                          max: balanceEvolutionPeriodData.maxBalance,
+                          ticks: {
+                            ...chartOptions.scales.y.ticks,
+                            callback: function(value: any) {
+                              return formatCurrency(value)
+                            },
                           },
                         },
                       },
-                    },
-                  }} 
-                />
-              )}
-            </div>
-          </CardBody>
-        </Card>
-      </motion.div>
+                      plugins: {
+                        ...chartOptions.plugins,
+                        legend: { display: false },
+                        tooltip: {
+                          ...chartOptions.plugins.tooltip,
+                          callbacks: {
+                            label: (context: any) => `Solde: ${formatCurrency(context.parsed.y)}`,
+                          },
+                        },
+                      },
+                    }} 
+                  />
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        </motion.div>
 
-      {/* Graphiques en grille */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Graphique 2: Répartition des billets */}
         <motion.div
           whileHover={{ scale: 1.01 }}
@@ -536,83 +457,6 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
                     },
                   }}
                 />
-              </div>
-            </CardBody>
-          </Card>
-        </motion.div>
-
-        {/* Graphique 3: Évolution du solde avec sélecteur de période */}
-        <motion.div
-          whileHover={{ scale: 1.01 }}
-          transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          className="relative group"
-        >
-          {/* Halo lumineux au survol */}
-          <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
-          
-          <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h3 className="text-lg font-semibold">Évolution du solde</h3>
-              <div className="flex gap-2 flex-wrap">
-                {(["1d", "1w", "1m", "1y", "5y"] as TimePeriod[]).map((period) => {
-                  const isSelected = selectedPeriod === period
-                  return (
-                    <Button
-                      key={period}
-                      size="sm"
-                      variant={isSelected ? "solid" : "bordered"}
-                      color={isSelected ? "primary" : "default"}
-                      onPress={() => setSelectedPeriod(period)}
-                      className="min-w-12"
-                    >
-                      {period === "1d" ? "1j" : period === "1w" ? "1sem" : period === "1m" ? "1mois" : period === "1y" ? "1an" : "5ans"}
-                    </Button>
-                  )
-                })}
-              </div>
-            </CardHeader>
-            <CardBody>
-              <div className="h-64">
-                {balanceEvolutionPeriodData.chartData.labels.length === 0 ? (
-                  <div className="h-full flex items-center justify-center text-foreground/60">
-                    Aucune donnée disponible
-                  </div>
-                ) : (
-                  <Line 
-                    data={balanceEvolutionPeriodData.chartData} 
-                    options={{
-                      ...chartOptions,
-                      scales: {
-                        ...chartOptions.scales,
-                        y: {
-                          ...chartOptions.scales.y,
-                          min: 0,
-                          max: balanceEvolutionPeriodData.maxBalance,
-                          ticks: {
-                            ...chartOptions.scales.y.ticks,
-                            callback: function(value: any) {
-                              return formatCurrency(value)
-                            },
-                          },
-                        },
-                      },
-                      plugins: {
-                        ...chartOptions.plugins,
-                        legend: {
-                          display: false,
-                        },
-                        tooltip: {
-                          ...chartOptions.plugins.tooltip,
-                          callbacks: {
-                            label: (context: any) => {
-                              return `Solde: ${formatCurrency(context.parsed.y)}`
-                            },
-                          },
-                        },
-                      },
-                    }} 
-                  />
-                )}
               </div>
             </CardBody>
           </Card>
