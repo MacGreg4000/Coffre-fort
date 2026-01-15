@@ -28,13 +28,14 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // Relations
-  coffreMembers CoffreMember[]
-  movements     Movement[]
-  sessions      Session[]
-  logs          Log[]
-  reserves      Reserve[]
-  assets        Asset[]
-  passwordFiles PasswordFile[]
+  coffreMembers   CoffreMember[]
+  movements       Movement[]
+  sessions        Session[]
+  logs            Log[]
+  reserves        Reserve[]
+  assets          Asset[]
+  passwordFiles   PasswordFile[]
+  assetDocuments  AssetDocument[]
 
   @@index([email])
   @@index([role])
@@ -86,6 +87,7 @@ model Asset {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   coffre      Coffre?  @relation(fields: [coffreId], references: [id], onDelete: SetNull)
   events      AssetEvent[]
+  documents   AssetDocument[]
 
   @@index([userId])
   @@index([coffreId])
@@ -116,6 +118,33 @@ model AssetEvent {
   @@index([type])
   @@index([date])
   @@map("asset_events")
+}
+
+// ============================================
+// DOCUMENTS D'ACTIFS (factures, certificats, etc.)
+// ============================================
+model AssetDocument {
+  id        String   @id @default(uuid())
+  assetId   String
+  userId    String   // Propriétaire (pour vérification d'accès)
+  filename  String   @db.VarChar(255)
+  mimeType  String   @db.VarChar(150)
+  sizeBytes Int
+  sha256    String   @db.VarChar(64)
+  data      Bytes    @db.LongBlob
+  documentType String? @db.VarChar(100) // Ex: "FACTURE", "CERTIFICAT", "CARTE_GRISE", etc.
+  notes     String?  @db.Text
+  createdAt DateTime @default(now())
+
+  // Relations
+  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([documentType])
+  @@map("asset_documents")
 }
 
 // ============================================

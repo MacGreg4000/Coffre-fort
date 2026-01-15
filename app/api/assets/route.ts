@@ -27,6 +27,17 @@ async function getHandler(_req: NextRequest) {
           orderBy: { date: "desc" },
           // Récupérer tous les événements pour calculer prix d'achat, vente et valeur marché
         },
+        documents: {
+          select: {
+            id: true,
+            filename: true,
+            mimeType: true,
+            sizeBytes: true,
+            documentType: true,
+            createdAt: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
       orderBy: { updatedAt: "desc" },
     })

@@ -5,11 +5,20 @@ import { Card, CardBody, Button, Input, Textarea, Modal, ModalContent, ModalHead
 import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { useToast } from "@/components/ui/toast"
 import { formatCurrency } from "@/lib/utils"
-import { Plus, Trash2, Tag, MapPin, TrendingUp, TrendingDown, BadgeEuro } from "lucide-react"
+import { Plus, Trash2, Tag, MapPin, TrendingUp, TrendingDown, BadgeEuro, FileText, Upload, Download, X } from "lucide-react"
 import { motion } from "framer-motion"
 import { useConfirmModal } from "@/components/ui/confirm-modal"
 
 type CoffreLite = { id: string; name: string }
+
+type AssetDocument = {
+  id: string
+  filename: string
+  mimeType: string
+  sizeBytes: number
+  documentType?: string | null
+  createdAt: string
+}
 
 type Asset = {
   id: string
@@ -19,6 +28,7 @@ type Asset = {
   coffreId?: string | null
   coffre?: CoffreLite | null
   events?: Array<{ id: string; type: string; amount?: number | null; date: string }>
+  documents?: AssetDocument[]
   createdAt: string
   updatedAt: string
 }
@@ -132,6 +142,131 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
     notes: "",
   })
   const [eventSaving, setEventSaving] = useState(false)
+
+  // Gestion des documents
+  const { isOpen: isDocModalOpen, onOpen: onDocModalOpen, onClose: onDocModalClose } = useDisclosure()
+  const [docAsset, setDocAsset] = useState<Asset | null>(null)
+  const [docFile, setDocFile] = useState<File | null>(null)
+  const [docType, setDocType] = useState("")
+  const [docNotes, setDocNotes] = useState("")
+  const [docUploading, setDocUploading] = useState(false)
+  const [expandedDocuments, setExpandedDocuments] = useState<Set<string>>(new Set())
+
+  const documentTypes = [
+    { value: "FACTURE", label: "Facture" },
+    { value: "CERTIFICAT", label: "Certificat d'authenticité" },
+    { value: "CARTE_GRISE", label: "Carte grise" },
+    { value: "ASSURANCE", label: "Assurance" },
+    { value: "PHOTO", label: "Photo" },
+    { value: "AUTRE", label: "Autre" },
+  ]
+
+  const formatBytes = (bytes: number) => {
+    if (!bytes) return "0 B"
+    const units = ["B", "KB", "MB", "GB"]
+    let i = 0
+    let v = bytes
+    while (v >= 1024 && i < units.length - 1) {
+      v /= 1024
+      i++
+    }
+    return `${v.toFixed(i === 0 ? 0 : 1)} ${units[i]}`
+  }
+
+  const openDocModal = (asset: Asset) => {
+    setDocAsset(asset)
+    setDocFile(null)
+    setDocType("")
+    setDocNotes("")
+    onDocModalOpen()
+  }
+
+  const handleUploadDocument = async () => {
+    if (!docAsset || !docFile) {
+      showToast("Veuillez sélectionner un fichier", "error")
+      return
+    }
+
+    setDocUploading(true)
+    try {
+      const formData = new FormData()
+      formData.append("file", docFile)
+      if (docType) formData.append("documentType", docType)
+      if (docNotes) formData.append("notes", docNotes)
+
+      const res = await fetch(`/api/assets/${docAsset.id}/documents`, {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data?.error || "Erreur lors de l'upload")
+
+      showToast("Document ajouté avec succès", "success")
+      onDocModalClose()
+      setDocAsset(null)
+      setDocFile(null)
+      await fetchAssets()
+    } catch (e: any) {
+      showToast(e.message || "Erreur lors de l'upload", "error")
+    } finally {
+      setDocUploading(false)
+    }
+  }
+
+  const handleDownloadDocument = async (assetId: string, docId: string, filename: string) => {
+    try {
+      const res = await fetch(`/api/assets/${assetId}/documents/${docId}`)
+      if (!res.ok) throw new Error("Erreur lors du téléchargement")
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (e: any) {
+      showToast(e.message || "Erreur lors du téléchargement", "error")
+    }
+  }
+
+  const handleDeleteDocument = async (assetId: string, docId: string, filename: string) => {
+    confirm(`Supprimer le document "${filename}" ?`, {
+      title: "Supprimer le document",
+      confirmLabel: "Supprimer",
+      cancelLabel: "Annuler",
+      confirmColor: "danger",
+      onConfirm: async () => {
+        try {
+          const res = await fetch(`/api/assets/${assetId}/documents/${docId}`, {
+            method: "DELETE",
+          })
+          const data = await res.json().catch(() => ({}))
+          if (!res.ok) throw new Error(data?.error || "Erreur lors de la suppression")
+
+          showToast("Document supprimé", "success")
+          await fetchAssets()
+        } catch (e: any) {
+          showToast(e.message || "Erreur lors de la suppression", "error")
+        }
+      },
+    })
+  }
+
+  const toggleDocumentsExpanded = (assetId: string) => {
+    setExpandedDocuments((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(assetId)) {
+        newSet.delete(assetId)
+      } else {
+        newSet.add(assetId)
+      }
+      return newSet
+    })
+  }
 
   const openEventModal = (asset: Asset) => {
     setEventAsset(asset)
@@ -368,10 +503,74 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
                             </div>
                           )}
                         </div>
+
+                        {/* Documents */}
+                        {asset.documents && asset.documents.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/30">
+                            <button
+                              onClick={() => toggleDocumentsExpanded(asset.id)}
+                              className="flex items-center gap-2 text-xs text-foreground/60 hover:text-foreground/80 transition-colors"
+                            >
+                              <FileText className="h-3 w-3" />
+                              <span>{asset.documents.length} document{asset.documents.length > 1 ? "s" : ""}</span>
+                            </button>
+                            {expandedDocuments.has(asset.id) && (
+                              <div className="mt-2 space-y-2">
+                                {asset.documents.map((doc) => (
+                                  <div
+                                    key={doc.id}
+                                    className="flex items-center justify-between gap-2 p-2 rounded-lg bg-card/50 border border-border/30"
+                                  >
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium text-foreground truncate">{doc.filename}</p>
+                                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                        {doc.documentType && (
+                                          <span className="text-xs px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                                            {documentTypes.find((dt) => dt.value === doc.documentType)?.label || doc.documentType}
+                                          </span>
+                                        )}
+                                        <span className="text-xs text-foreground/50">{formatBytes(doc.sizeBytes)}</span>
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-1 flex-shrink-0">
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        onPress={() => handleDownloadDocument(asset.id, doc.id, doc.filename)}
+                                        aria-label="Télécharger"
+                                      >
+                                        <Download className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        isIconOnly
+                                        size="sm"
+                                        variant="light"
+                                        color="danger"
+                                        onPress={() => handleDeleteDocument(asset.id, doc.id, doc.filename)}
+                                        aria-label="Supprimer"
+                                      >
+                                        <X className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
                         <Button variant="bordered" size="sm" onPress={() => openEventModal(asset)}>
-                          Ajouter événement
+                          Événement
+                        </Button>
+                        <Button
+                          variant="bordered"
+                          size="sm"
+                          startContent={<FileText className="h-3.5 w-3.5" />}
+                          onPress={() => openDocModal(asset)}
+                        >
+                          Documents
                         </Button>
                         <Button isIconOnly color="danger" variant="light" size="sm" onPress={() => handleDelete(asset)} aria-label="Supprimer">
                           <Trash2 className="h-4 w-4" />
@@ -429,6 +628,73 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
                 </Button>
                 <Button color="primary" onPress={handleCreateEvent} isLoading={eventSaving}>
                   Ajouter
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+
+      {/* Modal pour uploader des documents */}
+      <Modal isOpen={isDocModalOpen} onOpenChange={onDocModalClose} size="lg">
+        <ModalContent>
+          {(close) => (
+            <>
+              <ModalHeader className="flex flex-col gap-1">
+                Ajouter un document
+                {docAsset?.name ? (
+                  <span className="text-xs text-foreground/60">{docAsset.name}</span>
+                ) : null}
+              </ModalHeader>
+              <ModalBody>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Fichier</label>
+                  <input
+                    type="file"
+                    onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                    className="block w-full text-sm text-foreground/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                    accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+                  />
+                  {docFile && (
+                    <p className="mt-2 text-xs text-foreground/60">
+                      {docFile.name} ({formatBytes(docFile.size)})
+                    </p>
+                  )}
+                </div>
+
+                <Select
+                  label="Type de document (optionnel)"
+                  placeholder="Sélectionner un type"
+                  selectedKeys={docType ? [docType] : []}
+                  onSelectionChange={(keys) => {
+                    const selected = Array.from(keys)[0] as string
+                    setDocType(selected || "")
+                  }}
+                >
+                  {documentTypes.map((dt) => (
+                    <SelectItem key={dt.value}>{dt.label}</SelectItem>
+                  ))}
+                </Select>
+
+                <Textarea
+                  label="Notes (optionnel)"
+                  value={docNotes}
+                  onValueChange={setDocNotes}
+                  placeholder="Notes supplémentaires sur ce document..."
+                  minRows={2}
+                />
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="light" onPress={close}>
+                  Annuler
+                </Button>
+                <Button
+                  color="primary"
+                  onPress={handleUploadDocument}
+                  isLoading={docUploading}
+                  startContent={<Upload className="h-4 w-4" />}
+                >
+                  Uploader
                 </Button>
               </ModalFooter>
             </>
