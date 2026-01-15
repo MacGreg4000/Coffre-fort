@@ -187,14 +187,14 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
                   setSelectedCoffreId(selected || "")
                 }}
                 className="w-full sm:w-80"
+                items={[{ id: "", name: "Tous les coffres" }, ...initialCoffres]}
               >
-                <SelectItem key="">Tous les coffres</SelectItem>
-                {initialCoffres.map((coffre) => (
-                  <SelectItem key={coffre.id}>{coffre.name}</SelectItem>
-                ))}
+                {(item: any) => (
+                  <SelectItem key={item.id}>{item.name}</SelectItem>
+                )}
               </Select>
               <p className="text-xs text-foreground/60">
-                Astuce: passe en "Tous les coffres" pour une vue globale, ou sélectionne un coffre pour analyser un seul flux.
+                Astuce: passe en &quot;Tous les coffres&quot; pour une vue globale, ou sélectionne un coffre pour analyser un seul flux.
               </p>
             </div>
           )}
