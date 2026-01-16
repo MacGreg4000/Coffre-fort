@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import {
@@ -11,43 +11,14 @@ import {
   TrendingUp,
   Wallet,
   PiggyBank,
-  Calculator,
   Download,
 } from "lucide-react"
 import { Button, Input, Textarea } from "@heroui/react"
 import { useToast } from "@/components/ui/toast"
-import { Line, Bar, Doughnut } from "react-chartjs-2"
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from "chart.js"
 // @ts-ignore
 import jsPDF from "jspdf"
 // @ts-ignore
 import autoTable from "jspdf-autotable"
-
-// Enregistrer les composants Chart.js
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-)
 
 type Reserve = {
   id: string
@@ -83,11 +54,6 @@ export default function ReservesClient() {
   const [isExportingPDF, setIsExportingPDF] = useState(false)
   // État pour stocker les valeurs en cours de saisie (format texte avec virgule)
   const [editingValues, setEditingValues] = useState<Record<string, { amount?: string; released?: string }>>({})
-
-  // Refs pour les graphiques (pour export PDF)
-  const lineChartRef = useRef<any>(null)
-  const barChartRef = useRef<any>(null)
-  const doughnutChartRef = useRef<any>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -235,186 +201,6 @@ export default function ReservesClient() {
     }
   }
 
-
-  // Graphique 1: Évolution des montants
-  const lineChartData = useMemo(() => {
-    const sortedReserves = [...reserves].sort((a, b) => a.year - b.year)
-    
-    return {
-      labels: sortedReserves.map((r) => r.year.toString()),
-      datasets: [
-        {
-          label: "Montant (€)",
-          data: sortedReserves.map((r) => Number(r.amount)),
-          borderColor: "#3B82F6",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          fill: true,
-          tension: 0.4,
-          pointRadius: 4,
-          pointHoverRadius: 6,
-          pointBackgroundColor: "#3B82F6",
-          pointBorderColor: "#ffffff",
-          pointBorderWidth: 2,
-        },
-      ],
-    }
-  }, [reserves])
-
-  // Graphique 2: Répartition par décennie
-  const barChartData = useMemo(() => {
-    const decades = new Map<string, number>()
-    
-    reserves.forEach((r) => {
-      const decade = `${Math.floor(r.year / 10) * 10}s`
-      decades.set(decade, (decades.get(decade) || 0) + Number(r.amount))
-    })
-    
-    const sortedDecades = Array.from(decades.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-    
-    return {
-      labels: sortedDecades.map(([decade]) => decade),
-      datasets: [
-        {
-          label: "Montant par Décennie (€)",
-          data: sortedDecades.map(([, amount]) => amount),
-          backgroundColor: [
-            "rgba(59, 130, 246, 0.7)",
-            "rgba(34, 197, 94, 0.7)",
-            "rgba(251, 146, 60, 0.7)",
-            "rgba(168, 85, 247, 0.7)",
-            "rgba(236, 72, 153, 0.7)",
-          ],
-          borderColor: [
-            "#3B82F6",
-            "#22c55e",
-            "#fb923c",
-            "#a855f7",
-            "#ec4899",
-          ],
-          borderWidth: 2,
-        },
-      ],
-    }
-  }, [reserves])
-
-  // Graphique 3: Répartition Libéré vs Disponible
-  const doughnutChartData = useMemo(() => {
-    return {
-      labels: ["Libéré", "Disponible"],
-      datasets: [
-        {
-          data: [stats.totalReleased, stats.totalReleasable],
-          backgroundColor: [
-            "rgba(34, 197, 94, 0.7)",
-            "rgba(251, 146, 60, 0.7)",
-          ],
-          borderColor: [
-            "#22c55e",
-            "#fb923c",
-          ],
-          borderWidth: 2,
-        },
-      ],
-    }
-  }, [stats])
-
-  const lineChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        padding: 12,
-        titleFont: { size: 14, weight: "bold" as const },
-        bodyFont: { size: 13 },
-        callbacks: {
-          label: (context: any) => {
-            return `Montant: ${context.parsed.y.toLocaleString("fr-FR")} €`
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value: any) => `${value.toLocaleString("fr-FR")} €`,
-        },
-        grid: {
-          color: "rgba(255, 255, 255, 0.05)",
-        },
-      },
-      x: {
-        grid: {
-          color: "rgba(255, 255, 255, 0.05)",
-        },
-      },
-    },
-  }
-
-  const barChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            return `Total: ${context.parsed.y.toLocaleString("fr-FR")} €`
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          callback: (value: any) => `${value.toLocaleString("fr-FR")} €`,
-        },
-        grid: {
-          color: "rgba(255, 255, 255, 0.05)",
-        },
-      },
-      x: {
-        grid: {
-          display: false,
-        },
-      },
-    },
-  }
-
-  const doughnutChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "bottom" as const,
-        labels: {
-          padding: 15,
-          font: { size: 12 },
-        },
-      },
-      tooltip: {
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        padding: 12,
-        callbacks: {
-          label: (context: any) => {
-            const value = context.parsed
-            const percentage = ((value / stats.total) * 100).toFixed(1)
-            return `${context.label}: ${value.toLocaleString("fr-FR")} € (${percentage}%)`
-          },
-        },
-      },
-    },
-  }
-
   // Fonction d'export PDF
   const handleExportPDF = async () => {
     if (isExportingPDF) return
@@ -538,61 +324,12 @@ export default function ReservesClient() {
 
       yPos += cardHeight + 20
 
-      // Graphique 1: Évolution avec titre stylisé
-      if (lineChartRef.current) {
-        doc.setFontSize(14)
-        doc.setFont("helvetica", "bold")
-        doc.setTextColor(30, 30, 30)
-        doc.text("ÉVOLUTION DES RÉSERVES", margin, yPos)
-        
-        yPos += 3
-        doc.setFontSize(9)
-        doc.setFont("helvetica", "italic")
-        doc.setTextColor(100, 100, 100)
-        doc.text("Évolution chronologique des montants de réserves", margin, yPos)
-        
-        yPos += 8
-
-        const chartImage = lineChartRef.current.toBase64Image()
-        const chartWidth = pageWidth - 2 * margin
-        const chartHeight = 70
-        doc.addImage(chartImage, "PNG", margin, yPos, chartWidth, chartHeight)
-        yPos += chartHeight + 15
-      }
-
-      // Nouvelle page si nécessaire
+      // Nouvelle page si nécessaire avant le tableau
       if (yPos > pageHeight - 100) {
         doc.addPage()
         drawHeader(2, 2)
         yPos = headerHeight + 10
       }
-
-      // Graphique 2: Répartition par décennie
-      if (barChartRef.current && reserves.length > 0) {
-        doc.setFontSize(14)
-        doc.setFont("helvetica", "bold")
-        doc.setTextColor(30, 30, 30)
-        doc.text("RÉPARTITION PAR DÉCENNIE", margin, yPos)
-        
-        yPos += 3
-        doc.setFontSize(9)
-        doc.setFont("helvetica", "italic")
-        doc.setTextColor(100, 100, 100)
-        doc.text("Agrégation des montants par période de 10 ans", margin, yPos)
-        
-        yPos += 8
-
-        const chartImage = barChartRef.current.toBase64Image()
-        const chartWidth = pageWidth - 2 * margin
-        const chartHeight = 70
-        doc.addImage(chartImage, "PNG", margin, yPos, chartWidth, chartHeight)
-        yPos += chartHeight + 15
-      }
-
-      // Nouvelle page pour le tableau
-      doc.addPage()
-      drawHeader(3, 3)
-      yPos = headerHeight + 10
 
       // Tableau des réserves avec titre
       doc.setFontSize(14)
@@ -667,51 +404,6 @@ export default function ReservesClient() {
           lineWidth: 0.3,
         },
       })
-
-      // Graphique 3: Doughnut
-      const finalY = (doc as any).lastAutoTable?.finalY || yPos + 100
-      
-      if (finalY < pageHeight - 100 && doughnutChartRef.current) {
-        yPos = finalY + 20
-        doc.setFontSize(14)
-        doc.setFont("helvetica", "bold")
-        doc.setTextColor(30, 30, 30)
-        doc.text("RÉPARTITION LIBÉRÉ / DISPONIBLE", margin, yPos)
-        
-        yPos += 3
-        doc.setFontSize(9)
-        doc.setFont("helvetica", "italic")
-        doc.setTextColor(100, 100, 100)
-        doc.text("Visualisation du ratio entre montants libérés et disponibles", margin, yPos)
-        
-        yPos += 8
-
-        const chartImage = doughnutChartRef.current.toBase64Image()
-        const chartSize = 75
-        doc.addImage(chartImage, "PNG", (pageWidth - chartSize) / 2, yPos, chartSize, chartSize)
-      } else if (doughnutChartRef.current) {
-        doc.addPage()
-        const totalPages = doc.internal.pages.length - 1
-        drawHeader(totalPages, totalPages)
-        yPos = headerHeight + 10
-        
-        doc.setFontSize(14)
-        doc.setFont("helvetica", "bold")
-        doc.setTextColor(30, 30, 30)
-        doc.text("RÉPARTITION LIBÉRÉ / DISPONIBLE", margin, yPos)
-        
-        yPos += 3
-        doc.setFontSize(9)
-        doc.setFont("helvetica", "italic")
-        doc.setTextColor(100, 100, 100)
-        doc.text("Visualisation du ratio entre montants libérés et disponibles", margin, yPos)
-        
-        yPos += 8
-
-        const chartImage = doughnutChartRef.current.toBase64Image()
-        const chartSize = 80
-        doc.addImage(chartImage, "PNG", (pageWidth - chartSize) / 2, yPos, chartSize, chartSize)
-      }
 
       // Footer sur toutes les pages
       const pageCount = doc.internal.pages.length - 1
@@ -813,78 +505,11 @@ export default function ReservesClient() {
         </motion.div>
       </div>
 
-      {/* Graphiques */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Graphique 1: Évolution */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="glass-effect rounded-3xl p-6 border border-border/50 shadow-lg"
-        >
-          <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
-            Évolution des Réserves
-          </h3>
-          <div className="h-[300px]">
-            {reserves.length > 0 ? (
-              <Line ref={lineChartRef} data={lineChartData} options={lineChartOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Aucune donnée à afficher
-              </div>
-            )}
-          </div>
-        </motion.div>
-
-        {/* Graphique 2: Répartition par décennie */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="glass-effect rounded-3xl p-6 border border-border/50 shadow-lg"
-        >
-          <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <Calculator className="w-5 h-5 text-green-500" />
-            Répartition par Décennie
-          </h3>
-          <div className="h-[300px]">
-            {reserves.length > 0 ? (
-              <Bar ref={barChartRef} data={barChartData} options={barChartOptions} />
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                Aucune donnée à afficher
-              </div>
-            )}
-          </div>
-        </motion.div>
-      </div>
-
-      {/* Graphique 3: Doughnut */}
-      {reserves.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="glass-effect rounded-3xl p-6 border border-border/50 shadow-lg"
-        >
-          <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-            <PiggyBank className="w-5 h-5 text-orange-500" />
-            Répartition Libéré / Disponible
-          </h3>
-          <div className="h-[300px] flex items-center justify-center">
-            <div className="w-full max-w-md h-full">
-              <Doughnut ref={doughnutChartRef} data={doughnutChartData} options={doughnutChartOptions} />
-            </div>
-          </div>
-        </motion.div>
-      )}
-
       {/* Tableau */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
+        transition={{ delay: 0.4 }}
         className="glass-effect rounded-3xl p-6 border border-border/50 shadow-lg"
       >
         <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
