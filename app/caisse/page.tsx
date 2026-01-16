@@ -135,7 +135,7 @@ async function getHistoriqueData(userId: string) {
 }
 
 interface CaissePageProps {
-  searchParams: { tab?: string }
+  searchParams: Promise<{ tab?: string }>
 }
 
 export default async function CaissePage({ searchParams }: CaissePageProps) {
@@ -144,7 +144,8 @@ export default async function CaissePage({ searchParams }: CaissePageProps) {
     redirect("/login")
   }
 
-  const defaultTab = searchParams.tab === "historique" ? "historique" : "encodage"
+  const resolvedSearchParams = await searchParams
+  const defaultTab = resolvedSearchParams.tab === "historique" ? "historique" : "encodage"
   const [coffres, historiqueData] = await Promise.all([
     getCaisseData(session.user.id),
     getHistoriqueData(session.user.id),

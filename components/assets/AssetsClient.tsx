@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import Image from "next/image"
 import { Card, CardBody, Button, Input, Textarea, Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure, Tabs, Tab } from "@heroui/react"
 import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { useToast } from "@/components/ui/toast"
@@ -962,7 +963,7 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
           </div>
 
           <Button color="primary" onPress={handleCreate} isLoading={saving} className="w-full sm:w-auto">
-            Créer l'actif
+            Créer l&apos;actif
           </Button>
         </CardBody>
       </Card>
@@ -1113,10 +1114,13 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
                 {viewingDocument && documentUrl && (
                   <div className="w-full h-[70vh] flex items-center justify-center bg-background/50">
                     {viewingDocument.mimeType.startsWith("image/") ? (
-                      <img
+                      <Image
                         src={documentUrl}
                         alt={viewingDocument.filename}
+                        width={800}
+                        height={600}
                         className="max-w-full max-h-full object-contain"
+                        unoptimized
                       />
                     ) : viewingDocument.mimeType === "application/pdf" ? (
                       <iframe
