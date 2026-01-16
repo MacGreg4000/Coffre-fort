@@ -30,7 +30,6 @@ export function Navbar() {
   const navItems = [
     { href: "/dashboard", icon: LayoutDashboardIcon, label: "Dashboard" },
     { href: "/caisse", icon: Wallet, label: "Caisse" },
-    { href: "/historique", icon: History, label: "Historique" },
     { href: "/reserves", icon: Calculator, label: "Réserves" },
     { href: "/actifs", icon: Boxes, label: "Actifs" },
     { href: "/password-files", icon: KeyRound, label: "Fichiers MDP" },
@@ -54,17 +53,17 @@ export function Navbar() {
               return (
                 <Link key={item.href} href={item.href} className="flex items-center justify-center relative group">
                   <motion.div
-                    whileHover={{ scale: 1.25, y: -10 }}
-                    whileTap={{ scale: 1.05 }}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     animate={active ? { scale: 1.1 } : { scale: 1 }}
                     transition={{ type: "spring", stiffness: 400, damping: 20 }}
                     className={cn(
                       "relative w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-2xl",
                       "flex items-center justify-center transition-all duration-300",
-                      "shadow-sm hover:shadow-xl cursor-pointer",
+                      "shadow-sm hover:shadow-lg cursor-pointer",
                       active 
                         ? "bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border-2 border-primary/40" 
-                        : "bg-card/60 border border-border/60 hover:border-primary/30 hover:bg-card/80"
+                        : "bg-card/60 border border-border/60 hover:border-primary/30 hover:bg-primary/10"
                     )}
                     style={{ transformOrigin: "center center" }}
                     title={item.label}
@@ -113,8 +112,8 @@ export function Navbar() {
             {/* Boutons utilitaires */}
             <div className="flex items-center justify-center gap-2">
               <motion.div
-                whileHover={{ scale: 1.2, y: -6, rotate: 180 }}
-                whileTap={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 style={{ transformOrigin: "center center" }}
               >
@@ -144,8 +143,8 @@ export function Navbar() {
               </motion.div>
               
               <motion.div
-                whileHover={{ scale: 1.25, y: -10 }}
-                whileTap={{ scale: 1.05 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 style={{ transformOrigin: "center center" }}
               >

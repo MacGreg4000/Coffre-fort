@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Card, CardBody } from "@heroui/react"
 import { Button } from "@heroui/react"
 import { Tabs, Tab } from "@heroui/react"
 import { Select, SelectItem } from "@/components/ui/select-heroui"
@@ -10,12 +9,13 @@ import { Textarea } from "@heroui/react"
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, useDisclosure } from "@heroui/react"
 import { useConfirmModal } from "@/components/ui/confirm-modal"
 import { formatCurrency, formatDate, BILLET_DENOMINATIONS } from "@/lib/utils"
-import { FileText, Plus, Minus, Download, ChevronDown, ChevronUp, Activity, Edit, Trash2 } from "lucide-react"
+import { FileText, Plus, Minus, Download, ChevronDown, ChevronUp, Activity, Edit, Trash2, Filter, Search } from "lucide-react"
 import { useToast } from "@/components/ui/toast"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { BilletInput } from "@/components/caisse/BilletInput"
+import { PremiumCard, StatsCard } from "@/components/ui/premium-card"
 
 interface HistoriqueListProps {
   data: {
@@ -241,127 +241,132 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
   }, [data.inventories, selectedCoffreId, search, minAmount, maxAmount])
 
   return (
-    <div className="space-y-8">
-      {/* Hero */}
-      <div className="grid gap-4 md:grid-cols-[1.1fr_0.9fr] items-center">
-        <div className="space-y-3">
-          <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            <Activity className="h-4 w-4" />
-            Historique
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-foreground">
-            Mouvements & Inventaires
-          </h1>
-          <p className="text-foreground/70">
-            Consultez et exportez vos mouvements, filtrez par coffre et parcourez les détails des billets.
-          </p>
-      {data.coffres.length > 0 && (
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <Select
-            label="Filtrer par coffre"
-                placeholder="Tous les coffres"
-            selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
-            onSelectionChange={(keys) => {
-              const selected = Array.from(keys)[0] as string
-              setSelectedCoffreId(selected || "")
-            }}
-                className="w-full sm:w-72"
-          >
-                {[{ id: "", name: "Tous les coffres" }, ...data.coffres].map((coffre) => (
-                <SelectItem key={coffre.id}>
-                  {coffre.name}
-                </SelectItem>
-                ))}
-          </Select>
-          <Select
-            label="Type"
-            placeholder="Tous"
-            selectedKeys={typeFilter ? [typeFilter] : []}
-            onSelectionChange={(keys) => {
-              const selected = Array.from(keys)[0] as string
-              setTypeFilter(selected || "")
-            }}
-            className="w-full sm:w-56"
-            isDisabled={selectedTab !== "movements"}
-          >
-            <SelectItem key="">Tous</SelectItem>
-            <SelectItem key="ENTRY">Entrée</SelectItem>
-            <SelectItem key="EXIT">Sortie</SelectItem>
-            <SelectItem key="INVENTORY">Inventaire</SelectItem>
-          </Select>
-        </div>
-      )}
+    <div className="space-y-6">
+      {/* Statistiques en haut */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <StatsCard
+          title="Mouvements"
+          value={totalMovements}
+          icon={<Activity className="h-5 w-5 text-primary" />}
+        />
+        <StatsCard
+          title="Inventaires"
+          value={totalInventories}
+          icon={<FileText className="h-5 w-5 text-primary" />}
+        />
+      </div>
 
-          {/* Filtres rapides */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <Input
-              label="Recherche"
-              placeholder="Coffre, utilisateur, description, montant…"
-              value={search}
-              onValueChange={setSearch}
-            />
+      {/* Section Filtres dans une carte PremiumCard */}
+      <PremiumCard variant="glass" className="p-5 sm:p-6">
+        <div className="space-y-5">
+          {/* En-tête des filtres */}
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+              <Filter className="h-4 w-4 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold text-foreground">Filtres de recherche</h2>
+          </div>
+
+          {/* Filtres principaux */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {data.coffres.length > 0 && (
+              <Select
+                label="Coffre"
+                placeholder="Tous les coffres"
+                selectedKeys={selectedCoffreId ? [selectedCoffreId] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string
+                  setSelectedCoffreId(selected || "")
+                }}
+                className="w-full"
+              >
+                {[{ id: "", name: "Tous les coffres" }, ...data.coffres].map((coffre) => (
+                  <SelectItem key={coffre.id}>
+                    {coffre.name}
+                  </SelectItem>
+                ))}
+              </Select>
+            )}
+            <Select
+              label="Type de mouvement"
+              placeholder="Tous"
+              selectedKeys={typeFilter ? [typeFilter] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string
+                setTypeFilter(selected || "")
+              }}
+              className="w-full"
+              isDisabled={selectedTab !== "movements"}
+            >
+              <SelectItem key="">Tous</SelectItem>
+              <SelectItem key="ENTRY">Entrée</SelectItem>
+              <SelectItem key="EXIT">Sortie</SelectItem>
+              <SelectItem key="INVENTORY">Inventaire</SelectItem>
+            </Select>
             <Input
               label="Montant min (€)"
               placeholder="0"
               value={minAmount}
               onValueChange={setMinAmount}
+              className="w-full"
             />
             <Input
               label="Montant max (€)"
               placeholder="1000"
               value={maxAmount}
               onValueChange={setMaxAmount}
+              className="w-full"
+            />
+          </div>
+
+          {/* Recherche globale */}
+          <div>
+            <Input
+              label="Recherche globale"
+              placeholder="Coffre, utilisateur, description, montant…"
+              value={search}
+              onValueChange={setSearch}
+              startContent={<Search className="h-4 w-4 text-foreground/40" />}
+              className="w-full"
             />
           </div>
         </div>
+      </PremiumCard>
 
-        <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-          <CardBody className="p-5 sm:p-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1">
-                <p className="text-xs text-foreground/60">Mouvements</p>
-                <p className="text-2xl font-semibold text-primary">{totalMovements}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-xs text-foreground/60">Inventaires</p>
-                <p className="text-2xl font-semibold text-primary">{totalInventories}</p>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      </div>
-
-      {/* Onglets centrés avec effet de coulissement */}
+      {/* Onglets structurés */}
       <div className="flex justify-center">
-        <Tabs
-          selectedKey={selectedTab}
-          onSelectionChange={(key) => setSelectedTab(key as string)}
-          aria-label="Historique tabs"
-          classNames={{
-            base: "w-full max-w-md",
-            tabList: "w-full",
-            tab: "flex-1",
-          }}
-        >
-          <Tab
-            key="movements"
-            title={
-              <div className="flex items-center gap-2 justify-center">
-                <Activity className="h-4 w-4" />
-                <span>Mouvements</span>
-              </div>
-            }
-          />
-          <Tab
-            key="inventories"
-            title={
-              <div className="flex items-center gap-2 justify-center">
-                <FileText className="h-4 w-4" />
-                <span>Inventaires</span>
-              </div>
-            }
-          />
-        </Tabs>
+        <div className="w-full max-w-2xl">
+          <Tabs
+            selectedKey={selectedTab}
+            onSelectionChange={(key) => setSelectedTab(key as string)}
+            aria-label="Historique tabs"
+            classNames={{
+              base: "w-full",
+              tabList: "w-full bg-card/50 backdrop-blur border border-border/60 rounded-2xl p-1",
+              tab: "flex-1 data-[selected=true]:bg-primary/10 data-[selected=true]:text-primary",
+              tabContent: "group-data-[selected=true]:text-primary",
+            }}
+          >
+            <Tab
+              key="movements"
+              title={
+                <div className="flex items-center gap-2 justify-center">
+                  <Activity className="h-4 w-4" />
+                  <span>Mouvements ({filteredMovements.length})</span>
+                </div>
+              }
+            />
+            <Tab
+              key="inventories"
+              title={
+                <div className="flex items-center gap-2 justify-center">
+                  <FileText className="h-4 w-4" />
+                  <span>Inventaires ({filteredInventories.length})</span>
+                </div>
+              }
+            />
+          </Tabs>
+        </div>
       </div>
 
       {/* Contenu avec effet de coulissement */}
@@ -376,13 +381,19 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
           {selectedTab === "movements" ? (
             <div className="space-y-4">
               {filteredMovements.length === 0 ? (
-                <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-                  <CardBody className="p-8">
-                    <p className="text-foreground/60 text-center">
+                <PremiumCard variant="glass" className="p-8">
+                  <div className="text-center space-y-3">
+                    <div className="inline-flex items-center justify-center p-3 rounded-full bg-foreground/5">
+                      <Activity className="h-6 w-6 text-foreground/40" />
+                    </div>
+                    <p className="text-foreground/60 font-medium">
                       Aucun mouvement enregistré
                     </p>
-                  </CardBody>
-                </Card>
+                    <p className="text-sm text-foreground/40">
+                      Les mouvements apparaîtront ici une fois enregistrés
+                    </p>
+                  </div>
+                </PremiumCard>
               ) : (
                 filteredMovements.map((movement) => {
                   const isExpanded = expandedItems.has(movement.id)
@@ -399,8 +410,8 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                       {/* Halo lumineux au survol */}
                       <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                       
-                      <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-                        <CardBody className="p-5">
+                      <PremiumCard variant="glass" hover3D className="overflow-visible">
+                        <div className="p-5">
                           {/* Partie haute : En-tête + Description + Boutons */}
                           <div className="flex items-start justify-between gap-4 mb-4">
                             <div className="flex-1 min-w-0">
@@ -581,8 +592,8 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                               </div>
                             </div>
                           )}
-                        </CardBody>
-                      </Card>
+                        </div>
+                      </PremiumCard>
                     </motion.div>
                   )
                 })
@@ -591,13 +602,19 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
           ) : (
             <div className="space-y-4">
               {filteredInventories.length === 0 ? (
-                <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-                  <CardBody className="p-8">
-                    <p className="text-foreground/60 text-center">
+                <PremiumCard variant="glass" className="p-8">
+                  <div className="text-center space-y-3">
+                    <div className="inline-flex items-center justify-center p-3 rounded-full bg-foreground/5">
+                      <FileText className="h-6 w-6 text-foreground/40" />
+                    </div>
+                    <p className="text-foreground/60 font-medium">
                       Aucun inventaire enregistré
                     </p>
-                  </CardBody>
-                </Card>
+                    <p className="text-sm text-foreground/40">
+                      Les inventaires apparaîtront ici une fois enregistrés
+                    </p>
+                  </div>
+                </PremiumCard>
               ) : (
                 filteredInventories.map((inventory) => {
                   const isExpanded = expandedItems.has(inventory.id)
@@ -612,8 +629,8 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                       {/* Halo lumineux au survol */}
                       <div className="absolute -inset-0.5 bg-primary/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-300 -z-10" />
                       
-                      <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
-                        <CardBody className="p-5">
+                      <PremiumCard variant="glass" hover3D className="overflow-visible">
+                        <div className="p-5">
                           {/* Partie haute : En-tête + Notes + Bouton */}
                           <div className="flex items-start justify-between gap-4 mb-4">
                             <div className="flex-1 min-w-0">
@@ -748,8 +765,8 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                               </div>
                             </div>
                           )}
-                        </CardBody>
-                      </Card>
+                        </div>
+                      </PremiumCard>
                     </motion.div>
                   )
                 })

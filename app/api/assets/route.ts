@@ -12,6 +12,12 @@ const createAssetSchema = z.object({
   category: z.string().max(100).optional(),
   description: z.string().max(2000).optional(),
   coffreId: z.string().uuid().nullable().optional(),
+  event: z.object({
+    type: z.enum(["PURCHASE", "SALE", "VALUATION"]),
+    amount: z.number().min(0),
+    date: z.string().datetime().optional(),
+    notes: z.string().max(2000).optional(),
+  }).optional(),
 })
 
 async function getHandler(_req: NextRequest) {
@@ -57,7 +63,7 @@ async function postHandler(req: NextRequest) {
     const parsed = createAssetSchema.safeParse(body)
     if (!parsed.success) throw new ApiError(400, parsed.error.errors[0]?.message || "Données invalides")
 
-    const { name, category, description, coffreId } = parsed.data
+    const { name, category, description, coffreId, event } = parsed.data
     const normalizedCoffreId = coffreId ?? null
 
     // Si une localisation coffre est fournie, vérifier que l'utilisateur y a accès
@@ -82,12 +88,25 @@ async function postHandler(req: NextRequest) {
         },
       })
 
+      // Créer l'événement si fourni
+      if (event) {
+        await (tx as any).assetEvent.create({
+          data: {
+            assetId: created.id,
+            type: event.type,
+            date: event.date ? new Date(event.date) : new Date(),
+            amount: event.amount,
+            notes: event.notes || null,
+          },
+        })
+      }
+
       await createAuditLog({
         userId: session.user.id,
         coffreId: normalizedCoffreId || undefined,
         action: "ASSET_CREATED",
-        description: `Actif créé: ${name}`,
-        metadata: { assetId: created.id, category },
+        description: `Actif créé: ${name}${event ? ` avec événement ${event.type}` : ""}`,
+        metadata: { assetId: created.id, category, eventType: event?.type },
         req,
         tx,
       })

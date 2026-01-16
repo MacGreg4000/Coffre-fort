@@ -27,6 +27,16 @@ async function postHandler(req: NextRequest) {
 
     const { name, description } = validation.data
 
+    // Vérifier que l'utilisateur existe bien dans la base de données
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true },
+    })
+
+    if (!user) {
+      throw new ApiError(401, "Session invalide: utilisateur introuvable. Veuillez vous reconnecter.")
+    }
+
     // Transaction pour garantir la cohérence
     const coffre = await prisma.$transaction(async (tx) => {
       // Créer le coffre
@@ -41,14 +51,14 @@ async function postHandler(req: NextRequest) {
       await tx.coffreMember.create({
         data: {
           coffreId: newCoffre.id,
-          userId: session.user.id,
+          userId: user.id,
           role: "OWNER",
         },
       })
 
       // Créer un log d'audit avec IP/UA (dans la transaction)
       await createAuditLog({
-        userId: session.user.id,
+        userId: user.id,
         coffreId: newCoffre.id,
         action: "COFFRE_CREATED",
         description: `Coffre ${name} créé`,
