@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Card, CardBody } from "@heroui/react"
 import { DashboardStats } from "./DashboardStats"
 import { Skeleton, SkeletonStats } from "@/components/ui/skeleton"
 import { PremiumCard } from "@/components/ui/premium-card"
-import { PageHeader } from "@/components/ui/page-header"
 import { formatCurrency } from "@/lib/utils"
 import { Wallet, LayoutDashboard, Calculator, KeyRound, Boxes } from "lucide-react"
 import { motion } from "framer-motion"
