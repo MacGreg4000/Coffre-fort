@@ -2,11 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import { Card, CardBody } from "@heroui/react"
 import { DashboardStats } from "./DashboardStats"
 import { Skeleton, SkeletonStats } from "@/components/ui/skeleton"
 import { PremiumCard } from "@/components/ui/premium-card"
-import { PageHeader } from "@/components/ui/page-header"
 import { formatCurrency } from "@/lib/utils"
 import { Wallet, LayoutDashboard, Calculator, KeyRound, Boxes } from "lucide-react"
 import { motion } from "framer-motion"
@@ -149,9 +147,10 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
           transition={{ duration: 0.3 }}
           className="flex justify-center w-full mb-6"
         >
-          <div className="glass-effect rounded-3xl p-2 sm:p-4 border-2 border-primary/40 shadow-lg backdrop-blur-md bg-card/80 w-full">
-            <div className="overflow-x-auto flex justify-center [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] -mx-2 sm:-mx-4 px-2 sm:px-4">
-              <TabsList className="inline-flex justify-center gap-1 min-w-max">
+          <div className="glass-effect rounded-3xl p-2 sm:p-4 border-2 border-primary/40 shadow-lg backdrop-blur-md bg-card/80 w-full overflow-hidden">
+            <div className="overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="flex justify-center min-w-max mx-auto px-2 sm:px-4">
+                <TabsList className="inline-flex justify-center gap-1">
               <TabsTrigger value="overview" className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold flex-shrink-0">
                 <LayoutDashboard className="h-4 w-4" />
                 Vue
@@ -168,7 +167,8 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
                 <KeyRound className="h-4 w-4" />
                 Fichiers MDP
               </TabsTrigger>
-              </TabsList>
+                </TabsList>
+              </div>
             </div>
           </div>
         </motion.div>

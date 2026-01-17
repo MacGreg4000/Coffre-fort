@@ -41,7 +41,7 @@ export function Navbar() {
   const isActive = (href: string) => pathname === href
 
   return (
-    <nav className="sticky top-0 z-50 backdrop-enhanced">
+    <nav className="sticky top-0 z-50 backdrop-enhanced" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <div className="container mx-auto px-2 sm:px-4">
         <div className="flex items-center justify-center h-16 sm:h-20 md:h-24 relative">
           {/* Navigation - icônes carrées flottantes centrées, responsive */}
