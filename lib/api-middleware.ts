@@ -51,10 +51,11 @@ export function withApiMiddleware(
       }
 
       // 1. Vérification d'origine (CSRF basique)
-      // Exclure les routes de setup, authentification et two-factor de la vérification d'origine
+      // Exclure les routes de setup, authentification, two-factor et csrf de la vérification d'origine
       const isExcludedRoute = req.nextUrl.pathname.startsWith("/api/setup") || 
                               req.nextUrl.pathname.startsWith("/api/auth") ||
-                              req.nextUrl.pathname.startsWith("/api/two-factor")
+                              req.nextUrl.pathname.startsWith("/api/two-factor") ||
+                              req.nextUrl.pathname.startsWith("/api/csrf")
       
       if (!isExcludedRoute && !verifyOrigin(req)) {
         await logSecurityEvent({
