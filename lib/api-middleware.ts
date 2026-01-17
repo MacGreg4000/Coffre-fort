@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { rateLimit, RateLimitConfig, createRateLimitResponse } from "@/lib/rate-limit"
-import { handleApiError, verifyOrigin } from "@/lib/api-utils"
+import { handleApiError } from "@/lib/api-utils"
 import { verifyCsrfMiddleware } from "@/lib/csrf"
 import { isIPBlocked, logSecurityEvent, detectAnomalies } from "@/lib/security-audit"
 
@@ -57,19 +57,97 @@ export function withApiMiddleware(
                               req.nextUrl.pathname.startsWith("/api/two-factor") ||
                               req.nextUrl.pathname.startsWith("/api/csrf")
       
-      if (!isExcludedRoute && !verifyOrigin(req)) {
-        await logSecurityEvent({
-          action: "INVALID_ORIGIN",
-          severity: "high",
-          description: `Tentative d'accès depuis une origine non autorisée: ${req.headers.get("origin") || req.headers.get("referer") || "unknown"}`,
-          ipAddress,
-          userAgent: req.headers.get("user-agent") || "unknown",
-        }, req)
+      if (!isExcludedRoute) {
+        // Vérification d'origine simplifiée
+        const origin = req.headers.get("origin")
+        const referer = req.headers.get("referer")
+        const host = req.headers.get("host")
         
-        return NextResponse.json(
-          { error: "Origine non autorisée" },
-          { status: 403 }
-        )
+        // En développement, accepter toutes les requêtes depuis localhost
+        if (process.env.NODE_ENV === "development") {
+          // Tout autoriser en développement
+        } else {
+          // En production, vérifier l'origine uniquement si les variables sont définies
+          const allowedOrigins = [
+            process.env.NEXTAUTH_URL,
+            process.env.NEXT_PUBLIC_APP_URL,
+          ].filter(Boolean)
+          
+          if (allowedOrigins.length > 0) {
+            let originValid = false
+            
+            // Vérifier l'origine
+            if (origin) {
+              try {
+                const originUrl = new URL(origin)
+                originValid = allowedOrigins.some(allowed => {
+                  if (!allowed) return false
+                  try {
+                    const allowedUrl = new URL(allowed)
+                    return originUrl.origin === allowedUrl.origin
+                  } catch {
+                    return origin.startsWith(allowed)
+                  }
+                })
+              } catch {
+                // Si l'origine n'est pas une URL valide, continuer avec les autres vérifications
+              }
+            }
+            
+            // Vérifier le referer
+            if (!originValid && referer) {
+              try {
+                const refererUrl = new URL(referer)
+                originValid = allowedOrigins.some(allowed => {
+                  if (!allowed) return false
+                  try {
+                    const allowedUrl = new URL(allowed)
+                    return refererUrl.origin === allowedUrl.origin
+                  } catch {
+                    return referer.startsWith(allowed)
+                  }
+                })
+              } catch {
+                // Si le referer n'est pas une URL valide, continuer
+              }
+            }
+            
+            // Vérifier le host (dernière ligne de défense)
+            if (!originValid && host) {
+              const allowedHosts = allowedOrigins
+                .map(url => {
+                  if (!url) return null
+                  try {
+                    return new URL(url).hostname
+                  } catch {
+                    return null
+                  }
+                })
+                .filter((h): h is string => h !== null)
+              
+              if (allowedHosts.includes(host)) {
+                originValid = true
+              }
+            }
+            
+            // Si les variables sont définies mais aucune vérification n'a réussi, bloquer
+            if (!originValid) {
+              await logSecurityEvent({
+                action: "INVALID_ORIGIN",
+                severity: "high",
+                description: `Tentative d'accès depuis une origine non autorisée: ${origin || referer || host || "unknown"}`,
+                ipAddress,
+                userAgent: req.headers.get("user-agent") || "unknown",
+              }, req)
+              
+              return NextResponse.json(
+                { error: "Origine non autorisée" },
+                { status: 403 }
+              )
+            }
+          }
+          // Si aucune variable d'environnement n'est définie, ne pas bloquer (mode permissif)
+        }
       }
 
       // 2. Rate Limiting
