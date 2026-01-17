@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
+import { getCsrfToken } from "@/lib/csrf-helper"
 import {
   TrendingUp,
   Wallet,
@@ -72,7 +73,15 @@ export function ReservesSummary() {
     const initializeAndFetch = async () => {
       try {
         // Initialiser les années (2013-2055) si pas encore fait
-        await fetch("/api/reserves/initialize", { method: "POST" })
+        const csrfToken = await getCsrfToken()
+        if (csrfToken) {
+          await fetch("/api/reserves/initialize", { 
+            method: "POST",
+            headers: {
+              "X-CSRF-Token": csrfToken,
+            },
+          })
+        }
         // Puis charger les réserves
         await fetchReserves()
       } catch (error) {

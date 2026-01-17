@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { getCsrfToken } from "@/lib/csrf-helper"
 import {
   Plus,
   Pencil,
@@ -69,7 +70,15 @@ export default function ReservesClient() {
     const initializeAndFetch = async () => {
       try {
         // Initialiser les années (2013-2035) si pas encore fait
-        await fetch("/api/reserves/initialize", { method: "POST" })
+        const csrfToken = await getCsrfToken()
+        if (csrfToken) {
+          await fetch("/api/reserves/initialize", { 
+            method: "POST",
+            headers: {
+              "X-CSRF-Token": csrfToken,
+            },
+          })
+        }
         // Puis charger les réserves
         await fetchReserves()
       } catch (error) {
@@ -108,9 +117,18 @@ export default function ReservesClient() {
         return
       }
 
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        return
+      }
+
       const response = await fetch("/api/reserves", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify(formData),
       })
 
@@ -174,9 +192,18 @@ export default function ReservesClient() {
       // Notes (peut être null ou string)
       updateData.notes = reserve.notes || null
 
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        return
+      }
+
       const response = await fetch(`/api/reserves/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify(updateData),
       })
 

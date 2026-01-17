@@ -5,6 +5,7 @@ import { Card, CardBody, Button } from "@heroui/react"
 import { useToast } from "@/components/ui/toast"
 import { useConfirmModal } from "@/components/ui/confirm-modal"
 import { Download, FileUp, Trash2 } from "lucide-react"
+import { getCsrfToken } from "@/lib/csrf-helper"
 
 type PasswordFile = {
   id: string
@@ -57,12 +58,22 @@ export function PasswordFilesClient() {
     if (!fileList || fileList.length === 0) return
     setUploading(true)
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        setUploading(false)
+        return
+      }
+
       for (const file of Array.from(fileList)) {
         const form = new FormData()
         form.append("file", file)
 
         const res = await fetch("/api/password-files", {
           method: "POST",
+          headers: {
+            "X-CSRF-Token": csrfToken,
+          },
           body: form,
         })
         const data = await res.json().catch(() => ({}))
@@ -89,7 +100,18 @@ export function PasswordFilesClient() {
       confirmColor: "danger",
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/password-files/${f.id}`, { method: "DELETE" })
+          const csrfToken = await getCsrfToken()
+          if (!csrfToken) {
+            showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+            return
+          }
+
+          const res = await fetch(`/api/password-files/${f.id}`, { 
+            method: "DELETE",
+            headers: {
+              "X-CSRF-Token": csrfToken,
+            },
+          })
           const data = await res.json().catch(() => ({}))
           if (!res.ok) throw new Error(data?.error || "Erreur suppression")
           showToast("Fichier supprimé", "success")

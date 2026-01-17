@@ -9,6 +9,7 @@ import { formatCurrency, cn } from "@/lib/utils"
 import { Plus, Trash2, Tag, MapPin, TrendingUp, TrendingDown, BadgeEuro, FileText, Upload, Download, X, Edit, Activity, Eye, List, PlusCircle, Search } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useConfirmModal } from "@/components/ui/confirm-modal"
+import { getCsrfToken } from "@/lib/csrf-helper"
 
 type CoffreLite = { id: string; name: string }
 
@@ -123,9 +124,19 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
         }
       }
 
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        setSaving(false)
+        return
+      }
+
       const res = await fetch("/api/assets", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           name: form.name.trim(),
           category: form.category.trim() || undefined,
@@ -154,7 +165,18 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
       confirmColor: "danger",
       onConfirm: async () => {
         try {
-          const res = await fetch(`/api/assets/${asset.id}`, { method: "DELETE" })
+          const csrfToken = await getCsrfToken()
+          if (!csrfToken) {
+            showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+            return
+          }
+
+          const res = await fetch(`/api/assets/${asset.id}`, { 
+            method: "DELETE",
+            headers: {
+              "X-CSRF-Token": csrfToken,
+            },
+          })
           const data = await res.json().catch(() => ({}))
           if (!res.ok) throw new Error(data?.error || "Erreur lors de la suppression")
           showToast("Actif supprimé", "success")
@@ -232,8 +254,18 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
       if (docType) formData.append("documentType", docType)
       if (docNotes) formData.append("notes", docNotes)
 
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        setDocumentUploading(false)
+        return
+      }
+
       const res = await fetch(`/api/assets/${docAsset.id}/documents`, {
         method: "POST",
+        headers: {
+          "X-CSRF-Token": csrfToken,
+        },
         body: formData,
       })
 
@@ -323,10 +355,19 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
       confirmLabel: "Supprimer",
       cancelLabel: "Annuler",
       confirmColor: "danger",
-      onConfirm: async () => {
+        onConfirm: async () => {
         try {
+          const csrfToken = await getCsrfToken()
+          if (!csrfToken) {
+            showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+            return
+          }
+
           const res = await fetch(`/api/assets/${assetId}/documents/${docId}`, {
             method: "DELETE",
+            headers: {
+              "X-CSRF-Token": csrfToken,
+            },
           })
           const data = await res.json().catch(() => ({}))
           if (!res.ok) throw new Error(data?.error || "Erreur lors de la suppression")
@@ -396,9 +437,19 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
         eventDate = dateObj.toISOString()
       }
 
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        setEventSaving(false)
+        return
+      }
+
       const res = await fetch(`/api/assets/${eventAsset.id}/events`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           type: eventForm.type,
           amount: typeof amountNum === "number" ? amountNum : undefined,
@@ -413,7 +464,10 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
         // Mise à jour d'un événement existant
         const updateRes = await fetch(`/api/assets/${eventAsset.id}/events/${editingEventId}`, {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "X-CSRF-Token": csrfToken,
+          },
           body: JSON.stringify({
             type: eventForm.type,
             amount: typeof amountNum === "number" ? amountNum : null,
@@ -757,8 +811,17 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
                                                   confirmColor: "danger",
                                                   onConfirm: async () => {
                                                     try {
+                                                      const csrfToken = await getCsrfToken()
+                                                      if (!csrfToken) {
+                                                        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+                                                        return
+                                                      }
+
                                                       const res = await fetch(`/api/assets/${asset.id}/events/${event.id}`, {
                                                         method: "DELETE",
+                                                        headers: {
+                                                          "X-CSRF-Token": csrfToken,
+                                                        },
                                                       })
                                                       const data = await res.json().catch(() => ({}))
                                                       if (!res.ok) throw new Error(data?.error || "Erreur lors de la suppression")

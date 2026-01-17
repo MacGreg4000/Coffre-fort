@@ -16,6 +16,7 @@ import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { BilletInput } from "@/components/caisse/BilletInput"
 import { PremiumCard, StatsCard } from "@/components/ui/premium-card"
+import { getCsrfToken } from "@/lib/csrf-helper"
 
 interface HistoriqueListProps {
   data: {
@@ -102,9 +103,19 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
 
     setLoading(true)
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        setLoading(false)
+        return
+      }
+
       const response = await fetch(`/api/movements/${editingMovement.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           type: editType,
           billets: editBillets,
@@ -147,8 +158,18 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
         onConfirm: async () => {
           setDeletingMovementId(movementId)
           try {
+            const csrfToken = await getCsrfToken()
+            if (!csrfToken) {
+              showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+              setDeletingMovementId(null)
+              return
+            }
+
             const response = await fetch(`/api/movements/${movementId}`, {
               method: "DELETE",
+              headers: {
+                "X-CSRF-Token": csrfToken,
+              },
             })
 
             if (response.ok) {

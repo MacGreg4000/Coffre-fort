@@ -14,6 +14,20 @@ import { Textarea } from "@heroui/react"
 import { motion, AnimatePresence } from "framer-motion"
 import { PremiumCard } from "@/components/ui/premium-card"
 
+// Helper pour récupérer le token CSRF
+const getCsrfToken = async (): Promise<string | null> => {
+  try {
+    const response = await fetch("/api/csrf/token", {
+      credentials: "include",
+    })
+    if (!response.ok) return null
+    const data = await response.json()
+    return data.token || null
+  } catch {
+    return null
+  }
+}
+
 interface CaisseInterfaceProps {
   coffres: any[]
   userId: string
@@ -91,9 +105,19 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
 
     setLoading(true)
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        setLoading(false)
+        return
+      }
+
       const response = await fetch("/api/movements", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           coffreId: selectedCoffre,
           type: mode,
@@ -129,9 +153,19 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
 
     setLoading(true)
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        setLoading(false)
+        return
+      }
+
       const response = await fetch("/api/inventories", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           coffreId: selectedCoffre,
           billets,

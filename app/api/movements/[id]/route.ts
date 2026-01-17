@@ -5,11 +5,13 @@ import { prisma } from "@/lib/prisma"
 import { BILLET_DENOMINATIONS } from "@/lib/utils"
 import { updateMovementSchema, validateRequest } from "@/lib/validations"
 import { handleApiError, createAuditLog, ApiError, serializeMovement } from "@/lib/api-utils"
+import { adminRoute } from "@/lib/api-middleware"
+import { MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 import { invalidateCoffreCache, cache } from "@/lib/cache"
 import { logger } from "@/lib/logger"
 
 // Modifier un mouvement (uniquement pour les admins)
-export async function PUT(
+async function putHandler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -17,11 +19,6 @@ export async function PUT(
     const session = await getServerSession(authOptions)
     if (!session) {
       throw new ApiError(401, "Non autorisé")
-    }
-
-    // Vérifier que l'utilisateur est admin
-    if (session.user.role !== "ADMIN") {
-      throw new ApiError(403, "Accès refusé. Seuls les administrateurs peuvent modifier les mouvements.")
     }
 
     const { id: movementId } = await params
@@ -125,7 +122,7 @@ export async function PUT(
 }
 
 // Supprimer un mouvement (soft delete - uniquement pour les admins)
-export async function DELETE(
+async function deleteHandler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -133,11 +130,6 @@ export async function DELETE(
     const session = await getServerSession(authOptions)
     if (!session) {
       throw new ApiError(401, "Non autorisé")
-    }
-
-    // Vérifier que l'utilisateur est admin
-    if (session.user.role !== "ADMIN") {
-      throw new ApiError(403, "Accès refusé. Seuls les administrateurs peuvent supprimer les mouvements.")
     }
 
     const { id: movementId } = await params
@@ -188,6 +180,9 @@ export async function DELETE(
     return handleApiError(error)
   }
 }
+
+export const PUT = adminRoute(putHandler, MUTATION_RATE_LIMIT)
+export const DELETE = adminRoute(deleteHandler, MUTATION_RATE_LIMIT)
 
 
 

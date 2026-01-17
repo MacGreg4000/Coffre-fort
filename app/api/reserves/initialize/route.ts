@@ -3,11 +3,13 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
+import { authenticatedRoute } from "@/lib/api-middleware"
+import { MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 
 // ============================================
 // POST /api/reserves/initialize - Initialiser les années
 // ============================================
-export async function POST(req: NextRequest) {
+async function postHandler(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
@@ -90,5 +92,7 @@ export async function POST(req: NextRequest) {
     )
   }
 }
+
+export const POST = authenticatedRoute(postHandler, MUTATION_RATE_LIMIT)
 
 

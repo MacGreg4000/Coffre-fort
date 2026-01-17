@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { logger } from "@/lib/logger"
+import { authenticatedRoute } from "@/lib/api-middleware"
+import { MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 import { z } from "zod"
 
 // Validation Zod
@@ -17,7 +19,7 @@ const updateReserveSchema = z.object({
 // ============================================
 // PUT /api/reserves/[id] - Modifier une réserve
 // ============================================
-export async function PUT(
+async function putHandler(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -95,7 +97,7 @@ export async function PUT(
 // ============================================
 // DELETE /api/reserves/[id] - Supprimer une réserve
 // ============================================
-export async function DELETE(
+async function deleteHandler(
   req: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
@@ -140,5 +142,8 @@ export async function DELETE(
     )
   }
 }
+
+export const PUT = authenticatedRoute(putHandler, MUTATION_RATE_LIMIT)
+export const DELETE = authenticatedRoute(deleteHandler, MUTATION_RATE_LIMIT)
 
 
