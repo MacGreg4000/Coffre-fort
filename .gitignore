@@ -45,6 +45,12 @@ next-env.d.ts
 # archives
 *.zip
 
+# fichiers doublons avec " 2" dans le nom
+* 2.*
+* 2/
+**/* 2.*
+**/* 2/
+
 
 
 
