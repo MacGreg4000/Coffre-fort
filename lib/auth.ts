@@ -143,6 +143,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: "/login",
+    signOut: "/login",
   },
   secret: env.NEXTAUTH_SECRET,
   // Utiliser l'URL de base si NEXTAUTH_URL n'est pas défini
