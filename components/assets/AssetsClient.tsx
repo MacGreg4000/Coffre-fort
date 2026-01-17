@@ -257,7 +257,7 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
       const csrfToken = await getCsrfToken()
       if (!csrfToken) {
         showToast("Erreur: impossible de récupérer le token de sécurité", "error")
-        setDocumentUploading(false)
+        setDocUploading(false)
         return
       }
 
