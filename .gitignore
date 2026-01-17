@@ -51,6 +51,10 @@ next-env.d.ts
 **/* 2.*
 **/* 2/
 
+# codes de récupération 2FA (sensible)
+*-backup-codes.txt
+safeguard-backup-codes.txt
+
 
 
 
