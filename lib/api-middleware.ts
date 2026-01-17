@@ -51,7 +51,11 @@ export function withApiMiddleware(
       }
 
       // 1. Vérification d'origine (CSRF basique)
-      if (!verifyOrigin(req)) {
+      // Exclure les routes de setup et d'authentification de la vérification d'origine
+      const isSetupRoute = req.nextUrl.pathname.startsWith("/api/setup") || 
+                           req.nextUrl.pathname.startsWith("/api/auth")
+      
+      if (!isSetupRoute && !verifyOrigin(req)) {
         await logSecurityEvent({
           action: "INVALID_ORIGIN",
           severity: "high",
