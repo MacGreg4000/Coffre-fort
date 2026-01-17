@@ -33,6 +33,7 @@ export function Navbar() {
     { href: "/reserves", icon: Calculator, label: "Réserves" },
     { href: "/actifs", icon: Boxes, label: "Actifs" },
     { href: "/password-files", icon: KeyRound, label: "Fichiers MDP" },
+    { href: "/settings", icon: Settings, label: "Paramètres" },
     ...(session?.user?.role === "ADMIN"
       ? [{ href: "/admin", icon: Settings, label: "Admin" }]
       : [])

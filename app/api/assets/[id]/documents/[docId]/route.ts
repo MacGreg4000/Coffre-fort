@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { authenticatedRoute } from "@/lib/api-middleware"
 import { API_RATE_LIMIT, MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 import { ApiError, handleApiError, createAuditLog } from "@/lib/api-utils"
+import { decrypt, isEncryptionEnabled } from "@/lib/encryption"
 
 async function getHandler(
   _req: NextRequest,
@@ -40,11 +41,27 @@ async function getHandler(
     if (!document) throw new ApiError(404, "Document introuvable")
     if (document.assetId !== id) throw new ApiError(403, "Document n'appartient pas à cet actif")
 
-    return new NextResponse(Buffer.from(document.data), {
+    // Déchiffrer les données si nécessaire
+    let documentData: Buffer = Buffer.from(document.data)
+    if (isEncryptionEnabled()) {
+      try {
+        // Tenter de déchiffrer (si les données sont chiffrées)
+        const encryptedString = document.data.toString("utf-8")
+        if (encryptedString.includes(":")) {
+          // Format de chiffrement détecté (salt:iv:tag:data)
+          documentData = decrypt(encryptedString)
+        }
+      } catch (error) {
+        // Si le déchiffrement échoue, utiliser les données telles quelles
+        console.warn("Impossible de déchiffrer le document, utilisation des données brutes")
+      }
+    }
+
+    return new NextResponse(documentData as any, {
       headers: {
         "Content-Type": document.mimeType,
         "Content-Disposition": `attachment; filename="${encodeURIComponent(document.filename)}"`,
-        "Content-Length": document.sizeBytes.toString(),
+        "Content-Length": documentData.length.toString(),
         "Cache-Control": "private, max-age=3600",
       },
     })

@@ -10,6 +10,7 @@ const envSchema = z.object({
   NEXTAUTH_SECRET: z.string().min(32, "NEXTAUTH_SECRET doit contenir au moins 32 caractères"),
   NEXTAUTH_URL: z.string().url("NEXTAUTH_URL doit être une URL valide").optional(),
   NEXT_PUBLIC_APP_URL: z.string().url().optional(),
+  ENCRYPTION_KEY: z.string().min(32, "ENCRYPTION_KEY doit contenir au moins 32 caractères").optional(),
 })
 
 function validateEnv() {

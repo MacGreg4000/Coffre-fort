@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { authenticatedRoute } from "@/lib/api-middleware"
 import { API_RATE_LIMIT, MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 import { ApiError, handleApiError, createAuditLog } from "@/lib/api-utils"
-import crypto from "crypto"
+import { processUploadedFile, validateFile } from "@/lib/file-validation"
+import { encrypt, isEncryptionEnabled } from "@/lib/encryption"
 
 async function getHandler(
   _req: NextRequest,
@@ -75,26 +76,44 @@ async function postHandler(
       throw new ApiError(400, "Fichier manquant (champ: file)")
     }
 
-    // Limite de taille : 10MB par fichier
-    const MAX_SIZE = 10 * 1024 * 1024
-    if (file.size > MAX_SIZE) {
-      throw new ApiError(413, `Fichier trop volumineux (max: ${MAX_SIZE / (1024 * 1024)}MB)`)
+    // Validation complète du fichier
+    const validation = validateFile(file, {
+      maxSize: 10 * 1024 * 1024, // 10 MB
+      requireType: true,
+    })
+
+    if (!validation.valid) {
+      throw new ApiError(400, validation.error || "Fichier invalide")
     }
 
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    const sha256 = crypto.createHash("sha256").update(buffer).digest("hex")
+    // Traitement sécurisé du fichier (validation, hash, etc.)
+    const processedFile = await processUploadedFile(file, {
+      maxSize: 10 * 1024 * 1024,
+      requireType: true,
+    })
+
+    // Chiffrer les données si le chiffrement est activé
+    let dataToStore: Buffer = processedFile.data
+    if (isEncryptionEnabled()) {
+      try {
+        const encryptedData = encrypt(processedFile.data)
+        dataToStore = Buffer.from(encryptedData, "utf-8")
+      } catch (error) {
+        console.error("Erreur lors du chiffrement:", error)
+        // Continuer sans chiffrement si échec (ne pas bloquer l'upload)
+      }
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       const saved = await (tx as any).assetDocument.create({
         data: {
           assetId: id,
           userId: session.user.id,
-          filename: file.name.substring(0, 255),
-          mimeType: (file.type || "application/octet-stream").substring(0, 150),
-          sizeBytes: buffer.length,
-          sha256,
-          data: buffer,
+          filename: processedFile.filename,
+          mimeType: processedFile.mimeType.substring(0, 150),
+          sizeBytes: processedFile.sizeBytes,
+          sha256: processedFile.sha256,
+          data: dataToStore,
           documentType: documentType?.substring(0, 100) || null,
           notes: notes?.substring(0, 2000) || null,
         },

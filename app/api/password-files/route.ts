@@ -5,7 +5,8 @@ import { prisma } from "@/lib/prisma"
 import { authenticatedRoute } from "@/lib/api-middleware"
 import { API_RATE_LIMIT, MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 import { ApiError, handleApiError, createAuditLog } from "@/lib/api-utils"
-import crypto from "crypto"
+import { processUploadedFile } from "@/lib/file-validation"
+import { encrypt, isEncryptionEnabled } from "@/lib/encryption"
 
 async function getHandler(_req: NextRequest) {
   try {
@@ -42,19 +43,33 @@ async function postHandler(req: NextRequest) {
       throw new ApiError(400, "Fichier manquant (champ: file)")
     }
 
-    const arrayBuffer = await file.arrayBuffer()
-    const buffer = Buffer.from(arrayBuffer)
-    const sha256 = crypto.createHash("sha256").update(buffer).digest("hex")
+    // Validation et traitement sécurisé du fichier
+    const processedFile = await processUploadedFile(file, {
+      maxSize: 50 * 1024 * 1024, // 50 MB pour les fichiers de mots de passe
+      requireType: false, // Accepter tous les types pour les fichiers de mots de passe
+    })
+
+    // Chiffrer les données si le chiffrement est activé
+    let dataToStore: Buffer = processedFile.data
+    if (isEncryptionEnabled()) {
+      try {
+        const encryptedData = encrypt(processedFile.data)
+        dataToStore = Buffer.from(encryptedData, "utf-8")
+      } catch (error) {
+        console.error("Erreur lors du chiffrement:", error)
+        // Continuer sans chiffrement si échec
+      }
+    }
 
     const created = await prisma.$transaction(async (tx) => {
       const saved = await (tx as any).passwordFile.create({
         data: {
           userId: session.user.id,
-          filename: file.name.substring(0, 255),
-          mimeType: (file.type || "application/octet-stream").substring(0, 150),
-          sizeBytes: buffer.length,
-          sha256,
-          data: buffer,
+          filename: processedFile.filename,
+          mimeType: processedFile.mimeType.substring(0, 150),
+          sizeBytes: processedFile.sizeBytes,
+          sha256: processedFile.sha256,
+          data: dataToStore,
         },
         select: {
           id: true,

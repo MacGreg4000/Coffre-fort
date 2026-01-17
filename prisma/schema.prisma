@@ -25,6 +25,13 @@ model User {
   name          String    @db.VarChar(255)
   role          UserRole  @default(USER)
   isActive      Boolean   @default(true)
+  
+  // 2FA (Two-Factor Authentication)
+  twoFactorEnabled    Boolean  @default(false)
+  twoFactorSecret     String?  @db.VarChar(255) // Secret TOTP chiffré
+  twoFactorBackupCodes Json?   // Codes de récupération hashés [string]
+  trustedDevices       Json?    // Appareils de confiance {deviceId: {name, expiresAt}}[]
+  
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

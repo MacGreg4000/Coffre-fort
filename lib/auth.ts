@@ -75,17 +75,66 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 jours (par défaut)
+    updateAge: 24 * 60 * 60, // Rotation toutes les 24 heures
   },
   callbacks: {
     async jwt({ token, user }) {
+      // Lors de la création initiale de la session
       if (user) {
         token.id = user.id
         token.role = (user as any).role
+        token.iat = Math.floor(Date.now() / 1000) // Issued at
+        token.exp = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60 // Expire dans 30 jours
+        token.lastUpdate = Math.floor(Date.now() / 1000)
       }
+
+      // Rotation de session (toutes les 24h) - seulement si le token existe déjà
+      if (token.id && token.lastUpdate) {
+        const now = Math.floor(Date.now() / 1000)
+        const lastUpdate = (token.lastUpdate as number) || (token.iat as number) || now
+        const updateInterval = 24 * 60 * 60 // 24 heures
+
+        if (now - lastUpdate > updateInterval) {
+          try {
+            // Vérifier que l'utilisateur existe toujours et est actif
+            const dbUser = await prisma.user.findUnique({
+              where: { id: token.id as string },
+              select: { isActive: true },
+            })
+
+            if (!dbUser || !dbUser.isActive) {
+              // Utilisateur désactivé, invalider la session
+              throw new Error("UserInactive")
+            }
+
+            // Mettre à jour le timestamp de dernière mise à jour
+            token.lastUpdate = now
+            token.iat = now // Mettre à jour l'issued at pour la rotation
+          } catch (error) {
+            // En cas d'erreur, invalider la session
+            token.error = "UserInactive"
+          }
+        }
+
+        // Vérifier l'expiration
+        if (token.exp && now > (token.exp as number)) {
+          token.error = "TokenExpired"
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
+      // Si le token a une erreur, invalider la session
+      if ((token as any).error) {
+        return {
+          ...session,
+          user: null as any,
+        }
+      }
+
+      if (session.user && token.id) {
         session.user.id = token.id as string
         session.user.role = token.role as string
       }

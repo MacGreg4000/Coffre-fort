@@ -7,16 +7,19 @@ import { motion } from "framer-motion"
 import { Button } from "@heroui/react"
 import { Input } from "@heroui/react"
 import { Card, CardHeader, CardBody } from "@heroui/react"
-import { Wallet, CheckCircle2 } from "lucide-react"
+import { Wallet, CheckCircle2, Shield } from "lucide-react"
 
 function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [twoFactorCode, setTwoFactorCode] = useState("")
   const [error, setError] = useState("")
   const [loading, setLoading] = useState(false)
   const [setupSuccess, setSetupSuccess] = useState(false)
+  const [requiresTwoFactor, setRequiresTwoFactor] = useState(false)
+  const [rememberDevice, setRememberDevice] = useState(false)
 
   useEffect(() => {
     if (searchParams.get("setup") === "success") {
@@ -31,6 +34,52 @@ function LoginForm() {
     setLoading(true)
 
     try {
+      // Générer un deviceId si "Se souvenir de cet appareil"
+      let deviceId: string | null = null
+      let deviceName: string | null = null
+
+      if (rememberDevice) {
+        // Générer un identifiant unique pour cet appareil (stocké dans localStorage)
+        const storedDeviceId = localStorage.getItem("deviceId")
+        if (storedDeviceId) {
+          deviceId = storedDeviceId
+        } else {
+          deviceId = `device_${Date.now()}_${Math.random().toString(36).substring(7)}`
+          localStorage.setItem("deviceId", deviceId)
+        }
+        deviceName = navigator.userAgent.includes("Mobile") ? "Appareil mobile" : "Ordinateur"
+      }
+
+      // Utiliser la route API personnalisée pour la connexion
+      const loginResponse = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          twoFactorCode: requiresTwoFactor ? twoFactorCode : undefined,
+          deviceId,
+          deviceName,
+        }),
+      })
+
+      const loginData = await loginResponse.json()
+
+      if (!loginResponse.ok) {
+        setError(loginData.error || "Erreur lors de la connexion")
+        setLoading(false)
+        return
+      }
+
+      // Si la 2FA est requise
+      if (loginData.requiresTwoFactor) {
+        setRequiresTwoFactor(true)
+        setError("")
+        setLoading(false)
+        return
+      }
+
+      // Si la connexion réussit, créer la session NextAuth
       const result = await signIn("credentials", {
         email,
         password,
@@ -38,7 +87,7 @@ function LoginForm() {
       })
 
       if (result?.error) {
-        setError("Email ou mot de passe incorrect")
+        setError("Erreur lors de la création de la session")
       } else {
         router.push("/dashboard")
         router.refresh()
@@ -91,22 +140,68 @@ function LoginForm() {
               </motion.div>
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                type="email"
-                label="Email"
-                placeholder="votre@email.com"
-                value={email}
-                onValueChange={setEmail}
-                isRequired
-              />
-              <Input
-                type="password"
-                label="Mot de passe"
-                placeholder="••••••••"
-                value={password}
-                onValueChange={setPassword}
-                isRequired
-              />
+              {!requiresTwoFactor ? (
+                <>
+                  <Input
+                    type="email"
+                    label="Email"
+                    placeholder="votre@email.com"
+                    value={email}
+                    onValueChange={setEmail}
+                    isRequired
+                    isDisabled={loading}
+                  />
+                  <Input
+                    type="password"
+                    label="Mot de passe"
+                    placeholder="••••••••"
+                    value={password}
+                    onValueChange={setPassword}
+                    isRequired
+                    isDisabled={loading}
+                  />
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-2 mb-2 p-3 rounded-lg bg-primary/10 border border-primary/30"
+                  >
+                    <Shield className="h-5 w-5 text-primary" />
+                    <p className="text-sm text-foreground">
+                      Authentification à deux facteurs requise
+                    </p>
+                  </motion.div>
+                  <Input
+                    type="text"
+                    label="Code de vérification"
+                    placeholder="000000"
+                    value={twoFactorCode}
+                    onValueChange={(value) => {
+                      // Limiter à 6 chiffres
+                      const digits = value.replace(/\D/g, "").slice(0, 6)
+                      setTwoFactorCode(digits)
+                    }}
+                    isRequired
+                    isDisabled={loading}
+                    maxLength={6}
+                    description="Entrez le code à 6 chiffres depuis votre application d'authentification"
+                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="rememberDevice"
+                      checked={rememberDevice}
+                      onChange={(e) => setRememberDevice(e.target.checked)}
+                      className="rounded border-border"
+                    />
+                    <label htmlFor="rememberDevice" className="text-sm text-foreground/70 cursor-pointer">
+                      Se souvenir de cet appareil pendant 30 jours
+                    </label>
+                  </div>
+                </>
+              )}
               {error && (
                 <motion.p
                   initial={{ opacity: 0 }}
@@ -123,8 +218,29 @@ function LoginForm() {
                 isLoading={loading}
                 size="lg"
               >
-                {loading ? "Connexion..." : "Se connecter"}
+                {loading
+                  ? requiresTwoFactor
+                    ? "Vérification..."
+                    : "Connexion..."
+                  : requiresTwoFactor
+                  ? "Vérifier"
+                  : "Se connecter"}
               </Button>
+              {requiresTwoFactor && (
+                <Button
+                  type="button"
+                  variant="light"
+                  className="w-full"
+                  onClick={() => {
+                    setRequiresTwoFactor(false)
+                    setTwoFactorCode("")
+                    setError("")
+                  }}
+                  isDisabled={loading}
+                >
+                  Retour
+                </Button>
+              )}
             </form>
           </CardBody>
         </Card>

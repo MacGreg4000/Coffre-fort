@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma"
 import { authenticatedRoute } from "@/lib/api-middleware"
 import { API_RATE_LIMIT, MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 import { ApiError, handleApiError, createAuditLog } from "@/lib/api-utils"
+import { decrypt, isEncryptionEnabled } from "@/lib/encryption"
 
 async function getHandler(
   _req: NextRequest,
@@ -27,7 +28,24 @@ async function getHandler(
 
     if (!file) throw new ApiError(404, "Fichier introuvable")
 
-    return new NextResponse(file.data, {
+    // Déchiffrer les données si nécessaire
+    let fileData: Buffer = Buffer.from(file.data)
+    if (isEncryptionEnabled()) {
+      try {
+        // Tenter de déchiffrer (si les données sont chiffrées)
+        const encryptedString = file.data.toString("utf-8")
+        if (encryptedString.includes(":")) {
+          // Format de chiffrement détecté (salt:iv:tag:data)
+          fileData = decrypt(encryptedString)
+        }
+      } catch (error) {
+        // Si le déchiffrement échoue, utiliser les données telles quelles
+        // (peut être un ancien fichier non chiffré)
+        console.warn("Impossible de déchiffrer le fichier, utilisation des données brutes")
+      }
+    }
+
+    return new NextResponse(fileData as any, {
       headers: {
         "Content-Type": file.mimeType || "application/octet-stream",
         "Content-Disposition": `attachment; filename="${file.filename}"`,

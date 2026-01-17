@@ -177,12 +177,13 @@ export function createPaginatedResponse<T>(
 }
 
 // ============================================
-// VÉRIFICATION ORIGINE (CSRF basique)
+// VÉRIFICATION ORIGINE (CSRF renforcée)
 // ============================================
 
 export function verifyOrigin(req: NextRequest): boolean {
   const origin = req.headers.get("origin")
   const referer = req.headers.get("referer")
+  const host = req.headers.get("host")
   
   // En développement, accepter localhost
   if (process.env.NODE_ENV === "development") {
@@ -194,12 +195,60 @@ export function verifyOrigin(req: NextRequest): boolean {
     process.env.NEXT_PUBLIC_APP_URL,
   ].filter(Boolean)
 
-  if (origin && allowedOrigins.some(allowed => origin.startsWith(allowed!))) {
-    return true
+  // Vérifier l'origine
+  if (origin) {
+    try {
+      const originUrl = new URL(origin)
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (!allowed) return false
+        try {
+          const allowedUrl = new URL(allowed)
+          return originUrl.origin === allowedUrl.origin
+        } catch {
+          return origin.startsWith(allowed)
+        }
+      })
+      if (isAllowed) return true
+    } catch {
+      // Si l'origine n'est pas une URL valide, continuer avec les autres vérifications
+    }
   }
 
-  if (referer && allowedOrigins.some(allowed => referer.startsWith(allowed!))) {
-    return true
+  // Vérifier le referer
+  if (referer) {
+    try {
+      const refererUrl = new URL(referer)
+      const isAllowed = allowedOrigins.some(allowed => {
+        if (!allowed) return false
+        try {
+          const allowedUrl = new URL(allowed)
+          return refererUrl.origin === allowedUrl.origin
+        } catch {
+          return referer.startsWith(allowed)
+        }
+      })
+      if (isAllowed) return true
+    } catch {
+      // Si le referer n'est pas une URL valide, continuer
+    }
+  }
+
+  // Vérifier le host (dernière ligne de défense)
+  if (host) {
+    const allowedHosts = allowedOrigins
+      .map(url => {
+        if (!url) return null
+        try {
+          return new URL(url).hostname
+        } catch {
+          return null
+        }
+      })
+      .filter((h): h is string => h !== null)
+    
+    if (allowedHosts.includes(host)) {
+      return true
+    }
   }
 
   return false
