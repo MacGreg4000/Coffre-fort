@@ -175,23 +175,31 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
             du total saisi. L’interface est fluide et responsive.
           </p>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        <Select
-          label="Coffre"
-              placeholder="Sélectionnez un coffre"
-              isRequired
-          selectedKeys={selectedCoffre ? [selectedCoffre] : []}
-          onSelectionChange={(keys) => {
-            const selected = Array.from(keys)[0] as string
-            setSelectedCoffre(selected || null)
-          }}
-              className="w-full sm:w-72"
-        >
-          {coffres.map((coffre) => (
-            <SelectItem key={coffre.id}>
-              {coffre.name}
-            </SelectItem>
-          ))}
-        </Select>
+        {coffres.length === 0 ? (
+          <div className="w-full sm:w-72 p-4 rounded-xl border border-warning/30 bg-warning/10">
+            <p className="text-sm text-warning font-medium">
+              Aucun coffre disponible. Contactez un administrateur pour être ajouté à un coffre.
+            </p>
+          </div>
+        ) : (
+          <Select
+            label="Coffre"
+            placeholder="Sélectionnez un coffre"
+            isRequired
+            selectedKeys={selectedCoffre ? [selectedCoffre] : []}
+            onSelectionChange={(keys) => {
+              const selected = Array.from(keys)[0] as string
+              setSelectedCoffre(selected || null)
+            }}
+            className="w-full sm:w-72"
+          >
+            {coffres.map((coffre) => (
+              <SelectItem key={coffre.id}>
+                {coffre.name}
+              </SelectItem>
+            ))}
+          </Select>
+        )}
           </div>
       </div>
 

@@ -12,7 +12,12 @@ export const revalidate = 0
 async function getCaisseData(userId: string) {
   // Récupérer les coffres accessibles (optimisé avec select)
   const userCoffres = await prisma.coffreMember.findMany({
-    where: { userId },
+    where: { 
+      userId,
+      coffre: {
+        isActive: true, // Filtrer uniquement les coffres actifs
+      }
+    },
     select: {
       role: true,
       coffreId: true,
