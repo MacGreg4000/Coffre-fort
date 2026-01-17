@@ -152,7 +152,10 @@ export function withApiMiddleware(
       }
 
       // 6. Vérification CSRF pour les mutations (POST, PUT, PATCH, DELETE)
-      if (["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && (options.requireAuth || options.requireRole)) {
+      // Exclure les routes two-factor de la vérification CSRF (elles ont leur propre système de sécurité)
+      const isTwoFactorRoute = req.nextUrl.pathname.startsWith("/api/two-factor")
+      
+      if (!isTwoFactorRoute && ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) && (options.requireAuth || options.requireRole)) {
         const csrfCheck = await verifyCsrfMiddleware(req)
         if (!csrfCheck.valid) {
           await logSecurityEvent({

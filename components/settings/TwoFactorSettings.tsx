@@ -31,9 +31,11 @@ export function TwoFactorSettings() {
   const fetchStatus = async () => {
     try {
       const response = await fetch("/api/two-factor/status")
+      const data = await response.json()
       if (response.ok) {
-        const data = await response.json()
         setStatus(data)
+      } else {
+        console.error("Erreur lors de la récupération du statut 2FA:", data)
       }
     } catch (error) {
       console.error("Erreur lors de la récupération du statut 2FA:", error)
@@ -47,16 +49,21 @@ export function TwoFactorSettings() {
     try {
       // Étape 1: Générer le secret et QR code
       const setupResponse = await fetch("/api/two-factor/setup")
+      const setupData = await setupResponse.json()
+      
       if (!setupResponse.ok) {
-        throw new Error("Erreur lors de la génération du QR code")
+        const errorMessage = setupData.error || setupData.message || "Erreur lors de la génération du QR code"
+        console.error("Erreur API 2FA setup:", errorMessage, setupData)
+        showToast(errorMessage, "error")
+        return
       }
 
-      const setupData = await setupResponse.json()
       setQrCode(setupData.qrCode)
       setSecret(setupData.secret)
       setUrl(setupData.url)
-    } catch (error) {
-      showToast("Erreur lors de la configuration de la 2FA", "error")
+    } catch (error: any) {
+      console.error("Erreur lors de la configuration de la 2FA:", error)
+      showToast(error?.message || "Erreur lors de la configuration de la 2FA", "error")
     } finally {
       setSetupLoading(false)
     }

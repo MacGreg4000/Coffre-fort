@@ -32,12 +32,18 @@ export function generateTotpSecret(): string {
  * Générer l'URL TOTP pour le QR code
  */
 export function generateTotpUrl(email: string, secret: string, name?: string): string {
-  return generateURI({
-    strategy: "totp",
-    issuer: TOTP_ISSUER,
-    label: name || email,
-    secret,
-  })
+  try {
+    const uri = generateURI({
+      strategy: "totp",
+      issuer: TOTP_ISSUER,
+      label: name || email,
+      secret,
+    })
+    return uri
+  } catch (error) {
+    console.error("Erreur lors de la génération de l'URL TOTP:", error)
+    throw new Error(`Impossible de générer l'URL TOTP: ${error instanceof Error ? error.message : "Erreur inconnue"}`)
+  }
 }
 
 /**
@@ -45,7 +51,11 @@ export function generateTotpUrl(email: string, secret: string, name?: string): s
  */
 export async function generateQRCode(dataUrl: string): Promise<string> {
   try {
-    return await QRCode.toDataURL(dataUrl, {
+    if (!dataUrl || dataUrl.trim().length === 0) {
+      throw new Error("L'URL TOTP est vide")
+    }
+    
+    const qrCode = await QRCode.toDataURL(dataUrl, {
       errorCorrectionLevel: "M",
       type: "image/png",
       width: 300,
@@ -55,7 +65,14 @@ export async function generateQRCode(dataUrl: string): Promise<string> {
         light: "#FFFFFF",
       },
     })
+    
+    if (!qrCode || qrCode.length === 0) {
+      throw new Error("Le QR code généré est vide")
+    }
+    
+    return qrCode
   } catch (error) {
+    console.error("Erreur lors de la génération du QR code:", error)
     throw new Error(`Erreur lors de la génération du QR code: ${error instanceof Error ? error.message : "Erreur inconnue"}`)
   }
 }

@@ -6,7 +6,8 @@ import { Button } from "@heroui/react"
 import { Input } from "@heroui/react"
 import { Select, SelectItem } from "@/components/ui/select-heroui"
 import { Tabs, Tab } from "@heroui/react"
-import { UserPlus, Wallet, Save, Users, Shield, Mail, User, Pencil, Trash2, X, Download } from "lucide-react"
+import { UserPlus, Wallet, Save, Users, Shield, Mail, User, Pencil, Trash2, X, Download, KeyRound } from "lucide-react"
+import { TwoFactorSettings } from "@/components/settings/TwoFactorSettings"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/components/ui/toast"
 import { Textarea } from "@heroui/react"
@@ -290,6 +291,15 @@ export function AdminPanel({ data }: AdminPanelProps) {
               </div>
             }
           />
+          <Tab
+            key="2fa"
+            title={
+              <div className="flex items-center gap-2 justify-center">
+                <KeyRound className="h-4 w-4" />
+                <span>2FA</span>
+              </div>
+            }
+          />
         </Tabs>
       </div>
 
@@ -440,7 +450,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
                 )}
               </div>
             </div>
-          ) : (
+          ) : selectedTab === "coffres" ? (
             <div className="space-y-6">
               {/* Formulaire de création de coffre */}
               <motion.div
@@ -703,6 +713,10 @@ export function AdminPanel({ data }: AdminPanelProps) {
                   ))}
                 </div>
               )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <TwoFactorSettings />
             </div>
           )}
         </motion.div>

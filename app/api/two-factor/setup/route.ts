@@ -19,19 +19,32 @@ import {
 async function getHandler(_req: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    if (!session) throw new ApiError(401, "Non autorisé")
+    if (!session) {
+      console.error("[2FA Setup] Session non trouvée")
+      throw new ApiError(401, "Non autorisé")
+    }
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { email: true, name: true, twoFactorEnabled: true },
     })
 
-    if (!user) throw new ApiError(404, "Utilisateur introuvable")
+    if (!user) {
+      console.error("[2FA Setup] Utilisateur non trouvé:", session.user.id)
+      throw new ApiError(404, "Utilisateur introuvable")
+    }
+
+    console.log("[2FA Setup] Génération du secret pour:", user.email)
 
     // Générer un nouveau secret
     const secret = generateTotpSecret()
+    console.log("[2FA Setup] Secret généré, longueur:", secret.length)
+
     const url = generateTotpUrl(user.email, secret, user.name)
+    console.log("[2FA Setup] URL TOTP générée")
+
     const qrCode = await generateQRCode(url)
+    console.log("[2FA Setup] QR code généré, longueur:", qrCode.length)
 
     // Retourner le secret temporaire (sera chiffré lors de l'activation)
     return NextResponse.json({
@@ -40,6 +53,7 @@ async function getHandler(_req: NextRequest) {
       url, // URL pour les apps qui ne peuvent pas scanner le QR
     })
   } catch (error) {
+    console.error("[2FA Setup] Erreur:", error)
     return handleApiError(error)
   }
 }
