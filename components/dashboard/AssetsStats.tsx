@@ -279,30 +279,101 @@ export function AssetsStats() {
     return Array.from(coffres).sort()
   }, [assets])
 
-  // Graphique : Évolution de la valeur totale (basé sur les événements VALUATION)
+  // Graphique : Évolution de la valeur totale par mois/année
   const evolutionData = useMemo(() => {
-    const valuationEvents = assets
-      .flatMap(a => (a.events || [])
-        .filter(e => e.type === "VALUATION" && e.amount)
-        .map(e => ({ date: e.date, amount: Number(e.amount) }))
-      )
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    // Collecter tous les événements avec montants (PURCHASE, VALUATION, SALE)
+    const allEvents = assets.flatMap(a => 
+      (a.events || [])
+        .filter(e => e.amount && e.amount > 0)
+        .map(e => ({
+          date: e.date,
+          amount: Number(e.amount),
+          type: e.type,
+          assetId: a.id,
+        }))
+    )
 
-    // Grouper par mois
+    if (allEvents.length === 0) {
+      // Si pas d'événements, utiliser la date de création des actifs avec leur valeur actuelle
+      const assetsByMonth = new Map<string, number>()
+      stats.assetsWithPrices.forEach(asset => {
+        if (asset.prices.currentValue) {
+          const date = new Date(asset.createdAt)
+          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+          assetsByMonth.set(monthKey, (assetsByMonth.get(monthKey) || 0) + asset.prices.currentValue)
+        }
+      })
+      
+      const sortedMonths = Array.from(assetsByMonth.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+      
+      // Calculer les valeurs cumulées
+      let cumulative = 0
+      const cumulativeValues = sortedMonths.map(([, value]) => {
+        cumulative += value
+        return cumulative
+      })
+      
+      return {
+        labels: sortedMonths.map(([month]) => {
+          const [year, monthNum] = month.split('-')
+          return `${monthNum}/${year}`
+        }),
+        values: cumulativeValues,
+      }
+    }
+
+    // Grouper par mois et calculer la valeur totale cumulée
     const monthlyData = new Map<string, number>()
-    valuationEvents.forEach(event => {
+    
+    // Trier les événements par date
+    allEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    // Pour chaque mois, calculer la valeur totale des actifs à ce moment
+    const monthsSet = new Set<string>()
+    allEvents.forEach(event => {
       const date = new Date(event.date)
       const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      monthlyData.set(monthKey, (monthlyData.get(monthKey) || 0) + event.amount)
+      monthsSet.add(monthKey)
     })
 
-    const sortedMonths = Array.from(monthlyData.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-    
+    // Pour chaque mois, calculer la valeur totale actuelle de tous les actifs qui existaient à ce moment
+    const sortedMonths = Array.from(monthsSet).sort((a, b) => a.localeCompare(b))
+    const monthlyValues: number[] = []
+
+    sortedMonths.forEach(month => {
+      const [year, monthNum] = month.split('-')
+      const monthDate = new Date(parseInt(year), parseInt(monthNum) - 1)
+      
+      // Calculer la valeur totale des actifs à ce moment
+      let totalValue = 0
+      stats.assetsWithPrices.forEach(asset => {
+        const assetCreatedDate = new Date(asset.createdAt)
+        if (assetCreatedDate <= monthDate) {
+          // Trouver la dernière évaluation avant ou à ce mois
+          const relevantEvents = (asset.events || [])
+            .filter(e => {
+              const eventDate = new Date(e.date)
+              return eventDate <= monthDate && e.type === "VALUATION" && e.amount
+            })
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+          
+          if (relevantEvents.length > 0) {
+            totalValue += Number(relevantEvents[0].amount)
+          } else if (asset.prices.currentValue) {
+            // Si pas d'évaluation historique, utiliser la valeur actuelle
+            totalValue += asset.prices.currentValue
+          }
+        }
+      })
+      
+      monthlyValues.push(totalValue)
+    })
+
     return {
-      labels: sortedMonths.map(([month]) => month),
-      values: sortedMonths.map(([, value]) => value),
+      labels: sortedMonths.map(([year, monthNum]) => `${monthNum}/${year}`),
+      values: monthlyValues,
     }
-  }, [assets])
+  }, [assets, stats.assetsWithPrices])
 
   // Graphique : Top 10 actifs les plus précieux
   const top10Data = useMemo(() => {
@@ -475,17 +546,17 @@ export function AssetsStats() {
 
       {/* Graphiques */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Évolution de la valeur totale */}
-        {evolutionData.labels.length > 0 && (
-          <Card className="bg-card/70 backdrop-blur border border-border/60">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <h3 className="text-sm font-semibold">Évolution de la valeur totale</h3>
-              </div>
-            </CardHeader>
-            <CardBody>
-              <div className="h-64">
+        {/* Évolution de la valeur totale - Toujours affiché */}
+        <Card className="bg-card/70 backdrop-blur border border-border/60">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold">Évolution de la valeur totale</h3>
+            </div>
+          </CardHeader>
+          <CardBody>
+            <div className="h-64">
+              {evolutionData.labels.length > 0 ? (
                 <Line
                   data={{
                     labels: evolutionData.labels,
@@ -497,15 +568,46 @@ export function AssetsStats() {
                         backgroundColor: "rgba(59, 130, 246, 0.1)",
                         fill: true,
                         tension: 0.4,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: "#3B82F6",
+                        pointBorderColor: "#ffffff",
+                        pointBorderWidth: 2,
                       },
                     ],
                   }}
-                  options={chartOptions}
+                  options={{
+                    ...chartOptions,
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: (value: any) => formatCurrency(value),
+                        },
+                        grid: {
+                          color: "rgba(255, 255, 255, 0.05)",
+                        },
+                      },
+                      x: {
+                        grid: {
+                          color: "rgba(255, 255, 255, 0.05)",
+                        },
+                      },
+                    },
+                  }}
                 />
-              </div>
-            </CardBody>
-          </Card>
-        )}
+              ) : (
+                <div className="flex items-center justify-center h-full text-foreground/60">
+                  <div className="text-center">
+                    <TrendingUp className="h-12 w-12 mx-auto mb-2 text-foreground/30" />
+                    <p className="text-sm">Aucune donnée d&apos;évolution disponible</p>
+                    <p className="text-xs text-foreground/50 mt-1">Ajoutez des événements d&apos;évaluation pour voir l&apos;évolution</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </CardBody>
+        </Card>
 
         {/* Top 10 actifs */}
         {top10Data.length > 0 && (
