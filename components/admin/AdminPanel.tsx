@@ -33,6 +33,20 @@ export function AdminPanel({ data }: AdminPanelProps) {
   const [editingCoffreId, setEditingCoffreId] = useState<string | null>(null)
   const [editingCoffreName, setEditingCoffreName] = useState<string>("")
 
+  // Fonction helper pour récupérer le token CSRF
+  const getCsrfToken = async (): Promise<string | null> => {
+    try {
+      const response = await fetch("/api/csrf/token", {
+        credentials: "include",
+      })
+      if (!response.ok) return null
+      const data = await response.json()
+      return data.token || null
+    } catch {
+      return null
+    }
+  }
+
   const handleExportOffline = async () => {
     setLoading("export-offline")
     try {
@@ -70,9 +84,18 @@ export function AdminPanel({ data }: AdminPanelProps) {
     const formData = new FormData(e.currentTarget)
     
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        return
+      }
+
       const response = await fetch("/api/admin/users", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           email: formData.get("email"),
           password: formData.get("password"),
@@ -102,9 +125,18 @@ export function AdminPanel({ data }: AdminPanelProps) {
     const formData = new FormData(e.currentTarget)
     
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        return
+      }
+
       const response = await fetch("/api/admin/coffres", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           name: formData.get("name"),
           description: formData.get("description"),
@@ -146,9 +178,18 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
     setLoading(`update-coffre-${coffreId}`)
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        return
+      }
+
       const response = await fetch("/api/admin/coffres", {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({
           id: coffreId,
           data: { name: editingCoffreName.trim() },
@@ -181,9 +222,18 @@ export function AdminPanel({ data }: AdminPanelProps) {
         onConfirm: async () => {
           setLoading(`delete-coffre-${coffre.id}`)
           try {
+            const csrfToken = await getCsrfToken()
+            if (!csrfToken) {
+              showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+              return
+            }
+
             const response = await fetch("/api/admin/coffres", {
               method: "DELETE",
-              headers: { "Content-Type": "application/json" },
+              headers: { 
+                "Content-Type": "application/json",
+                "X-CSRF-Token": csrfToken,
+              },
               body: JSON.stringify({ id: coffre.id }),
             })
 
@@ -215,9 +265,18 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
     setLoading(`add-member-${coffreId}`)
     try {
+      const csrfToken = await getCsrfToken()
+      if (!csrfToken) {
+        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+        return
+      }
+
       const response = await fetch("/api/admin/coffres/members", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-CSRF-Token": csrfToken,
+        },
         body: JSON.stringify({ coffreId, userId, role }),
       })
 
