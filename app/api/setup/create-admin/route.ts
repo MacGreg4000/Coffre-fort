@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
 import { publicRoute } from "@/lib/api-middleware"
-import { AUTH_RATE_LIMIT } from "@/lib/rate-limit"
+import { SETUP_RATE_LIMIT } from "@/lib/rate-limit"
 import { ApiError, createAuditLog, handleApiError } from "@/lib/api-utils"
 import { createUserSchema, validateRequest } from "@/lib/validations"
 
@@ -78,7 +78,7 @@ async function postHandler(req: NextRequest) {
   }
 }
 
-export const POST = publicRoute(postHandler, AUTH_RATE_LIMIT)
+export const POST = publicRoute(postHandler, SETUP_RATE_LIMIT)
 
 
 

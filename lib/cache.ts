@@ -1,17 +1,42 @@
-// Cache utilities
-export class Cache {
-  private cache = new Map<string, any>()
+// Cache utilities avec TTL (Time To Live)
+interface CacheEntry {
+  value: any
+  expiresAt: number
+}
 
-  get(key: string): any {
-    return this.cache.get(key)
+export class Cache {
+  private cache = new Map<string, CacheEntry>()
+
+  get(key: string): any | null {
+    const entry = this.cache.get(key)
+    if (!entry) return null
+    
+    // Vérifier si l'entrée a expiré
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key)
+      return null
+    }
+    
+    return entry.value
   }
 
-  set(key: string, value: any): void {
-    this.cache.set(key, value)
+  set(key: string, value: any, ttlMs: number = 5 * 60 * 1000): void {
+    this.cache.set(key, {
+      value,
+      expiresAt: Date.now() + ttlMs
+    })
   }
 
   has(key: string): boolean {
-    return this.cache.has(key)
+    const entry = this.cache.get(key)
+    if (!entry) return false
+    
+    if (Date.now() > entry.expiresAt) {
+      this.cache.delete(key)
+      return false
+    }
+    
+    return true
   }
 
   delete(key: string): boolean {
@@ -20,6 +45,16 @@ export class Cache {
 
   clear(): void {
     this.cache.clear()
+  }
+
+  // Nettoyer les entrées expirées
+  cleanup(): void {
+    const now = Date.now()
+    for (const [key, entry] of this.cache.entries()) {
+      if (now > entry.expiresAt) {
+        this.cache.delete(key)
+      }
+    }
   }
 }
 
@@ -47,7 +82,7 @@ export const invalidateUserCache = (userId: string): void => {
   keysToDelete.forEach(key => cache.delete(key))
 }
 
-export const getCachedBalanceInfo = async (coffreId: string, calculateFunction?: () => Promise<any>) => {
+export const getCachedBalanceInfo = async (coffreId: string, calculateFunction?: () => Promise<any>, ttlMs: number = 5 * 60 * 1000) => {
   const cacheKey = `balance:${coffreId}`
   const cached = cache.get(cacheKey)
 
@@ -57,7 +92,7 @@ export const getCachedBalanceInfo = async (coffreId: string, calculateFunction?:
 
   if (calculateFunction) {
     const result = await calculateFunction()
-    cache.set(cacheKey, result)
+    cache.set(cacheKey, result, ttlMs)
     return result
   }
 
@@ -69,21 +104,18 @@ export const setCachedBalanceInfo = (coffreId: string, balanceInfo: any): void =
   cache.set(cacheKey, balanceInfo)
 }
 
-export const getCachedDashboardStats = (userId: string, coffreId?: string, calculateFunction?: () => Promise<any>) => {
+export const getCachedDashboardStats = async (userId: string, coffreId: string | undefined, calculateFunction: () => Promise<any>, ttlMs: number = 60 * 1000) => {
   const cacheKey = `dashboard:${userId}:${coffreId || 'all'}`
   const cached = cache.get(cacheKey)
 
-  if (cached && !calculateFunction) {
+  if (cached) {
     return cached
   }
 
-  if (calculateFunction) {
-    // Cette fonction devrait être appelée de manière asynchrone
-    // Pour l'instant, on retourne null et laisse l'appelant gérer
-    return null
-  }
-
-  return cached
+  // Exécuter la fonction de calcul et mettre en cache
+  const result = await calculateFunction()
+  cache.set(cacheKey, result, ttlMs)
+  return result
 }
 
 export const setCachedDashboardStats = (userId: string, coffreId: string | undefined, stats: any): void => {

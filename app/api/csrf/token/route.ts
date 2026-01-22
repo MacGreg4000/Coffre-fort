@@ -18,7 +18,19 @@ async function getHandler(_req: NextRequest) {
 
     const token = createCsrfToken(session.user.id)
     
-    return NextResponse.json({ token })
+    // Créer la réponse avec le token et définir le cookie
+    const response = NextResponse.json({ token })
+    
+    // Stocker le token dans un cookie sécurisé
+    response.cookies.set('csrf-token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      maxAge: 60 * 60 * 24, // 24 heures
+      path: "/"
+    })
+    
+    return response
   } catch (error) {
     return NextResponse.json(
       { error: "Erreur lors de la génération du token CSRF" },

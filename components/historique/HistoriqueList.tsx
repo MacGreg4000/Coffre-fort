@@ -666,7 +666,7 @@ export function HistoriqueList({ data }: HistoriqueListProps) {
                                       {inventory.coffre.name}
                                     </span>
                                     <span className="text-xs text-foreground/50">
-                                      {formatDate(inventory.createdAt)}
+                                      {formatDate(inventory.date)}
                                     </span>
                                   </div>
                                   <p className="text-2xl font-bold text-primary mt-1">

@@ -76,6 +76,9 @@ model Movement {
   user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   details MovementDetail[]
 
+  @@index([coffreId, createdAt])
+  @@index([coffreId, deletedAt])
+  @@index([userId, createdAt])
   @@map("movements")
 }
 
@@ -103,6 +106,8 @@ model Inventory {
   user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   details InventoryDetail[]
 
+  @@index([coffreId, date])
+  @@index([coffreId, deletedAt])
   @@map("inventories")
 }
 
@@ -184,6 +189,8 @@ model Reserve {
   month       Int
   amount      Float
   releaseYear Int?     // Année de libération (calculée)
+  released    Float    @default(0) // Montant libéré
+  notes       String?  // Notes optionnelles
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

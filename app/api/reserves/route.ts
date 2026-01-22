@@ -10,6 +10,7 @@ import { z } from "zod"
 // Validation Zod
 const createReserveSchema = z.object({
   year: z.number().int().min(2000).max(2100),
+  month: z.number().int().min(1).max(12).default(1),
   amount: z.number().min(0),
   releaseYear: z.number().int().min(2000).max(2100).optional(),
   released: z.number().min(0).default(0),
@@ -45,7 +46,7 @@ async function getHandler(req: NextRequest) {
     }, 0)
     
     const totalReleased = reservesWithAmount.reduce((sum, r) => {
-      return sum + Number(r.released)
+      return sum + Number(r.released || 0)
     }, 0)
     
     const totalReleasable = total - totalReleased
@@ -90,12 +91,15 @@ async function postHandler(req: NextRequest) {
     const body = await req.json()
     const validatedData = createReserveSchema.parse(body)
 
-    // Vérifier si une réserve existe déjà pour cette année
+    // Vérifier si une réserve existe déjà pour cette année et ce mois
+    // Utiliser le mois par défaut (1) si non spécifié
+    const month = validatedData.month || 1
     const existingReserve = await prisma.reserve.findUnique({
       where: {
-        userId_year: {
+        userId_year_month: {
           userId: session.user.id,
           year: validatedData.year,
+          month: month,
         },
       },
     })
@@ -112,9 +116,10 @@ async function postHandler(req: NextRequest) {
       data: {
         userId: session.user.id,
         year: validatedData.year,
+        month: validatedData.month || 1,
         amount: validatedData.amount,
         releaseYear: validatedData.releaseYear,
-        released: validatedData.released,
+        released: validatedData.released || 0,
         notes: validatedData.notes,
       },
     })

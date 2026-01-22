@@ -7,11 +7,14 @@ import { MUTATION_RATE_LIMIT, API_RATE_LIMIT } from "@/lib/rate-limit"
 import { ApiError, handleApiError, createAuditLog } from "@/lib/api-utils"
 import { z } from "zod"
 
+// Validation CUID (format: c + 24 caractères alphanumériques)
+const cuidRegex = /^c[a-z0-9]{24}$/
+
 const updateAssetSchema = z.object({
   name: z.string().min(2).max(255).optional(),
   category: z.string().max(100).nullable().optional(),
   description: z.string().max(2000).nullable().optional(),
-  coffreId: z.string().uuid().nullable().optional(),
+  coffreId: z.string().regex(cuidRegex, "ID de coffre invalide (format CUID requis)").nullable().optional(),
 })
 
 async function getHandler(
@@ -56,7 +59,7 @@ async function putHandler(
     // Si une localisation coffre est fournie, vérifier que l'utilisateur y a accès
     if (parsed.data.coffreId) {
       const member = await prisma.coffreMember.findUnique({
-        where: { userId_coffreId: { userId: session.user.id, coffreId: parsed.data.coffreId } },
+        where: { coffreId_userId: { coffreId: parsed.data.coffreId, userId: session.user.id } },
         select: { id: true },
       })
       if (!member) throw new ApiError(403, "Accès refusé à ce coffre")

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "@/lib/auth"
-"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { authenticatedRoute } from "@/lib/api-middleware"
 import { MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
@@ -19,7 +19,7 @@ async function putHandler(
   context: { params: Promise<{ id: string; eventId: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) throw new ApiError(401, "Non autorisé")
 
     const { id: assetId, eventId } = await context.params
@@ -79,7 +79,7 @@ async function deleteHandler(
   context: { params: Promise<{ id: string; eventId: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) throw new ApiError(401, "Non autorisé")
 
     const { id: assetId, eventId } = await context.params
@@ -127,7 +127,7 @@ async function getHandler(
   context: { params: Promise<{ id: string; eventId: string }> }
 ) {
   try {
-    const session = await getServerSession()
+    const session = await getServerSession(authOptions)
     if (!session) throw new ApiError(401, "Non autorisé")
 
     const { id: assetId, eventId } = await context.params

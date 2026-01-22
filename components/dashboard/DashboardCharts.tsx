@@ -199,7 +199,7 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
       const movementsBeforePeriod = (data.allMovements || data.movements || [])
         .filter((mov: any) => {
           const movDate = new Date(mov.createdAt)
-          return movDate >= new Date(lastInventoryBefore.createdAt) && movDate < startDate
+          return movDate >= new Date(lastInventoryBefore.date) && movDate < startDate
         })
       
       movementsBeforePeriod.forEach((mov: any) => {

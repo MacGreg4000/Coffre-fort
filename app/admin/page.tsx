@@ -47,13 +47,25 @@ async function getAdminData() {
 }
 
 export default async function AdminPage() {
-  const session = await getServerSession()
+  const session = await getServerSession(authOptions)
   if (!session) {
     redirect("/login")
   }
 
-  if (session.user.role !== "ADMIN") {
-    redirect("/dashboard")
+  // Vérifier que l'utilisateur a le rôle ADMIN
+  const userRole = session.user?.role
+  
+  // Si le rôle n'est pas ADMIN, vérifier directement en base de données
+  if (userRole !== "ADMIN") {
+    // Vérifier en base de données au cas où la session n'est pas à jour
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    })
+    
+    if (dbUser?.role !== "ADMIN") {
+      redirect("/dashboard")
+    }
   }
 
   const data = await getAdminData()

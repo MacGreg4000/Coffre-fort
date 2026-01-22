@@ -35,6 +35,7 @@ async function postHandler(req: NextRequest) {
         yearsToCreate.push({
           userId: session.user.id,
           year,
+          month: 1, // Mois par défaut
           amount: 0,
           released: 0,
           releaseYear: year + 5, // Année libérable = toujours année + 5 ans

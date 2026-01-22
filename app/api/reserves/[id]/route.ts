@@ -10,6 +10,7 @@ import { z } from "zod"
 // Validation Zod
 const updateReserveSchema = z.object({
   year: z.number().int().min(2000).max(2100).optional(),
+  month: z.number().int().min(1).max(12).optional(),
   amount: z.number().min(0).optional(),
   releaseYear: z.number().int().min(2000).max(2100).nullable().optional(),
   released: z.number().min(0).optional(),
@@ -46,29 +47,51 @@ async function putHandler(
       return NextResponse.json({ error: "Non autorisé" }, { status: 403 })
     }
 
-    // Si l'année change, vérifier qu'il n'y a pas de conflit
-    if (validatedData.year && validatedData.year !== existingReserve.year) {
+    // Si l'année ou le mois change, vérifier qu'il n'y a pas de conflit
+    const newYear = validatedData.year ?? existingReserve.year
+    const newMonth = validatedData.month ?? existingReserve.month
+    
+    if ((validatedData.year && validatedData.year !== existingReserve.year) ||
+        (validatedData.month && validatedData.month !== existingReserve.month)) {
       const conflictingReserve = await prisma.reserve.findUnique({
         where: {
-          userId_year: {
+          userId_year_month: {
             userId: session.user.id,
-            year: validatedData.year,
+            year: newYear,
+            month: newMonth,
           },
         },
       })
 
       if (conflictingReserve && conflictingReserve.id !== reserveId) {
         return NextResponse.json(
-          { error: `Une réserve existe déjà pour l'année ${validatedData.year}` },
+          { error: `Une réserve existe déjà pour ${newMonth}/${newYear}` },
           { status: 400 }
         )
       }
     }
 
+    // Préparer les données de mise à jour
+    const updateData: {
+      year?: number
+      month?: number
+      amount?: number
+      releaseYear?: number | null
+      released?: number
+      notes?: string | null
+    } = {}
+    
+    if (validatedData.year !== undefined) updateData.year = validatedData.year
+    if (validatedData.month !== undefined) updateData.month = validatedData.month
+    if (validatedData.amount !== undefined) updateData.amount = validatedData.amount
+    if (validatedData.releaseYear !== undefined) updateData.releaseYear = validatedData.releaseYear
+    if (validatedData.released !== undefined) updateData.released = validatedData.released
+    if (validatedData.notes !== undefined) updateData.notes = validatedData.notes
+
     // Mettre à jour la réserve
     const updatedReserve = await prisma.reserve.update({
       where: { id: reserveId },
-      data: validatedData,
+      data: updateData,
     })
 
     logger.info("Réserve modifiée", {

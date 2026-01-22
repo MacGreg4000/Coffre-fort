@@ -29,10 +29,19 @@ export async function GET(req: NextRequest) {
     const monthEnd = endOfMonth(now)
     const thirtyDaysAgo = subDays(now, 30)
 
-    // Récupérer les coffres accessibles par l'utilisateur
+    // Récupérer les coffres accessibles par l'utilisateur - Optimisé
     const userCoffres = await prisma.coffreMember.findMany({
       where: { userId: session.user.id },
-      include: { coffre: true },
+      select: {
+        coffreId: true,
+        coffre: {
+          select: {
+            id: true,
+            name: true,
+            balance: true,
+          }
+        }
+      },
     })
     const coffreIds = userCoffres.map((cm) => cm.coffreId)
 
@@ -41,19 +50,39 @@ export async function GET(req: NextRequest) {
       ? [coffreId]
       : coffreIds
 
-    // Statistiques mensuelles (mouvements)
+    // Statistiques mensuelles (mouvements) - Optimisé avec select au lieu de include
     const movements = await prisma.movement.findMany({
       where: {
         coffreId: { in: filteredCoffreIds },
-            deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
+        deletedAt: null, // IMPORTANT: exclure les mouvements supprimés
         createdAt: { gte: monthStart, lte: monthEnd },
       },
-      include: {
-        coffre: true,
-        user: true,
-        details: true,
+      select: {
+        id: true,
+        type: true,
+        amount: true,
+        createdAt: true,
+        coffre: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        details: {
+          select: {
+            denomination: true,
+            quantity: true,
+          }
+        }
       },
       orderBy: { createdAt: "desc" },
+      take: 100, // Limiter à 100 mouvements pour le mois
     })
 
     // Calculer les totaux
@@ -65,16 +94,29 @@ export async function GET(req: NextRequest) {
       .filter((m) => m.type === "EXIT")
       .reduce((sum, m) => sum + Number(m.amount), 0)
 
-    // Derniers inventaires
+    // Derniers inventaires - Optimisé avec select
     const inventories = await prisma.inventory.findMany({
       where: {
         coffreId: { in: filteredCoffreIds },
       },
-      include: {
-        coffre: true,
-        details: true,
+      select: {
+        id: true,
+        totalAmount: true,
+        date: true,
+        coffre: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        details: {
+          select: {
+            denomination: true,
+            quantity: true,
+          }
+        }
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { date: "desc" },
       take: 5,
     })
 
@@ -91,35 +133,57 @@ export async function GET(req: NextRequest) {
       },
     })
 
-    // Données des inventaires pour les graphiques (derniers 30 jours)
+    // Données des inventaires pour les graphiques (derniers 30 jours) - Optimisé
     const recentInventories = await prisma.inventory.findMany({
       where: {
         coffreId: { in: filteredCoffreIds },
-        createdAt: { gte: thirtyDaysAgo },
+        date: { gte: thirtyDaysAgo },
       },
-      include: {
-        coffre: true,
-        details: true,
+      select: {
+        id: true,
+        coffreId: true,
+        totalAmount: true,
+        date: true,
+        coffre: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
+        details: {
+          select: {
+            denomination: true,
+            quantity: true,
+          }
+        }
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { date: "asc" },
     })
 
-    // Tous les inventaires pour l'évolution du solde (5 ans max)
+    // Tous les inventaires pour l'évolution du solde (5 ans max) - Optimisé
     const fiveYearsAgo = new Date(now)
     fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5)
     const allInventories = await prisma.inventory.findMany({
       where: {
         coffreId: { in: filteredCoffreIds },
-        createdAt: { gte: fiveYearsAgo },
+        date: { gte: fiveYearsAgo },
       },
-      include: {
-        coffre: true,
-        details: true,
+      select: {
+        id: true,
+        coffreId: true,
+        totalAmount: true,
+        date: true,
+        coffre: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
       },
-      orderBy: { createdAt: "asc" },
+      orderBy: { date: "asc" },
     })
 
-        // Tous les mouvements pour l'évolution du solde (5 ans max)
+        // Tous les mouvements pour l'évolution du solde (5 ans max) - Optimisé
         const allMovementsForBalance = await prisma.movement.findMany({
           where: {
             coffreId: { in: filteredCoffreIds },
@@ -127,20 +191,33 @@ export async function GET(req: NextRequest) {
             createdAt: { gte: fiveYearsAgo },
             type: { in: ["ENTRY", "EXIT"] },
           },
-          include: {
-            coffre: true,
-            user: true,
-            details: true,
+          select: {
+            id: true,
+            coffreId: true,
+            type: true,
+            amount: true,
+            createdAt: true,
+            coffre: {
+              select: {
+                id: true,
+                name: true,
+              }
+            },
           },
           orderBy: { createdAt: "asc" },
         })
 
-    // Calculer le solde total actuel pour chaque coffre (en parallèle)
+    // Calculer le solde total actuel pour chaque coffre (en parallèle) - Optimisé
     const balances = await Promise.all(
       filteredCoffreIds.map(async (coffreId) => {
         const lastInventory = await prisma.inventory.findFirst({
           where: { coffreId },
-          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            totalAmount: true,
+            date: true,
+          },
+          orderBy: { date: "desc" },
         })
 
         let balance = 0
@@ -150,7 +227,7 @@ export async function GET(req: NextRequest) {
             where: {
               coffreId,
               deletedAt: null,
-              createdAt: { gte: lastInventory.createdAt },
+              createdAt: { gte: lastInventory.date },
               type: { in: ["ENTRY", "EXIT"] },
             },
             select: { type: true, amount: true },
@@ -227,7 +304,7 @@ export async function GET(req: NextRequest) {
             const lastInventory = await prisma.inventory.findFirst({
               where: { coffreId },
               include: { details: true },
-              orderBy: { createdAt: "desc" },
+              orderBy: { date: "desc" },
             })
 
             if (lastInventory) {
@@ -242,7 +319,7 @@ export async function GET(req: NextRequest) {
                 where: {
                   coffreId,
                   deletedAt: null,
-                  createdAt: { gte: lastInventory.createdAt },
+                  createdAt: { gte: lastInventory.date },
                   type: { in: ["ENTRY", "EXIT"] },
                 },
                 include: { details: true },

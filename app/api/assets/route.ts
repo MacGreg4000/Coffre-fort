@@ -7,11 +7,14 @@ import { API_RATE_LIMIT, MUTATION_RATE_LIMIT } from "@/lib/rate-limit"
 import { ApiError, handleApiError, createAuditLog } from "@/lib/api-utils"
 import { z } from "zod"
 
+// Validation CUID (format: c + 24 caractères alphanumériques)
+const cuidRegex = /^c[a-z0-9]{24}$/
+
 const createAssetSchema = z.object({
   name: z.string().min(2).max(255),
   category: z.string().max(100).optional(),
   description: z.string().max(2000).optional(),
-  coffreId: z.string().uuid().nullable().optional(),
+  coffreId: z.string().regex(cuidRegex, "ID de coffre invalide (format CUID requis)").nullable().optional(),
 })
 
 async function getHandler(_req: NextRequest) {
@@ -64,7 +67,7 @@ async function postHandler(req: NextRequest) {
     if (normalizedCoffreId) {
       const member = await prisma.coffreMember.findUnique({
         where: {
-          userId_coffreId: { userId: session.user.id, coffreId: normalizedCoffreId },
+          coffreId_userId: { coffreId: normalizedCoffreId, userId: session.user.id },
         },
         select: { id: true },
       })

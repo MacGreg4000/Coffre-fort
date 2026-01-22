@@ -45,7 +45,7 @@ async function getCaisseData(userId: string) {
         id: true,
         totalAmount: true,
         notes: true,
-        createdAt: true,
+        date: true,
         details: {
           select: {
             id: true,
@@ -54,7 +54,7 @@ async function getCaisseData(userId: string) {
           }
         }
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { date: "desc" },
     })
   )
 
@@ -109,7 +109,7 @@ async function getHistoriqueData(userId: string) {
       coffre: true,
       details: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { date: "desc" },
     take: 100,
   })
 

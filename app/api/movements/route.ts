@@ -30,9 +30,9 @@ async function postHandler(req: NextRequest) {
     // Vérifier l'accès au coffre
     const member = await prisma.coffreMember.findUnique({
       where: {
-        userId_coffreId: {
-          userId: session.user.id,
+        coffreId_userId: {
           coffreId,
+          userId: session.user.id,
         },
       },
     })

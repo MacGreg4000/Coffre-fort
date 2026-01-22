@@ -66,12 +66,26 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id
         token.role = user.role
       }
+      // Si le token existe mais n'a pas de rôle, récupérer depuis la DB
+      if (token.id && !token.role) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { role: true }
+          })
+          if (dbUser) {
+            token.role = dbUser.role
+          }
+        } catch (error) {
+          console.error('Erreur lors de la récupération du rôle:', error)
+        }
+      }
       return token
     },
     async session({ session, token }) {
       if (token && session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string
+        session.user.role = (token.role as string) || "USER" // Fallback à USER si pas de rôle
       }
       return session
     }
