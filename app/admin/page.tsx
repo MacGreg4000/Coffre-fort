@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
-import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import { Layout } from "@/components/layout/Layout"
 import { AdminPanel } from "@/components/admin/AdminPanel"
 import { prisma } from "@/lib/prisma"
@@ -47,7 +47,7 @@ async function getAdminData() {
 }
 
 export default async function AdminPage() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
   if (!session) {
     redirect("/login")
   }

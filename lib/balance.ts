@@ -1,82 +1,65 @@
-import { Prisma, PrismaClient } from "@prisma/client"
-
-type PrismaLike = PrismaClient | Prisma.TransactionClient
-
-function toCents(value: unknown): number {
-  const n = typeof value === "number" ? value : Number(value)
-  // Arrondi au centime (Decimal(10,2) côté DB)
-  return Math.round(n * 100)
+// Balance calculation utilities
+export const calculateBalance = (entries: number[], exits: number[]): number => {
+  const totalEntries = entries.reduce((sum, amount) => sum + amount, 0)
+  const totalExits = exits.reduce((sum, amount) => sum + amount, 0)
+  return totalEntries - totalExits
 }
 
-/**
- * Calcule la balance d'un coffre.
- * Règle métier: dernier inventaire (snapshot) + ENTRY - EXIT depuis cet inventaire.
- * Important: exclure les mouvements soft-deleted (deletedAt != null).
- *
- * Retourne aussi la date/montant du dernier inventaire.
- */
-export async function computeCoffreBalanceInfo(
-  prisma: PrismaLike,
-  coffreId: string
-): Promise<{
-  balance: number
-  balanceCents: number
-  lastInventoryDate: Date | null
-  lastInventoryAmount: number
-  lastInventoryAmountCents: number
-}> {
+export const computeCoffreBalanceInfo = async (prisma: any, coffreId: string) => {
+  // Récupérer le dernier inventaire
   const lastInventory = await prisma.inventory.findFirst({
     where: { coffreId },
-    orderBy: { createdAt: "desc" },
-    select: { createdAt: true, totalAmount: true },
+    orderBy: { date: 'desc' },
   })
 
-  const lastInventoryAmountCents = lastInventory ? toCents(lastInventory.totalAmount) : 0
-  let balanceCents = lastInventoryAmountCents
+  let balance = 0
+  let lastInventoryAmount = 0
+  let lastInventoryDate = null
 
   if (lastInventory) {
-    const movementsAfterInventory = await prisma.movement.findMany({
+    lastInventoryAmount = Number(lastInventory.totalAmount)
+    lastInventoryDate = lastInventory.date.toISOString()
+    balance = lastInventoryAmount
+
+    // Calculer les mouvements depuis le dernier inventaire
+    const movements = await prisma.movement.findMany({
       where: {
         coffreId,
         deletedAt: null,
-        createdAt: { gte: lastInventory.createdAt },
-        type: { in: ["ENTRY", "EXIT"] },
+        createdAt: { gte: lastInventory.date }
       },
-      select: { type: true, amount: true },
+      select: { type: true, amount: true }
     })
 
-    movementsAfterInventory.forEach((m) => {
-      const amountCents = toCents(m.amount)
-      if (m.type === "ENTRY") balanceCents += amountCents
-      if (m.type === "EXIT") balanceCents -= amountCents
+    movements.forEach((movement: any) => {
+      if (movement.type === 'ENTRY') {
+        balance += Number(movement.amount)
+      } else if (movement.type === 'EXIT') {
+        balance -= Number(movement.amount)
+      }
     })
   } else {
-    const allMovements = await prisma.movement.findMany({
+    // Pas d'inventaire, calculer depuis tous les mouvements
+    const movements = await prisma.movement.findMany({
       where: {
         coffreId,
-        deletedAt: null,
-        type: { in: ["ENTRY", "EXIT"] },
+        deletedAt: null
       },
-      select: { type: true, amount: true },
-      orderBy: { createdAt: "asc" },
+      select: { type: true, amount: true }
     })
 
-    allMovements.forEach((m) => {
-      const amountCents = toCents(m.amount)
-      if (m.type === "ENTRY") balanceCents += amountCents
-      if (m.type === "EXIT") balanceCents -= amountCents
+    movements.forEach((movement: any) => {
+      if (movement.type === 'ENTRY') {
+        balance += Number(movement.amount)
+      } else if (movement.type === 'EXIT') {
+        balance -= Number(movement.amount)
+      }
     })
   }
-
-  // Normaliser -0
-  if (Object.is(balanceCents, -0)) balanceCents = 0
 
   return {
-    balanceCents,
-    balance: balanceCents / 100,
-    lastInventoryDate: lastInventory?.createdAt ?? null,
-    lastInventoryAmountCents,
-    lastInventoryAmount: lastInventoryAmountCents / 100,
+    balance,
+    lastInventoryDate,
+    lastInventoryAmount,
   }
 }
-

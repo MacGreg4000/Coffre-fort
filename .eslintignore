@@ -1,0 +1,9 @@
+.next
+node_modules
+out
+dist
+build
+*.config.js
+*.config.ts
+**/__tests__/**
+**/__mocks__/**

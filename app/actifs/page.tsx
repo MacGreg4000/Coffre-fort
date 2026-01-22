@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth"
-import { redirect } from "next/navigation"
 import { authOptions } from "@/lib/auth"
+import { redirect } from "next/navigation"
 import { Layout } from "@/components/layout/Layout"
 import { AssetsClient } from "@/components/assets/AssetsClient"
 import { prisma } from "@/lib/prisma"

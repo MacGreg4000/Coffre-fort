@@ -106,7 +106,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
 
       if (response.ok) {
         router.refresh()
-        e.currentTarget.reset()
+        e.currentTarget?.reset()
         showToast("Utilisateur créé avec succès!", "success")
       } else {
         const error = await response.json()
@@ -147,7 +147,7 @@ export function AdminPanel({ data }: AdminPanelProps) {
       
       if (response.ok) {
         router.refresh()
-        e.currentTarget.reset()
+        e.currentTarget?.reset()
         showToast("Coffre créé avec succès!", "success")
       } else {
         showToast(`Erreur: ${result.error || result.message || "Une erreur est survenue"}`, "error")

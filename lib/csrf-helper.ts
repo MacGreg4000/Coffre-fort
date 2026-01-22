@@ -1,8 +1,4 @@
-/**
- * Helper pour récupérer le token CSRF côté client
- * Compatible avec les composants React (client components)
- */
-export async function getCsrfToken(): Promise<string | null> {
+export const getCsrfToken = async (): Promise<string | null> => {
   try {
     const response = await fetch("/api/csrf/token", {
       credentials: "include",

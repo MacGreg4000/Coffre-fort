@@ -5,37 +5,22 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatCurrency(amount: number | string): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount
+export function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('fr-FR', {
     style: 'currency',
     currency: 'EUR',
-  }).format(num)
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
+
+export const BILLET_DENOMINATIONS = [500, 200, 100, 50, 20, 10, 5]
 
 export function formatDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
+  return d.toLocaleDateString('fr-FR', {
     year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(d)
+    month: '2-digit',
+    day: '2-digit'
+  })
 }
-
-export const BILLET_DENOMINATIONS = [5, 10, 20, 50, 100, 200, 500] as const
-
-export type BilletDenomination = typeof BILLET_DENOMINATIONS[number]
-
-
-
-
-
-
-
-
-
-
-
-

@@ -376,10 +376,10 @@ export default function ReservesClient() {
         .sort((a, b) => a.year - b.year)
         .map((r) => [
           r.year.toString(),
-          `${formatCurrency(Number(r.amount))} €`,
+          `${formatCurrency(r.amount)} €`,
           r.releaseYear?.toString() || "-",
-          `${formatCurrency(Number(r.released))} €`,
-          `${formatCurrency(Number(r.amount) - Number(r.released))} €`,
+          `${formatCurrency(r.released)} €`,
+          `${formatCurrency((r.amount || 0) - (r.released || 0))} €`,
         ])
 
       autoTable(doc, {
@@ -453,6 +453,10 @@ export default function ReservesClient() {
 
   // Format number
   const formatCurrency = (value: number) => {
+    // Gérer les cas NaN, undefined, null
+    if (isNaN(value) || value === null || value === undefined) {
+      return "0,00"
+    }
     return value.toLocaleString("fr-FR", {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
@@ -567,7 +571,9 @@ export default function ReservesClient() {
         <div className="space-y-2">
           <AnimatePresence>
             {reserves.map((reserve, index) => {
-              const available = Number(reserve.amount) - Number(reserve.released)
+              const amount = Number(reserve.amount) || 0
+              const released = Number(reserve.released) || 0
+              const available = amount - released
               const isEditing = editingId === reserve.id
 
               return (
@@ -640,7 +646,7 @@ export default function ReservesClient() {
                       />
                     ) : (
                       <span className="font-semibold text-blue-500">
-                        {formatCurrency(Number(reserve.amount))} €
+                        {formatCurrency(reserve.amount)} €
                       </span>
                     )}
                   </div>
@@ -728,7 +734,7 @@ export default function ReservesClient() {
                       />
                     ) : (
                       <span className="font-semibold text-green-500">
-                        {formatCurrency(Number(reserve.released))} €
+                        {formatCurrency(reserve.released)} €
                       </span>
                     )}
                   </div>

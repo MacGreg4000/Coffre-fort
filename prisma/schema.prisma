@@ -1,368 +1,209 @@
-// ============================================
-// SafeGuard - Schema Prisma (MariaDB/MySQL)
-// ============================================
-// Provider: mysql (MariaDB 10 compatible)
-// Port Synology: 3307 (par défaut)
-// ============================================
-
+// Prisma schema file
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-1.1.x"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
-// ============================================
-// UTILISATEURS
-// ============================================
 model User {
-  id            String    @id @default(uuid())
-  email         String    @unique @db.VarChar(255)
-  password      String    @db.VarChar(255) // Hash bcrypt
-  name          String    @db.VarChar(255)
-  role          UserRole  @default(USER)
-  isActive      Boolean   @default(true)
-  
-  // 2FA (Two-Factor Authentication)
-  twoFactorEnabled    Boolean  @default(false)
-  twoFactorSecret     String?  @db.VarChar(255) // Secret TOTP chiffré
-  twoFactorBackupCodes Json?   // Codes de récupération hashés [string]
-  trustedDevices       Json?    // Appareils de confiance {deviceId: {name, expiresAt}}[]
-  
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                   String   @id @default(cuid())
+  email                String   @unique
+  name                 String
+  password             String
+  role                 String   @default("USER")
+  isActive             Boolean  @default(true)
+  twoFactorEnabled     Boolean  @default(false)
+  twoFactorSecret      String?
+  twoFactorBackupCodes String?  // JSON string of backup codes
+  trustedDevices       String?  // JSON string of trusted devices
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
-  // Relations
-  coffreMembers   CoffreMember[]
-  movements       Movement[]
-  sessions        Session[]
-  logs            Log[]
-  reserves        Reserve[]
-  assets          Asset[]
-  passwordFiles   PasswordFile[]
-  assetDocuments  AssetDocument[]
+  coffreMembers CoffreMember[]
+  movements      Movement[]
+  inventories    Inventory[]
+  assets         Asset[]
+  passwordFiles  PasswordFile[]
+  reserves       Reserve[]
 
-  @@index([email])
-  @@index([role])
   @@map("users")
 }
 
-enum UserRole {
-  ADMIN
-  MANAGER
-  USER
-}
-
-// ============================================
-// COFFRES (Multi-Coffres)
-// ============================================
 model Coffre {
-  id          String   @id @default(uuid())
-  name        String   @db.VarChar(255)
-  description String?  @db.Text
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  balance     Float    @default(0)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
   members     CoffreMember[]
   movements   Movement[]
   inventories Inventory[]
-  logs        Log[]
   assets      Asset[]
 
-  @@index([name])
   @@map("coffres")
 }
 
-// ============================================
-// ACTIFS / AVOIRS (héritage)
-// ============================================
-model Asset {
-  id          String   @id @default(uuid())
-  userId      String
-  coffreId    String?  // localisation (optionnelle) dans un coffre
-  name        String   @db.VarChar(255)
-  category    String?  @db.VarChar(100) // ex: OR, MONTRE, VOITURE, AUTRE (libre)
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coffre      Coffre?  @relation(fields: [coffreId], references: [id], onDelete: SetNull)
-  events      AssetEvent[]
-  documents   AssetDocument[]
-
-  @@index([userId])
-  @@index([coffreId])
-  @@index([category])
-  @@map("assets")
-}
-
-enum AssetEventType {
-  PURCHASE   // achat
-  SALE       // vente
-  VALUATION  // estimation
-}
-
-model AssetEvent {
-  id        String         @id @default(uuid())
-  assetId   String
-  type      AssetEventType
-  date      DateTime       @default(now())
-  amount    Decimal?       @db.Decimal(12, 2)
-  notes     String?        @db.Text
-  metadata  Json?
-  createdAt DateTime       @default(now())
-
-  // Relations
-  asset     Asset          @relation(fields: [assetId], references: [id], onDelete: Cascade)
-
-  @@index([assetId])
-  @@index([type])
-  @@index([date])
-  @@map("asset_events")
-}
-
-// ============================================
-// DOCUMENTS D'ACTIFS (factures, certificats, etc.)
-// ============================================
-model AssetDocument {
-  id        String   @id @default(uuid())
-  assetId   String
-  userId    String   // Propriétaire (pour vérification d'accès)
-  filename  String   @db.VarChar(255)
-  mimeType  String   @db.VarChar(150)
-  sizeBytes Int
-  sha256    String   @db.VarChar(64)
-  data      Bytes    @db.LongBlob
-  documentType String? @db.VarChar(100) // Ex: "FACTURE", "CERTIFICAT", "CARTE_GRISE", etc.
-  notes     String?  @db.Text
-  createdAt DateTime @default(now())
-
-  // Relations
-  asset     Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([assetId])
-  @@index([userId])
-  @@index([createdAt])
-  @@index([documentType])
-  @@map("asset_documents")
-}
-
-// ============================================
-// FICHIERS (ex: export gestionnaire de mots de passe)
-// ============================================
-model PasswordFile {
-  id        String   @id @default(uuid())
-  userId    String
-  filename  String   @db.VarChar(255)
-  mimeType  String   @db.VarChar(150)
-  sizeBytes Int
-  sha256    String   @db.VarChar(64)
-  data      Bytes    @db.LongBlob
-  createdAt DateTime @default(now())
-
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([createdAt])
-  @@map("password_files")
-}
-
-// ============================================
-// MEMBRES DE COFFRE (Permissions)
-// ============================================
 model CoffreMember {
-  id        String        @id @default(uuid())
-  userId    String
-  coffreId  String
-  role      CoffreRole   @default(MEMBER)
-  createdAt DateTime     @default(now())
-  updatedAt DateTime      @updatedAt
+  id       String @id @default(cuid())
+  coffreId String
+  userId   String
+  role     String @default("MEMBER")
 
-  // Relations
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  coffre    Coffre       @relation(fields: [coffreId], references: [id], onDelete: Cascade)
+  coffre Coffre @relation(fields: [coffreId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, coffreId])
-  @@index([userId])
-  @@index([coffreId])
+  @@unique([coffreId, userId])
   @@map("coffre_members")
 }
 
-enum CoffreRole {
-  OWNER   // Propriétaire (tous droits)
-  MANAGER // Gestionnaire (gestion + inventaire)
-  MEMBER  // Membre (consultation + inventaire)
-}
-
-// ============================================
-// MOUVEMENTS DE CAISSE
-// ============================================
 model Movement {
-  id          String        @id @default(uuid())
+  id          String    @id @default(cuid())
   coffreId    String
   userId      String
-  type        MovementType
-  amount      Decimal       @db.Decimal(10, 2) // Montant total en euros
-  description String?       @db.Text
-  deletedAt   DateTime?     // Soft delete
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  type        String    // "ENTRY" | "EXIT"
+  amount      Float
+  description String?
+  createdAt   DateTime  @default(now())
+  deletedAt   DateTime?
 
-  // Relations
-  coffre      Coffre        @relation(fields: [coffreId], references: [id], onDelete: Cascade)
-  user        User          @relation(fields: [userId], references: [id], onDelete: Restrict)
-  details     MovementDetail[]
-  logs        Log[]
+  coffre  Coffre         @relation(fields: [coffreId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  details MovementDetail[]
 
-  @@index([coffreId])
-  @@index([userId])
-  @@index([type])
-  @@index([createdAt])
-  @@index([coffreId, createdAt])
-  @@index([userId, createdAt])
   @@map("movements")
 }
 
-enum MovementType {
-  INVENTORY // Mode Inventaire (comptage initial)
-  ENTRY     // Entrée (ajout de fonds)
-  EXIT      // Sortie (retrait de fonds)
-}
-
-// ============================================
-// DÉTAILS DE MOUVEMENT (Billets)
-// ============================================
 model MovementDetail {
-  id         String   @id @default(uuid())
-  movementId String
-  denomination Decimal @db.Decimal(10, 2) // Valeur du billet (5, 10, 20, 50, 100, 200, 500)
-  quantity   Int      // Nombre de billets
-  createdAt  DateTime @default(now())
+  id           String @id @default(cuid())
+  movementId   String
+  denomination Float
+  quantity     Int
 
-  // Relations
-  movement   Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
+  movement Movement @relation(fields: [movementId], references: [id], onDelete: Cascade)
 
-  @@index([movementId])
-  @@index([denomination])
   @@map("movement_details")
 }
 
-// ============================================
-// INVENTAIRES (Snapshots)
-// ============================================
 model Inventory {
-  id          String   @id @default(uuid())
+  id          String    @id @default(cuid())
   coffreId    String
-  totalAmount Decimal  @db.Decimal(10, 2) // Montant total calculé
-  notes       String?  @db.Text
-  createdAt   DateTime @default(now())
+  userId      String
+  totalAmount Float
+  notes       String?
+  date        DateTime  @default(now())
+  deletedAt   DateTime?
 
-  // Relations
-  coffre      Coffre   @relation(fields: [coffreId], references: [id], onDelete: Cascade)
-  details     InventoryDetail[]
-  logs        Log[]
+  coffre  Coffre          @relation(fields: [coffreId], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  details InventoryDetail[]
 
-  @@index([coffreId])
-  @@index([createdAt])
   @@map("inventories")
 }
 
-// ============================================
-// DÉTAILS D'INVENTAIRE (Billets)
-// ============================================
 model InventoryDetail {
-  id          String    @id @default(uuid())
-  inventoryId String
-  denomination Decimal  @db.Decimal(10, 2) // Valeur du billet
-  quantity    Int       // Nombre de billets
-  createdAt   DateTime  @default(now())
+  id           String @id @default(cuid())
+  inventoryId  String
+  denomination Float
+  quantity     Int
 
-  // Relations
-  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  inventory Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
 
-  @@index([inventoryId])
-  @@index([denomination])
   @@map("inventory_details")
 }
 
-// ============================================
-// SESSIONS (NextAuth.js)
-// ============================================
-model Session {
-  id           String   @id @default(uuid())
-  sessionToken String   @unique @db.VarChar(255)
-  userId       String
-  expires      DateTime @db.DateTime(3)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  // Relations
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([sessionToken])
-  @@map("sessions")
-}
-
-// ============================================
-// LOGS D'ACTIVITÉ
-// ============================================
-model Log {
-  id          String    @id @default(uuid())
-  userId      String?
+model Asset {
+  id          String   @id @default(cuid())
+  name        String
+  category    String?
+  description String?
   coffreId    String?
-  movementId  String?
-  inventoryId String?
-  action      String    @db.VarChar(100) // Ex: "MOVEMENT_CREATED", "INVENTORY_CREATED", "USER_LOGIN"
-  description String?   @db.Text
-  metadata    Json?     // Données supplémentaires en JSON
-  ipAddress   String?   @db.VarChar(45) // IPv4 ou IPv6
-  userAgent   String?   @db.Text
-  createdAt   DateTime  @default(now())
-
-  // Relations
-  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  coffre      Coffre?   @relation(fields: [coffreId], references: [id], onDelete: SetNull)
-  movement    Movement? @relation(fields: [movementId], references: [id], onDelete: SetNull)
-  inventory   Inventory? @relation(fields: [inventoryId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([coffreId])
-  @@index([action])
-  @@index([createdAt])
-  @@map("logs")
-}
-
-// ============================================
-// RÉSERVES DE LIQUIDATION
-// ============================================
-model Reserve {
-  id          String   @id @default(uuid())
-  userId      String
-  year        Int      // Année de création de la réserve
-  amount      Decimal  @db.Decimal(12, 2) // Montant de la réserve
-  releaseYear Int?     // Année où la réserve devient libérable
-  released    Decimal  @default(0) @db.Decimal(12, 2) // Montant déjà libéré
-  notes       String?  @db.Text
+  userId      String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  coffre   Coffre?        @relation(fields: [coffreId], references: [id])
+  user     User?          @relation(fields: [userId], references: [id])
+  events   AssetEvent[]
+  documents AssetDocument[]
 
-  @@unique([userId, year]) // Une seule réserve par année et par utilisateur
-  @@index([userId])
-  @@index([year])
-  @@index([releaseYear])
+  @@map("assets")
+}
+
+model AssetEvent {
+  id       String   @id @default(cuid())
+  assetId  String
+  type     String   // "PURCHASE" | "SALE" | "VALUATION"
+  amount   Float?
+  date     DateTime
+  notes    String?
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("asset_events")
+}
+
+model AssetDocument {
+  id            String @id @default(cuid())
+  assetId       String
+  filename      String
+  mimeType      String
+  sizeBytes     Int
+  documentType  String?
+  createdAt     DateTime @default(now())
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@map("asset_documents")
+}
+
+model PasswordFile {
+  id        String   @id @default(cuid())
+  userId    String
+  filename  String
+  mimeType  String
+  sizeBytes Int
+  sha256    String?
+  data      Bytes
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("password_files")
+}
+
+model Reserve {
+  id          String   @id @default(cuid())
+  userId      String
+  year        Int
+  month       Int
+  amount      Float
+  releaseYear Int?     // Année de libération (calculée)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, year, month])
   @@map("reserves")
 }
 
+model Log {
+  id          String   @id @default(cuid())
+  userId      String?
+  coffreId    String?
+  movementId  String?
+  action      String
+  description String?
+  metadata    String?  // JSON string for additional data
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@map("logs")
+}

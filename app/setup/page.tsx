@@ -7,6 +7,8 @@ import { Button, Input, Card, CardHeader, CardBody, CardFooter } from "@heroui/r
 import { Wallet, Loader2 } from "lucide-react"
 
 export default function SetupPage() {
+  console.log("SetupPage component rendered")
+
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
@@ -20,15 +22,26 @@ export default function SetupPage() {
   const [error, setError] = useState("")
 
   const checkSetup = useCallback(async () => {
+    console.log("Vérification du setup...")
     try {
+      console.log("Fetch vers /api/setup/check")
       const response = await fetch("/api/setup/check", {
         cache: "no-store",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
       })
+      console.log("Réponse reçue:", response.status, response.statusText)
+
       const data = await response.json()
-      
+      console.log("Données reçues:", data)
+
       if (data.needsSetup) {
+        console.log("Setup nécessaire")
         setNeedsSetup(true)
       } else {
+        console.log("Setup déjà fait, redirection vers login")
         // La base n'est pas vide, rediriger vers login
         router.replace("/login")
       }
@@ -116,6 +129,7 @@ export default function SetupPage() {
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-4" />
           <p className="text-foreground/60">Vérification...</p>
+          <p className="text-xs text-foreground/40 mt-2">Tentative de connexion à l'API...</p>
         </div>
       </div>
     )

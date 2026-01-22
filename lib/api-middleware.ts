@@ -152,27 +152,28 @@ export function withApiMiddleware(
 
       // 2. Rate Limiting
       if (options.rateLimit) {
-        const session = options.requireAuth
-          ? await getServerSession(authOptions)
-          : null
-        
+        // Temporairement désactivé pour éviter les problèmes Next.js 15
+        // const session = options.requireAuth
+        //   ? await getServerSession(authOptions)
+        //   : null
+
         const result = rateLimit(
           req,
           options.rateLimit,
-          session?.user?.id
+          null // session?.user?.id
         )
-        
+
         if (!result.success) {
           await logSecurityEvent({
             action: "RATE_LIMIT_EXCEEDED",
             severity: "medium",
-            userId: session?.user?.id,
+            userId: null, // session?.user?.id
             description: `Rate limit dépassé pour ${req.nextUrl.pathname}`,
             metadata: { limit: result.limit, remaining: result.remaining },
             ipAddress,
             userAgent: req.headers.get("user-agent") || "unknown",
           }, req)
-          
+
           return createRateLimitResponse(result, options.rateLimit.message)
         }
       }
