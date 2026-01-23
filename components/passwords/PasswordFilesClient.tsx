@@ -4,8 +4,9 @@ import { useEffect, useState } from "react"
 import { Card, CardBody, Button } from "@heroui/react"
 import { useToast } from "@/components/ui/toast"
 import { useConfirmModal } from "@/components/ui/confirm-modal"
-import { Download, FileUp, Trash2 } from "lucide-react"
+import { Download, FileUp, Trash2, FileText } from "lucide-react"
 import { getCsrfToken } from "@/lib/csrf-helper"
+import { PasswordCsvViewer } from "./PasswordCsvViewer"
 
 type PasswordFile = {
   id: string
@@ -34,6 +35,7 @@ export function PasswordFilesClient() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [files, setFiles] = useState<PasswordFile[]>([])
+  const [viewingCsvFileId, setViewingCsvFileId] = useState<string | null>(null)
 
   const fetchFiles = async () => {
     setLoading(true)
@@ -115,12 +117,24 @@ export function PasswordFilesClient() {
           const data = await res.json().catch(() => ({}))
           if (!res.ok) throw new Error(data?.error || "Erreur suppression")
           showToast("Fichier supprimé", "success")
+          if (viewingCsvFileId === f.id) {
+            setViewingCsvFileId(null)
+          }
           await fetchFiles()
         } catch (e: any) {
           showToast(e.message || "Erreur suppression", "error")
         }
       },
     })
+  }
+
+  const isCsvFile = (filename: string, mimeType: string): boolean => {
+    return (
+      filename.toLowerCase().endsWith(".csv") ||
+      mimeType === "text/csv" ||
+      mimeType === "application/csv" ||
+      mimeType === "text/comma-separated-values"
+    )
   }
 
   return (
@@ -170,7 +184,7 @@ export function PasswordFilesClient() {
             <Card key={f.id} className="bg-card/70 backdrop-blur border border-border/60">
               <CardBody className="p-5">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-semibold text-primary truncate">{f.filename}</p>
                     <p className="text-xs text-foreground/60 mt-1">
                       {formatBytes(f.sizeBytes)} · {f.mimeType}
@@ -178,6 +192,18 @@ export function PasswordFilesClient() {
                     <p className="text-xs text-foreground/50 mt-1 truncate">SHA-256: {f.sha256}</p>
                   </div>
                   <div className="flex gap-2">
+                    {isCsvFile(f.filename, f.mimeType) && (
+                      <Button
+                        isIconOnly
+                        variant="light"
+                        color={viewingCsvFileId === f.id ? "primary" : "default"}
+                        onPress={() => setViewingCsvFileId(viewingCsvFileId === f.id ? null : f.id)}
+                        aria-label="Voir le contenu CSV"
+                        title="Voir le contenu CSV"
+                      >
+                        <FileText className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button isIconOnly variant="light" onPress={() => handleDownload(f.id)} aria-label="Télécharger">
                       <Download className="h-4 w-4" />
                     </Button>
@@ -191,6 +217,17 @@ export function PasswordFilesClient() {
           ))
         )}
       </div>
+
+      {/* Vue CSV */}
+      {viewingCsvFileId && (() => {
+        const file = files.find((f) => f.id === viewingCsvFileId)
+        if (!file) return null
+        return (
+          <div className="mt-6">
+            <PasswordCsvViewer fileId={file.id} filename={file.filename} />
+          </div>
+        )
+      })()}
 
       {ConfirmModal}
     </div>
