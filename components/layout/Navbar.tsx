@@ -151,7 +151,7 @@ export function Navbar() {
                 <Button
                   variant="light"
                   isIconOnly
-                  onPress={() => signOut({ callbackUrl: "/login" })}
+                  onPress={() => signOut({ callbackUrl: "/setup" })}
                   className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-2xl border border-border/60 hover:bg-danger/10 hover:border-danger/40 transition-all"
                   aria-label="Déconnexion"
                 >
