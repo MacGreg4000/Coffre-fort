@@ -202,10 +202,11 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
   const { isOpen: isDocModalOpen, onOpen: onDocModalOpen, onClose: onDocModalClose } = useDisclosure()
   const { isOpen: isViewDocModalOpen, onOpen: onViewDocModalOpen, onClose: onViewDocModalClose } = useDisclosure()
   const [docAsset, setDocAsset] = useState<Asset | null>(null)
-  const [docFile, setDocFile] = useState<File | null>(null)
+  const [docFiles, setDocFiles] = useState<File[]>([])
   const [docType, setDocType] = useState("")
   const [docNotes, setDocNotes] = useState("")
   const [docUploading, setDocUploading] = useState(false)
+  const [docUploadProgress, setDocUploadProgress] = useState<Record<number, boolean>>({})
   const [expandedDocuments, setExpandedDocuments] = useState<Set<string>>(new Set())
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set())
   const [viewingDocument, setViewingDocument] = useState<{ assetId: string; docId: string; filename: string; mimeType: string } | null>(null)
@@ -235,53 +236,82 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
 
   const openDocModal = (asset: Asset) => {
     setDocAsset(asset)
-    setDocFile(null)
+    setDocFiles([])
     setDocType("")
     setDocNotes("")
+    setDocUploadProgress({})
     onDocModalOpen()
   }
 
   const handleUploadDocument = async () => {
-    if (!docAsset || !docFile) {
-      showToast("Veuillez sélectionner un fichier", "error")
+    if (!docAsset || docFiles.length === 0) {
+      showToast("Veuillez sélectionner au moins un fichier", "error")
       return
     }
 
     setDocUploading(true)
-    try {
-      const formData = new FormData()
-      formData.append("file", docFile)
-      if (docType) formData.append("documentType", docType)
-      if (docNotes) formData.append("notes", docNotes)
+    const csrfToken = await getCsrfToken()
+    if (!csrfToken) {
+      showToast("Erreur: impossible de récupérer le token de sécurité", "error")
+      setDocUploading(false)
+      return
+    }
 
-      const csrfToken = await getCsrfToken()
-      if (!csrfToken) {
-        showToast("Erreur: impossible de récupérer le token de sécurité", "error")
-        setDocUploading(false)
-        return
+    let successCount = 0
+    let errorCount = 0
+
+    // Upload chaque fichier
+    for (let i = 0; i < docFiles.length; i++) {
+      const file = docFiles[i]
+      setDocUploadProgress((prev) => ({ ...prev, [i]: true }))
+
+      try {
+        const formData = new FormData()
+        formData.append("file", file)
+        if (docType) formData.append("documentType", docType)
+        if (docNotes) formData.append("notes", docNotes)
+
+        const res = await fetch(`/api/assets/${docAsset.id}/documents`, {
+          method: "POST",
+          headers: {
+            "X-CSRF-Token": csrfToken,
+          },
+          body: formData,
+        })
+
+        const data = await res.json().catch(() => ({}))
+        if (!res.ok) throw new Error(data?.error || "Erreur lors de l'upload")
+        successCount++
+      } catch (e: any) {
+        errorCount++
+        console.error(`Erreur upload fichier ${file.name}:`, e)
+      } finally {
+        setDocUploadProgress((prev) => {
+          const newProgress = { ...prev }
+          delete newProgress[i]
+          return newProgress
+        })
       }
+    }
 
-      const res = await fetch(`/api/assets/${docAsset.id}/documents`, {
-        method: "POST",
-        headers: {
-          "X-CSRF-Token": csrfToken,
-        },
-        body: formData,
-      })
+    setDocUploading(false)
 
-      const data = await res.json().catch(() => ({}))
-      if (!res.ok) throw new Error(data?.error || "Erreur lors de l'upload")
-
-      showToast("Document ajouté avec succès", "success")
+    if (successCount > 0) {
+      showToast(
+        `${successCount} fichier${successCount > 1 ? "s" : ""} ajouté${successCount > 1 ? "s" : ""}${errorCount > 0 ? `, ${errorCount} erreur${errorCount > 1 ? "s" : ""}` : ""}`,
+        errorCount > 0 ? "warning" : "success"
+      )
       onDocModalClose()
       setDocAsset(null)
-      setDocFile(null)
+      setDocFiles([])
       await fetchAssets()
-    } catch (e: any) {
-      showToast(e.message || "Erreur lors de l'upload", "error")
-    } finally {
-      setDocUploading(false)
+    } else {
+      showToast("Aucun fichier n'a pu être ajouté", "error")
     }
+  }
+
+  const handleRemoveFile = (index: number) => {
+    setDocFiles((prev) => prev.filter((_, i) => i !== index))
   }
 
   const handleDownloadDocument = async (assetId: string, docId: string, filename: string) => {
@@ -960,12 +990,22 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
               placeholder="Ex: 1 lingot d’or, Rolex Submariner, Porsche…"
               isRequired
             />
-            <Input
+            <Select
               label="Catégorie (optionnel)"
-              value={form.category}
-              onValueChange={(v) => setForm((p) => ({ ...p, category: v }))}
-              placeholder="OR / MONTRE / VOITURE / AUTRE…"
-            />
+              placeholder="Sélectionner une catégorie"
+              selectedKeys={form.category ? [form.category] : []}
+              onSelectionChange={(keys) => {
+                const selected = Array.from(keys)[0] as string
+                setForm((p) => ({ ...p, category: selected || "" }))
+              }}
+            >
+              <SelectItem key="métaux précieux">Métaux précieux</SelectItem>
+              <SelectItem key="Voiture">Voiture</SelectItem>
+              <SelectItem key="Montre">Montre</SelectItem>
+              <SelectItem key="Bijou">Bijou</SelectItem>
+              <SelectItem key="Vêtement/sac">Vêtement/sac</SelectItem>
+              <SelectItem key="Autre">Autre</SelectItem>
+            </Select>
             <Select
               label="Localisation (coffre)"
               placeholder="Non localisé"
@@ -1103,17 +1143,43 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
               </ModalHeader>
               <ModalBody>
                 <div>
-                  <label className="block text-sm font-medium mb-2">Fichier</label>
+                  <label className="block text-sm font-medium mb-2">
+                    Fichiers {docFiles.length > 0 && `(${docFiles.length})`}
+                  </label>
                   <input
                     type="file"
-                    onChange={(e) => setDocFile(e.target.files?.[0] || null)}
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || [])
+                      setDocFiles((prev) => [...prev, ...files])
+                    }}
                     className="block w-full text-sm text-foreground/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
                     accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
                   />
-                  {docFile && (
-                    <p className="mt-2 text-xs text-foreground/60">
-                      {docFile.name} ({formatBytes(docFile.size)})
-                    </p>
+                  {docFiles.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {docFiles.map((file, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 bg-muted/30 rounded-lg border border-border/50"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground truncate">{file.name}</p>
+                            <p className="text-xs text-foreground/60">{formatBytes(file.size)}</p>
+                          </div>
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            variant="light"
+                            color="danger"
+                            onPress={() => handleRemoveFile(index)}
+                            aria-label="Supprimer"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
