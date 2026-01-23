@@ -1,4 +1,6 @@
 // Two-factor authentication utilities
+import QRCode from "qrcode"
+
 export interface TwoFactorSecret {
   secret: string
   otpauth_url: string
@@ -27,9 +29,24 @@ export const generateTotpUrl = (secret: string, accountName: string = 'SafeVault
 }
 
 export const generateQRCode = async (url: string): Promise<string> => {
-  // In a real implementation, this would generate a QR code
-  // For now, return a placeholder data URL
-  return `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`
+  try {
+    // Générer un QR code en format data URL (PNG)
+    const dataUrl = await QRCode.toDataURL(url, {
+      errorCorrectionLevel: 'M',
+      type: 'image/png',
+      width: 300,
+      margin: 2,
+      color: {
+        dark: '#000000',
+        light: '#FFFFFF'
+      }
+    })
+    return dataUrl
+  } catch (error) {
+    console.error("Erreur lors de la génération du QR code:", error)
+    // En cas d'erreur, retourner un placeholder
+    return `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`
+  }
 }
 
 export const verifyTwoFactorToken = (token: string, secret: string): boolean => {
