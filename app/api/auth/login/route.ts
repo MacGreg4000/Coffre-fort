@@ -66,10 +66,10 @@ export async function POST(req: NextRequest) {
     if (user.twoFactorEnabled) {
       // Vérifier si l'appareil est de confiance
       if (deviceId && user.trustedDevices) {
-        const trustedDevices = user.trustedDevices as Array<{
+        const trustedDevices: Array<{
           deviceId: string
           expiresAt: number
-        }>
+        }> = JSON.parse(user.trustedDevices)
         if (isDeviceTrusted(deviceId, trustedDevices)) {
           // Appareil de confiance, connexion directe
           await prisma.log.create({
@@ -113,23 +113,19 @@ export async function POST(req: NextRequest) {
 
       // Si le code TOTP n'est pas valide, vérifier les codes de récupération
       if (!isValid && user.twoFactorBackupCodes) {
-        const backupCodes = user.twoFactorBackupCodes as string[]
+        const backupCodes: string[] = JSON.parse(user.twoFactorBackupCodes)
         isValid = await verifyBackupCode(twoFactorCode, backupCodes)
 
         // Si c'est un code de récupération valide, le supprimer
         if (isValid) {
-          const updatedCodes: string[] = []
-          for (const hashedCode of backupCodes) {
-            const testValid = await verifyBackupCode(twoFactorCode, [hashedCode])
-            if (!testValid) {
-              updatedCodes.push(hashedCode)
-            }
-          }
+          const { hashBackupCode } = await import("@/lib/two-factor")
+          const hashedInput = hashBackupCode(twoFactorCode)
+          const updatedCodes = backupCodes.filter(hashedCode => hashedCode !== hashedInput)
 
           await prisma.user.update({
             where: { id: user.id },
             data: {
-              twoFactorBackupCodes: updatedCodes,
+              twoFactorBackupCodes: updatedCodes.length > 0 ? JSON.stringify(updatedCodes) : null,
             },
           })
         }
@@ -153,11 +149,11 @@ export async function POST(req: NextRequest) {
       // Si un appareil de confiance est fourni, l'ajouter
       if (deviceId && deviceName) {
         const { createTrustedDevice } = await import("@/lib/two-factor")
-        const trustedDevices = (user.trustedDevices as Array<{
+        const trustedDevices: Array<{
           deviceId: string
           name: string
           expiresAt: number
-        }>) || []
+        }> = user.trustedDevices ? JSON.parse(user.trustedDevices) : []
 
         // Vérifier si l'appareil existe déjà
         const existingDevice = trustedDevices.find((d) => d.deviceId === deviceId)
@@ -168,7 +164,7 @@ export async function POST(req: NextRequest) {
           await prisma.user.update({
             where: { id: user.id },
             data: {
-              trustedDevices: trustedDevices,
+              trustedDevices: JSON.stringify(trustedDevices),
             },
           })
         }

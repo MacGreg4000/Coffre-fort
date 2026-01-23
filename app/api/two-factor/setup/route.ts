@@ -98,7 +98,7 @@ async function postHandler(req: NextRequest) {
       data: {
         twoFactorEnabled: true,
         twoFactorSecret: encryptedSecret,
-        twoFactorBackupCodes: hashedBackupCodes,
+        twoFactorBackupCodes: JSON.stringify(hashedBackupCodes),
       },
     })
 

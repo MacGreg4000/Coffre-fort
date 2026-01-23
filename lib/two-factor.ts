@@ -82,22 +82,29 @@ export const hashBackupCode = (code: string): string => {
   return code // Placeholder
 }
 
-export const verifyBackupCode = (inputCode: string, hashedCode: string): boolean => {
-  // In a real implementation, compare the hashed codes
-  return inputCode === hashedCode // Placeholder
+export const verifyBackupCode = async (inputCode: string, hashedCodes: string[]): Promise<boolean> => {
+  // In a real implementation, hash the input code and compare with hashed codes
+  // For now, since hashBackupCode is a placeholder, we compare directly
+  const hashedInput = hashBackupCode(inputCode)
+  return hashedCodes.some(hashedCode => hashedCode === hashedInput)
 }
 
-export const isDeviceTrusted = (deviceId: string): boolean => {
-  // Placeholder - in a real implementation, check if device is trusted
-  return false
+export const isDeviceTrusted = (deviceId: string, trustedDevices?: Array<{
+  deviceId: string
+  name: string
+  expiresAt: number
+}>): boolean => {
+  if (!trustedDevices) return false
+  const device = trustedDevices.find(d => d.deviceId === deviceId)
+  if (!device) return false
+  // Vérifier si l'appareil n'a pas expiré
+  return device.expiresAt > Date.now()
 }
 
 export const createTrustedDevice = (deviceName: string, validityDays: number = 30) => {
   return {
     deviceId: Math.random().toString(36).substring(2, 15),
-    deviceName,
-    createdAt: new Date(),
-    expiresAt: new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000),
-    lastUsed: new Date(),
+    name: deviceName,
+    expiresAt: Date.now() + validityDays * 24 * 60 * 60 * 1000,
   }
 }

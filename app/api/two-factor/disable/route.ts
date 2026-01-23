@@ -55,21 +55,19 @@ async function postHandler(req: NextRequest) {
 
       if (userWithBackupCodes?.twoFactorBackupCodes) {
         const { verifyBackupCode } = await import("@/lib/two-factor")
-        const backupCodes = userWithBackupCodes.twoFactorBackupCodes as string[]
+        const backupCodes: string[] = JSON.parse(userWithBackupCodes.twoFactorBackupCodes)
         isValid = await verifyBackupCode(code, backupCodes)
 
         // Si c'est un code de récupération valide, le supprimer
         if (isValid) {
-          const updatedCodes = backupCodes.filter(async (hashedCode) => {
-            const { hashBackupCode } = await import("@/lib/two-factor")
-            const testHash = await hashBackupCode(code)
-            return testHash !== hashedCode
-          })
+          const { hashBackupCode } = await import("@/lib/two-factor")
+          const hashedInput = hashBackupCode(code)
+          const updatedCodes = backupCodes.filter(hashedCode => hashedCode !== hashedInput)
           
           await prisma.user.update({
             where: { id: session.user.id },
             data: {
-              twoFactorBackupCodes: updatedCodes,
+              twoFactorBackupCodes: updatedCodes.length > 0 ? JSON.stringify(updatedCodes) : null,
             },
           })
         }

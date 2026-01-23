@@ -57,7 +57,7 @@ async function postHandler(req: NextRequest) {
     await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        twoFactorBackupCodes: hashedBackupCodes,
+        twoFactorBackupCodes: JSON.stringify(hashedBackupCodes),
       },
     })
 

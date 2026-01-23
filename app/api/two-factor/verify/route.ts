@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Si le code TOTP n'est pas valide, vérifier les codes de récupération
     if (!isValid && user.twoFactorBackupCodes) {
-      const backupCodes = user.twoFactorBackupCodes as string[]
+      const backupCodes: string[] = JSON.parse(user.twoFactorBackupCodes)
       isValid = await verifyBackupCode(code, backupCodes)
 
       // Si c'est un code de récupération valide, le supprimer
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            twoFactorBackupCodes: updatedCodes,
+            twoFactorBackupCodes: updatedCodes.length > 0 ? JSON.stringify(updatedCodes) : null,
           },
         })
       }
@@ -92,11 +92,11 @@ export async function POST(req: NextRequest) {
     // Si un appareil de confiance est fourni, l'ajouter
     if (deviceId && deviceName && user.trustedDevices) {
       const { createTrustedDevice, isDeviceTrusted } = await import("@/lib/two-factor")
-      const trustedDevices = user.trustedDevices as Array<{
+      const trustedDevices: Array<{
         deviceId: string
         name: string
         expiresAt: number
-      }>
+      }> = JSON.parse(user.trustedDevices)
 
       // Vérifier si l'appareil existe déjà
       const existingDevice = trustedDevices.find((d) => d.deviceId === deviceId)
@@ -107,7 +107,7 @@ export async function POST(req: NextRequest) {
         await prisma.user.update({
           where: { id: user.id },
           data: {
-            trustedDevices: trustedDevices,
+            trustedDevices: JSON.stringify(trustedDevices),
           },
         })
       }
