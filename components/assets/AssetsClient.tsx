@@ -72,6 +72,8 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
     eventAmount: "", // Montant de l'événement optionnel
     eventDate: "", // Date de l'événement optionnelle
   })
+  const [formFiles, setFormFiles] = useState<File[]>([])
+  const [formDocType, setFormDocType] = useState("")
 
   const fetchAssets = async () => {
     setLoading(true)
@@ -147,8 +149,52 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) throw new Error(data?.error || "Erreur lors de la création")
-      showToast("Actif créé", "success")
+      
+      const createdAssetId = data.asset?.id
+      
+      // Upload des fichiers si l'actif a été créé et qu'il y a des fichiers
+      if (createdAssetId && formFiles.length > 0) {
+        let successCount = 0
+        let errorCount = 0
+        
+        for (const file of formFiles) {
+          try {
+            const formData = new FormData()
+            formData.append("file", file)
+            if (formDocType) formData.append("documentType", formDocType)
+
+            const fileRes = await fetch(`/api/assets/${createdAssetId}/documents`, {
+              method: "POST",
+              headers: {
+                "X-CSRF-Token": csrfToken,
+              },
+              body: formData,
+            })
+
+            const fileData = await fileRes.json().catch(() => ({}))
+            if (!fileRes.ok) throw new Error(fileData?.error || "Erreur lors de l'upload")
+            successCount++
+          } catch (e: any) {
+            errorCount++
+            console.error(`Erreur upload fichier ${file.name}:`, e)
+          }
+        }
+        
+        if (successCount > 0) {
+          showToast(
+            `Actif créé${successCount > 0 ? ` avec ${successCount} fichier${successCount > 1 ? "s" : ""}` : ""}${errorCount > 0 ? `, ${errorCount} erreur${errorCount > 1 ? "s" : ""}` : ""}`,
+            errorCount > 0 ? "warning" : "success"
+          )
+        } else {
+          showToast("Actif créé, mais aucun fichier n'a pu être ajouté", "warning")
+        }
+      } else {
+        showToast("Actif créé", "success")
+      }
+      
       setForm({ name: "", category: "", description: "", coffreId: "", eventType: "", eventAmount: "", eventDate: "" })
+      setFormFiles([])
+      setFormDocType("")
       await fetchAssets()
     } catch (e: any) {
       showToast(e.message || "Erreur lors de la création", "error")
@@ -1028,6 +1074,69 @@ export function AssetsClient({ initialCoffres }: { initialCoffres: CoffreLite[] 
               minRows={2}
               className="md:col-span-2"
             />
+          </div>
+
+          {/* Section fichiers optionnels */}
+          <div className="border-t border-border/30 pt-4 space-y-4">
+            <div className="flex items-center gap-2 text-xs font-semibold text-foreground/70 uppercase">
+              <FileText className="h-3.5 w-3.5" />
+              <span>Documents (optionnel)</span>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Fichiers {formFiles.length > 0 && `(${formFiles.length})`}
+              </label>
+              <input
+                type="file"
+                multiple
+                onChange={(e) => {
+                  const files = Array.from(e.target.files || [])
+                  setFormFiles((prev) => [...prev, ...files])
+                }}
+                className="block w-full text-sm text-foreground/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.doc,.docx,.xls,.xlsx"
+              />
+              {formFiles.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {formFiles.map((file, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-2 bg-muted/30 rounded-lg border border-border/50"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-foreground truncate">{file.name}</p>
+                        <p className="text-xs text-foreground/60">{formatBytes(file.size)}</p>
+                      </div>
+                      <Button
+                        isIconOnly
+                        size="sm"
+                        variant="light"
+                        color="danger"
+                        onPress={() => setFormFiles((prev) => prev.filter((_, i) => i !== index))}
+                        aria-label="Supprimer"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {formFiles.length > 0 && (
+              <Select
+                label="Type de document (optionnel)"
+                placeholder="Sélectionner un type"
+                selectedKeys={formDocType ? [formDocType] : []}
+                onSelectionChange={(keys) => {
+                  const selected = Array.from(keys)[0] as string
+                  setFormDocType(selected || "")
+                }}
+              >
+                {documentTypes.map((dt) => (
+                  <SelectItem key={dt.value}>{dt.label}</SelectItem>
+                ))}
+              </Select>
+            )}
           </div>
 
           {/* Section événement optionnel */}
