@@ -209,7 +209,7 @@ export function PasswordCsvViewer({ fileId, filename }: PasswordCsvViewerProps) 
 
   return (
     <div className="space-y-4">
-      <PremiumCard variant="glass" hover3D glow className="overflow-visible">
+      <PremiumCard variant="glass" hover3D glow className="relative z-20">
         <div className="p-5 sm:p-6 space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <div>
@@ -254,7 +254,7 @@ export function PasswordCsvViewer({ fileId, filename }: PasswordCsvViewerProps) 
       </PremiumCard>
 
       {/* Tableau */}
-      <PremiumCard variant="glass" hover3D glow className="overflow-visible">
+      <PremiumCard variant="glass" glow className="relative z-10">
         <div className="p-5 sm:p-6">
           <div className="overflow-x-auto">
             <table className="w-full">
