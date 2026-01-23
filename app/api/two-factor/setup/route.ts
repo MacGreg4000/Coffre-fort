@@ -36,19 +36,22 @@ async function getHandler(_req: NextRequest) {
 
     console.log("[2FA Setup] Génération du secret pour:", user.email)
 
-    // Générer un nouveau secret
-    const secret = generateTotpSecret()
-    console.log("[2FA Setup] Secret généré, longueur:", secret.length)
+    // Générer un nouveau secret (retourne un objet { secret, otpauth_url })
+    const secretData = generateTotpSecret()
+    const secretString = secretData.secret
+    console.log("[2FA Setup] Secret généré, longueur:", secretString.length)
 
-    const url = generateTotpUrl(user.email, secret, user.name)
+    // Générer l'URL TOTP avec le secret string
+    const url = generateTotpUrl(secretString, user.name || user.email, 'SafeVault')
     console.log("[2FA Setup] URL TOTP générée")
 
     const qrCode = await generateQRCode(url)
     console.log("[2FA Setup] QR code généré, longueur:", qrCode.length)
 
     // Retourner le secret temporaire (sera chiffré lors de l'activation)
+    // Retourner seulement la string secret, pas l'objet complet
     return NextResponse.json({
-      secret, // Secret temporaire pour l'activation
+      secret: secretString, // Secret temporaire pour l'activation (string uniquement)
       qrCode,
       url, // URL pour les apps qui ne peuvent pas scanner le QR
     })

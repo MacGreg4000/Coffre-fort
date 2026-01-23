@@ -22,8 +22,8 @@ export const generateTotpSecret = (): TwoFactorSecret => {
   return generateTwoFactorSecret()
 }
 
-export const generateTotpUrl = (secret: string, accountName: string = 'SafeVault User'): string => {
-  return `otpauth://totp/SafeVault:${encodeURIComponent(accountName)}?secret=${secret}&issuer=SafeVault`
+export const generateTotpUrl = (secret: string, accountName: string = 'SafeVault User', issuer: string = 'SafeVault'): string => {
+  return `otpauth://totp/${issuer}:${encodeURIComponent(accountName)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}`
 }
 
 export const generateQRCode = async (url: string): Promise<string> => {
