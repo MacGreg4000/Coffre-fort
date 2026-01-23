@@ -35,13 +35,26 @@ interface CaisseInterfaceProps {
 
 type Mode = "INVENTORY" | "ENTRY" | "EXIT"
 
-export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
+export function CaisseInterface({ coffres: initialCoffres, userId }: CaisseInterfaceProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { showToast } = useToast()
   const [selectedCoffre, setSelectedCoffre] = useState<string | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
   const [loadingBalance, setLoadingBalance] = useState(false)
+  const [coffres, setCoffres] = useState(initialCoffres)
+
+  // Mettre à jour les coffres quand les props changent (après router.refresh())
+  useEffect(() => {
+    setCoffres(initialCoffres)
+  }, [initialCoffres])
+
+  // Fonction pour vérifier si un inventaire existe pour un coffre
+  const hasInventory = (coffreId: string | null): boolean => {
+    if (!coffreId) return false
+    const coffre = coffres.find((c) => c.id === coffreId)
+    return coffre?.lastInventory !== null && coffre?.lastInventory !== undefined
+  }
 
   useEffect(() => {
     const coffreId = searchParams.get("coffre")
@@ -78,7 +91,21 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
     }
   }, [selectedCoffre])
 
+  // Initialiser le mode selon l'existence d'un inventaire
+  const getInitialMode = (): Mode => {
+    if (!selectedCoffre) return "ENTRY"
+    return hasInventory(selectedCoffre) ? "ENTRY" : "INVENTORY"
+  }
+
   const [mode, setMode] = useState<Mode>("ENTRY")
+
+  // Mettre à jour le mode quand le coffre change ou quand les coffres sont mis à jour
+  useEffect(() => {
+    if (selectedCoffre) {
+      const newMode = getInitialMode()
+      setMode(newMode)
+    }
+  }, [selectedCoffre, coffres])
   const [billets, setBillets] = useState<Record<number, number>>({})
   const [description, setDescription] = useState("")
   const [loading, setLoading] = useState(false)
@@ -174,6 +201,26 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
       })
 
       if (response.ok) {
+        // Mettre à jour l'état local pour indiquer qu'un inventaire existe maintenant
+        // On utilise un objet minimal, le router.refresh() mettra à jour les données complètes
+        setCoffres((prevCoffres) =>
+          prevCoffres.map((coffre) =>
+            coffre.id === selectedCoffre
+              ? { 
+                  ...coffre, 
+                  lastInventory: {
+                    id: 'temp',
+                    totalAmount: calculateTotal(),
+                    notes: description || null,
+                    date: new Date(),
+                    details: []
+                  }
+                }
+              : coffre
+          )
+        )
+        // Basculer vers le mode ENTRY après la création de l'inventaire
+        setMode("ENTRY")
         router.refresh()
         setBillets({})
         setDescription("")
@@ -298,33 +345,39 @@ export function CaisseInterface({ coffres, userId }: CaisseInterfaceProps) {
                     tab: "flex-1",
                   }}
                 >
-                  <Tab
-                    key="INVENTORY"
-                    title={
-                      <div className="flex items-center gap-2 justify-center">
-                        <FileText className="h-4 w-4" />
-                        <span>Inventaire</span>
-                      </div>
-                    }
-                  />
-                  <Tab
-                    key="ENTRY"
-                    title={
-                      <div className="flex items-center gap-2 justify-center">
-                        <Plus className="h-4 w-4" />
-                        <span>Entrée</span>
-                      </div>
-                    }
-                  />
-                  <Tab
-                    key="EXIT"
-                    title={
-                      <div className="flex items-center gap-2 justify-center">
-                        <Minus className="h-4 w-4" />
-                        <span>Sortie</span>
-                      </div>
-                    }
-                  />
+                  {!hasInventory(selectedCoffre) && (
+                    <Tab
+                      key="INVENTORY"
+                      title={
+                        <div className="flex items-center gap-2 justify-center">
+                          <FileText className="h-4 w-4" />
+                          <span>Inventaire</span>
+                        </div>
+                      }
+                    />
+                  )}
+                  {hasInventory(selectedCoffre) && (
+                    <>
+                      <Tab
+                        key="ENTRY"
+                        title={
+                          <div className="flex items-center gap-2 justify-center">
+                            <Plus className="h-4 w-4" />
+                            <span>Entrée</span>
+                          </div>
+                        }
+                      />
+                      <Tab
+                        key="EXIT"
+                        title={
+                          <div className="flex items-center gap-2 justify-center">
+                            <Minus className="h-4 w-4" />
+                            <span>Sortie</span>
+                          </div>
+                        }
+                      />
+                    </>
+                  )}
                 </Tabs>
               </div>
 
