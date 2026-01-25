@@ -222,6 +222,32 @@ export function withApiMiddleware(
           }
         }
 
+        // 4.5. Blocage des mutations pour les utilisateurs USER (lecture seule)
+        // Les routes d'authentification, two-factor et setup sont exclues
+        const isExcludedMutationRoute = req.nextUrl.pathname.startsWith("/api/auth") ||
+                                        req.nextUrl.pathname.startsWith("/api/two-factor") ||
+                                        req.nextUrl.pathname.startsWith("/api/setup") ||
+                                        req.nextUrl.pathname.startsWith("/api/csrf")
+        
+        if (session.user.role === "USER" && 
+            !isExcludedMutationRoute && 
+            ["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+          await logSecurityEvent({
+            action: "READ_ONLY_USER_MUTATION_ATTEMPT",
+            severity: "medium",
+            userId: session.user.id,
+            description: `Tentative de mutation (${req.method}) par un utilisateur USER en lecture seule: ${req.nextUrl.pathname}`,
+            metadata: { method: req.method, path: req.nextUrl.pathname },
+            ipAddress,
+            userAgent: req.headers.get("user-agent") || "unknown",
+          }, req)
+          
+          return NextResponse.json(
+            { error: "Accès en lecture seule. Les modifications ne sont pas autorisées pour votre rôle." },
+            { status: 403 }
+          )
+        }
+
         // 5. Détection d'anomalies pour les utilisateurs authentifiés
         if (session.user.id) {
           const anomalies = await detectAnomalies(session.user.id, req)

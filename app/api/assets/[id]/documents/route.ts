@@ -92,7 +92,7 @@ async function postHandler(
       requireType: true,
     })
 
-    // Chiffrer les données si le chiffrement est activé
+    // Chiffrer les données si le chiffrement est activé (en dehors de la transaction)
     let dataToStore: Buffer = processedFile.data
     if (isEncryptionEnabled()) {
       try {
@@ -104,6 +104,7 @@ async function postHandler(
       }
     }
 
+    // Transaction avec timeout augmenté à 30 secondes pour les gros fichiers
     const created = await prisma.$transaction(async (tx) => {
       const saved = await (tx as any).assetDocument.create({
         data: {
@@ -129,7 +130,9 @@ async function postHandler(
         },
       })
 
-      await createAuditLog({
+      // Créer le log d'audit de manière asynchrone pour ne pas bloquer la transaction
+      // On le fait en dehors de la transaction pour éviter les timeouts
+      createAuditLog({
         userId: session.user.id,
         action: "ASSET_DOCUMENT_UPLOADED",
         description: `Document ajouté à l'actif ${asset.name}: ${saved.filename}`,
@@ -141,10 +144,15 @@ async function postHandler(
           sha256: saved.sha256 
         },
         req,
-        tx,
+      }).catch((error) => {
+        console.error("Erreur lors de la création du log d'audit:", error)
+        // Ne pas bloquer si le log échoue
       })
 
       return saved
+    }, {
+      maxWait: 10000, // Temps d'attente maximum pour acquérir le verrou (10s)
+      timeout: 30000, // Timeout de la transaction (30s au lieu de 5s)
     })
 
     return NextResponse.json({ document: created }, { status: 201 })
