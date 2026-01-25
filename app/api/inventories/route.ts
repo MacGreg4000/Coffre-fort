@@ -60,6 +60,7 @@ async function postHandler(req: NextRequest) {
       const newInventory = await tx.inventory.create({
         data: {
           coffreId,
+          userId: session.user.id, // Ajouter userId requis par le schéma
           totalAmount,
           notes,
           details: {
@@ -79,10 +80,13 @@ async function postHandler(req: NextRequest) {
       await createAuditLog({
         userId: session.user.id,
         coffreId,
-        inventoryId: newInventory.id,
         action: "INVENTORY_CREATED",
         description: `Inventaire de ${totalAmount}€`,
-        metadata: { billets, totalAmount },
+        metadata: { 
+          inventoryId: newInventory.id,
+          billets, 
+          totalAmount 
+        },
         req,
         tx, // Passer le contexte de transaction
       })
