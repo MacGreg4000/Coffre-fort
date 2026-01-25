@@ -9,7 +9,19 @@ import { createUserSchema, validateRequest } from "@/lib/validations"
 async function postHandler(req: NextRequest) {
   try {
     // Vérifier qu'aucun utilisateur n'existe déjà
-    const userCount = await prisma.user.count()
+    let userCount = 0
+    try {
+      userCount = await prisma.user.count()
+    } catch (dbError: any) {
+      // Si la table n'existe pas encore (erreur de table manquante)
+      if (dbError?.code === "P2021" || dbError?.message?.includes("does not exist") || dbError?.message?.includes("Table")) {
+        // La base de données n'est pas encore initialisée - permettre la création du premier admin
+        console.warn("Base de données non initialisée, création du premier admin autorisée")
+      } else {
+        // Autre erreur de base de données
+        throw dbError
+      }
+    }
     
     if (userCount > 0) {
       throw new ApiError(403, "Un administrateur existe déjà. Utilisez la page de connexion.")
@@ -34,31 +46,33 @@ async function postHandler(req: NextRequest) {
       throw new ApiError(409, "Cet email est déjà utilisé")
     }
 
-    const admin = await prisma.$transaction(async (tx) => {
-      // Hasher le mot de passe (aligné avec /api/admin/users)
-      const hashedPassword = await bcrypt.hash(password, 12)
+    // Hasher le mot de passe (aligné avec /api/admin/users)
+    const hashedPassword = await bcrypt.hash(password, 12)
 
-      const created = await tx.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          name,
-          role: "ADMIN",
-          isActive: true,
-        },
-      })
+    // Créer l'admin (sans transaction pour éviter les problèmes si la table logs n'existe pas)
+    const admin = await prisma.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        name,
+        role: "ADMIN",
+        isActive: true,
+      },
+    })
 
+    // Essayer de créer un log d'audit (peut échouer si la table n'existe pas encore)
+    try {
       await createAuditLog({
-        userId: created.id,
+        userId: admin.id,
         action: "SETUP_COMPLETED",
         description: `Premier administrateur créé: ${name}`,
         metadata: { email, role: "ADMIN" },
         req,
-        tx,
       })
-
-      return created
-    })
+    } catch (logError: any) {
+      // L'erreur est déjà gérée dans createAuditLog, mais on log pour info
+      console.warn("Log d'audit non créé (normal si table logs n'existe pas encore)")
+    }
 
     return NextResponse.json(
       {

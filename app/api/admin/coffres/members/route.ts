@@ -33,9 +33,9 @@ async function postHandler(req: NextRequest) {
     // Vérifier si le membre existe déjà
     const existing = await prisma.coffreMember.findUnique({
       where: {
-        userId_coffreId: {
-          userId,
+        coffreId_userId: {
           coffreId,
+          userId,
         },
       },
     })
