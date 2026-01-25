@@ -386,10 +386,7 @@ export async function GET(req: NextRequest) {
     const serializedAllMovements = allMovementsForBalance.map((m) => ({
       ...m,
       amount: Number(m.amount),
-      details: m.details.map((d) => ({
-        ...d,
-        denomination: Number(d.denomination),
-      })),
+      // allMovementsForBalance n'inclut pas details dans le select
     }))
 
     // Convertir les Decimal en Number pour les inventaires
@@ -405,10 +402,7 @@ export async function GET(req: NextRequest) {
     const serializedAllInventories = allInventories.map((inv) => ({
       ...inv,
       totalAmount: Number(inv.totalAmount),
-      details: inv.details.map((d) => ({
-        ...d,
-        denomination: Number(d.denomination),
-      })),
+      // allInventories n'inclut pas details dans le select pour optimiser
     }))
 
     const serializedRecentInventories = recentInventories.map((inv) => ({
