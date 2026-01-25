@@ -88,6 +88,23 @@ export const authOptions: NextAuthOptions = {
         session.user.role = (token.role as string) || "USER" // Fallback à USER si pas de rôle
       }
       return session
+    },
+    async redirect({ url, baseUrl }) {
+      // Utiliser NEXTAUTH_URL si disponible, sinon baseUrl
+      const nextAuthUrl = process.env.NEXTAUTH_URL || baseUrl
+      
+      // Si l'URL est relative, la construire avec la bonne base
+      if (url.startsWith("/")) {
+        return `${nextAuthUrl}${url}`
+      }
+      
+      // Si l'URL est absolue mais pointe vers localhost, la remplacer
+      if (url.includes("localhost:3000") && nextAuthUrl && !nextAuthUrl.includes("localhost")) {
+        return url.replace(/https?:\/\/localhost:3000/, nextAuthUrl)
+      }
+      
+      // Sinon, retourner l'URL telle quelle
+      return url
     }
   },
   pages: {
