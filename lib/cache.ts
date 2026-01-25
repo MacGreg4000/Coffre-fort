@@ -47,6 +47,17 @@ export class Cache {
     this.cache.clear()
   }
 
+  // Invalider toutes les clés qui correspondent à un pattern
+  invalidatePattern(pattern: string): void {
+    const keysToDelete: string[] = []
+    for (const key of this.cache.keys()) {
+      if (key.includes(pattern)) {
+        keysToDelete.push(key)
+      }
+    }
+    keysToDelete.forEach(key => this.cache.delete(key))
+  }
+
   // Nettoyer les entrées expirées
   cleanup(): void {
     const now = Date.now()
