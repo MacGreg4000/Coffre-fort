@@ -152,7 +152,8 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     
     // Ajouter les inventaires dans la période
     allInventories.forEach((inv: any) => {
-      const invDate = new Date(inv.createdAt)
+      // Utiliser inv.date au lieu de inv.createdAt car c'est le champ correct dans le schéma Prisma
+      const invDate = new Date(inv.date || inv.createdAt)
       if (invDate >= startDate) {
         allEvents.push({
           date: invDate,
@@ -187,8 +188,8 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
     
     // Trouver le dernier inventaire avant la période pour avoir le solde de départ
     const inventoriesBeforePeriod = (data.allInventories || data.recentInventories || [])
-      .filter((inv: any) => new Date(inv.createdAt) < startDate)
-      .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .filter((inv: any) => new Date(inv.date || inv.createdAt) < startDate)
+      .sort((a: any, b: any) => new Date(b.date || b.createdAt).getTime() - new Date(a.date || a.createdAt).getTime())
     
     let startingBalance = 0
     if (inventoriesBeforePeriod.length > 0) {
