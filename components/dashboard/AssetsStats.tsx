@@ -101,6 +101,11 @@ export function AssetsStats() {
 
   useEffect(() => {
     fetchAssets()
+    // Rafraîchir les données toutes les 30 secondes pour mettre à jour les graphiques
+    const interval = setInterval(() => {
+      fetchAssets()
+    }, 30000)
+    return () => clearInterval(interval)
   }, [])
 
   const fetchAssets = async () => {
