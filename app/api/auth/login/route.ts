@@ -148,7 +148,6 @@ export async function POST(req: NextRequest) {
 
       // Si un appareil de confiance est fourni, l'ajouter
       if (deviceId && deviceName) {
-        const { createTrustedDevice } = await import("@/lib/two-factor")
         const trustedDevices: Array<{
           deviceId: string
           name: string
@@ -158,9 +157,23 @@ export async function POST(req: NextRequest) {
         // Vérifier si l'appareil existe déjà
         const existingDevice = trustedDevices.find((d) => d.deviceId === deviceId)
         if (!existingDevice) {
-          const newDevice = createTrustedDevice(deviceName, 30)
+          // Créer un nouvel appareil de confiance avec le deviceId fourni par le client
+          const newDevice = {
+            deviceId: deviceId, // Utiliser le deviceId fourni par le client
+            name: deviceName,
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 jours
+          }
           trustedDevices.push(newDevice)
 
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              trustedDevices: JSON.stringify(trustedDevices),
+            },
+          })
+        } else {
+          // Mettre à jour la date d'expiration si l'appareil existe déjà
+          existingDevice.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
           await prisma.user.update({
             where: { id: user.id },
             data: {
