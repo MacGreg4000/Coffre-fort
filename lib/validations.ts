@@ -41,22 +41,25 @@ export const addCoffreMemberSchema = z.object({
   role: z.enum(["MEMBER", "MANAGER", "OWNER"]).default("MEMBER")
 })
 
+// z.coerce.number() accepte les chaînes numériques (ex. "10" depuis mobile)
+const billetsValueSchema = z.coerce.number().min(0)
+
 export const createMovementSchema = z.object({
   coffreId: z.string().min(1, "L'ID du coffre est requis"),
   type: z.enum(["ENTRY", "EXIT"]),
-  billets: z.record(z.number().min(0)),
+  billets: z.record(billetsValueSchema),
   description: z.string().optional()
 })
 
 export const updateMovementSchema = z.object({
   type: z.enum(["ENTRY", "EXIT"]).optional(),
-  billets: z.record(z.number().min(0)).optional(),
+  billets: z.record(billetsValueSchema).optional(),
   description: z.string().optional()
 })
 
 export const createInventorySchema = z.object({
   coffreId: z.string().min(1, "L'ID du coffre est requis"),
-  billets: z.record(z.number().min(0)),
+  billets: z.record(billetsValueSchema),
   notes: z.string().optional()
 })
 

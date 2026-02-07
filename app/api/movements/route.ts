@@ -17,8 +17,13 @@ async function postHandler(req: NextRequest) {
       throw new ApiError(401, "Non autorisé")
     }
 
-    const body = await req.json()
-    
+    let body: unknown
+    try {
+      body = await req.json()
+    } catch {
+      throw new ApiError(400, "Corps de la requête JSON invalide ou manquant")
+    }
+
     // Validation avec Zod
     const validation = validateRequest(createMovementSchema, body)
     if (!validation.success) {
