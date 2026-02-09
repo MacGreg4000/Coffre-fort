@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { ApiError, handleApiError } from "@/lib/api-utils"
 import { prisma } from "@/lib/prisma"
-import { verifyTotpCode, decryptTotpSecret, verifyBackupCode } from "@/lib/two-factor"
+import { verifyTotpCode, decryptTotpSecret, verifyBackupCode, parseTrustedDevices, isDeviceTrusted } from "@/lib/two-factor"
 import { signIn } from "next-auth/react"
 
 /**
@@ -91,12 +91,7 @@ export async function POST(req: NextRequest) {
 
     // Si un appareil de confiance est fourni, l'ajouter
     if (deviceId && deviceName) {
-      const { isDeviceTrusted } = await import("@/lib/two-factor")
-      const trustedDevices: Array<{
-        deviceId: string
-        name: string
-        expiresAt: number
-      }> = user.trustedDevices ? JSON.parse(user.trustedDevices) : []
+      const trustedDevices = parseTrustedDevices(user.trustedDevices)
 
       // Vérifier si l'appareil existe déjà
       const existingDevice = trustedDevices.find((d) => d.deviceId === deviceId)

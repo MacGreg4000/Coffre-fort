@@ -89,9 +89,26 @@ export const verifyBackupCode = async (inputCode: string, hashedCodes: string[])
   return hashedCodes.some(hashedCode => hashedCode === hashedInput)
 }
 
+export type TrustedDevice = {
+  deviceId: string
+  name?: string
+  expiresAt: number
+}
+
+/** Parse trustedDevices JSON en toute sécurité (évite 500 si vide, "null" ou JSON invalide). */
+export function parseTrustedDevices(raw: string | null | undefined): TrustedDevice[] {
+  if (raw == null || String(raw).trim() === "") return []
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
 export const isDeviceTrusted = (deviceId: string, trustedDevices?: Array<{
   deviceId: string
-  name: string
+  name?: string
   expiresAt: number
 }>): boolean => {
   if (!trustedDevices) return false

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { ApiError, handleApiError } from "@/lib/api-utils"
 import bcrypt from "bcryptjs"
-import { verifyTotpCode, decryptTotpSecret, verifyBackupCode, isDeviceTrusted } from "@/lib/two-factor"
+import { verifyTotpCode, decryptTotpSecret, verifyBackupCode, isDeviceTrusted, parseTrustedDevices } from "@/lib/two-factor"
 
 /**
  * POST /api/auth/login
@@ -66,10 +66,7 @@ export async function POST(req: NextRequest) {
     if (user.twoFactorEnabled) {
       // Vérifier si l'appareil est de confiance
       if (deviceId && user.trustedDevices) {
-        const trustedDevices: Array<{
-          deviceId: string
-          expiresAt: number
-        }> = JSON.parse(user.trustedDevices)
+        const trustedDevices = parseTrustedDevices(user.trustedDevices)
         if (isDeviceTrusted(deviceId, trustedDevices)) {
           // Appareil de confiance, connexion directe
           await prisma.log.create({
@@ -148,11 +145,7 @@ export async function POST(req: NextRequest) {
 
       // Si un appareil de confiance est fourni, l'ajouter
       if (deviceId && deviceName) {
-        const trustedDevices: Array<{
-          deviceId: string
-          name: string
-          expiresAt: number
-        }> = user.trustedDevices ? JSON.parse(user.trustedDevices) : []
+        const trustedDevices = parseTrustedDevices(user.trustedDevices)
 
         // Vérifier si l'appareil existe déjà
         const existingDevice = trustedDevices.find((d) => d.deviceId === deviceId)
