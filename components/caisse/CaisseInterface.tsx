@@ -323,6 +323,7 @@ export function CaisseInterface({ coffres: initialCoffres, userId }: CaisseInter
         </div>
           </PremiumCard>
       )}
+      </div>
 
       {selectedCoffre && (
           <PremiumCard
