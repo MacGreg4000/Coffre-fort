@@ -90,24 +90,26 @@ export async function POST(req: NextRequest) {
     }
 
     // Si un appareil de confiance est fourni, l'ajouter
+    // Enveloppé dans un try-catch pour ne pas bloquer la connexion si la sauvegarde échoue
     if (deviceId && deviceName) {
-      const trustedDevices = parseTrustedDevices(user.trustedDevices)
+      try {
+        const trustedDevices = parseTrustedDevices(user.trustedDevices)
 
-      // Vérifier si l'appareil existe déjà
-      const existingDevice = trustedDevices.find((d) => d.deviceId === deviceId)
-      if (!existingDevice || !isDeviceTrusted(deviceId, trustedDevices)) {
-        // Créer un nouvel appareil de confiance avec le deviceId fourni par le client
-        const newDevice = {
-          deviceId: deviceId, // Utiliser le deviceId fourni par le client
-          name: deviceName,
-          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 jours
-        }
-        // Si l'appareil existe mais a expiré, le remplacer
-        if (existingDevice) {
-          const index = trustedDevices.findIndex((d) => d.deviceId === deviceId)
-          trustedDevices[index] = newDevice
+        const existingDevice = trustedDevices.find((d) => d.deviceId === deviceId)
+        if (!existingDevice || !isDeviceTrusted(deviceId, trustedDevices)) {
+          const newDevice = {
+            deviceId: deviceId,
+            name: deviceName,
+            expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 jours
+          }
+          if (existingDevice) {
+            const index = trustedDevices.findIndex((d) => d.deviceId === deviceId)
+            trustedDevices[index] = newDevice
+          } else {
+            trustedDevices.push(newDevice)
+          }
         } else {
-          trustedDevices.push(newDevice)
+          existingDevice.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
         }
 
         await prisma.user.update({
@@ -116,15 +118,8 @@ export async function POST(req: NextRequest) {
             trustedDevices: JSON.stringify(trustedDevices),
           },
         })
-      } else {
-        // Mettre à jour la date d'expiration si l'appareil existe déjà et est valide
-        existingDevice.expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000
-        await prisma.user.update({
-          where: { id: user.id },
-          data: {
-            trustedDevices: JSON.stringify(trustedDevices),
-          },
-        })
+      } catch (trustedDeviceError) {
+        console.error("Erreur lors de la sauvegarde de l'appareil de confiance:", trustedDeviceError)
       }
     }
 
