@@ -17,7 +17,7 @@ import {
   Filler,
 } from "chart.js"
 import { Line, Bar, Doughnut } from "react-chartjs-2"
-import { formatCurrency } from "@/lib/utils"
+import { formatCurrency, BILLET_DENOMINATIONS } from "@/lib/utils"
 import { motion } from "framer-motion"
 import { subDays, subMonths, subYears, format } from "date-fns"
 
@@ -480,6 +480,68 @@ export function DashboardCharts({ data }: DashboardChartsProps) {
         </motion.div>
 
       </div>
+
+      {/* Tableau répartition des billets — pleine largeur, sous les 2 graphiques */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+        className="w-full"
+      >
+        <Card className="bg-card/70 backdrop-blur border border-border/60 shadow-[var(--shadow-1)]">
+          <CardHeader>
+            <h3 className="text-lg font-semibold">Répartition des billets en caisse</h3>
+            <p className="text-xs text-foreground/60 mt-1">
+              Quantité et montant par dénomination (les 0 sont affichés).
+            </p>
+          </CardHeader>
+          <CardBody className="p-4 sm:p-6">
+            <div className="overflow-x-auto rounded-lg border border-border/40">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr className="border-b border-border/60">
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-foreground/70 uppercase tracking-wider">
+                      Dénomination
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-foreground/70 uppercase tracking-wider">
+                      Quantité
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-foreground/70 uppercase tracking-wider">
+                      Montant
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {BILLET_DENOMINATIONS.map((denom) => {
+                    const row = (data.billDistribution || []).find((r: any) => r.denomination === denom)
+                    const quantity = row ? row.quantity : 0
+                    const value = row ? row.value : 0
+                    return (
+                      <tr
+                        key={denom}
+                        className="border-b border-border/30 hover:bg-foreground/5 transition-colors"
+                      >
+                        <td className="py-3 px-4 font-medium">{denom} €</td>
+                        <td className="py-3 px-4 text-right tabular-nums">{quantity}</td>
+                        <td className="py-3 px-4 text-right tabular-nums">{formatCurrency(value)}</td>
+                      </tr>
+                    )
+                  })}
+                  <tr className="border-t-2 border-border/60 bg-foreground/5 font-semibold">
+                    <td className="py-3 px-4">Total</td>
+                    <td className="py-3 px-4 text-right tabular-nums">
+                      {(data.billDistribution || []).reduce((sum: number, r: any) => sum + (r.quantity || 0), 0)}
+                    </td>
+                    <td className="py-3 px-4 text-right tabular-nums">
+                      {formatCurrency((data.billDistribution || []).reduce((sum: number, r: any) => sum + (r.value || 0), 0))}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
+      </motion.div>
     </div>
   )
 }

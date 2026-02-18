@@ -153,7 +153,7 @@ export function DashboardClient({ initialCoffres }: DashboardClientProps) {
                 <TabsList className="inline-flex justify-center gap-1">
               <TabsTrigger value="overview" className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold flex-shrink-0">
                 <LayoutDashboard className="h-4 w-4" />
-                Vue
+                Cash
               </TabsTrigger>
               <TabsTrigger value="reserves" className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold flex-shrink-0">
                 <Calculator className="h-4 w-4" />
