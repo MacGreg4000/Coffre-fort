@@ -23,6 +23,8 @@ import {
 } from "chart.js"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { subDays, subMonths, subYears, format } from "date-fns"
+import { fr } from "date-fns/locale"
 
 ChartJS.register(
   CategoryScale,
@@ -54,6 +56,7 @@ interface Asset {
 
 type SortField = "name" | "category" | "coffre" | "purchasePrice" | "currentValue" | "gainLoss" | "purchaseDate" | "valuationDate"
 type SortDirection = "asc" | "desc"
+type EvolutionPeriod = "1w" | "1m" | "1y" | "5y"
 
 // Helper pour extraire les prix d'un actif
 // Si pas de VALUATION, on utilise PURCHASE comme valeur courante (fallback pour les graphiques)
@@ -99,6 +102,7 @@ export function AssetsStats() {
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc")
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(10)
+  const [evolutionPeriod, setEvolutionPeriod] = useState<EvolutionPeriod>("1m")
 
   useEffect(() => {
     fetchAssets()
@@ -285,101 +289,84 @@ export function AssetsStats() {
     return Array.from(coffres).sort()
   }, [assets])
 
-  // Graphique : Évolution de la valeur totale par mois/année
+  // Graphique : Évolution de la valeur totale avec période (semaine/mois/année)
   const evolutionData = useMemo(() => {
-    // Collecter tous les événements avec montants (PURCHASE, VALUATION, SALE)
-    const allEvents = assets.flatMap(a => 
+    const now = new Date()
+    let startDate: Date
+    switch (evolutionPeriod) {
+      case "1w": startDate = subDays(now, 7); break
+      case "1m": startDate = subMonths(now, 1); break
+      case "1y": startDate = subYears(now, 1); break
+      case "5y": startDate = subYears(now, 5); break
+      default: startDate = subMonths(now, 1)
+    }
+
+    const allEvents = assets.flatMap(a =>
       (a.events || [])
-        .filter(e => e.amount && e.amount > 0)
+        .filter(e => {
+          const eventDate = new Date(e.date)
+          return e.amount && e.amount > 0 && eventDate >= startDate && eventDate <= now
+        })
         .map(e => ({
-          date: e.date,
+          date: new Date(e.date),
           amount: Number(e.amount),
           type: e.type,
           assetId: a.id,
         }))
     )
 
+    const labelFormat = evolutionPeriod === "1w" ? "dd/MM" : evolutionPeriod === "1m" ? "dd MMM" : "MMM yyyy"
+
     if (allEvents.length === 0) {
-      // Si pas d'événements, utiliser la date de création des actifs avec leur valeur actuelle
-      const assetsByMonth = new Map<string, number>()
-      stats.assetsWithPrices.forEach(asset => {
-        if (asset.prices.currentValue) {
-          const date = new Date(asset.createdAt)
-          const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-          assetsByMonth.set(monthKey, (assetsByMonth.get(monthKey) || 0) + asset.prices.currentValue)
-        }
-      })
-      
-      const sortedMonths = Array.from(assetsByMonth.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-      
-      // Calculer les valeurs cumulées
-      let cumulative = 0
-      const cumulativeValues = sortedMonths.map(([, value]) => {
-        cumulative += value
-        return cumulative
-      })
-      
-      return {
-        labels: sortedMonths.map(([month]) => {
-          const [year, monthNum] = month.split('-')
-          return `${monthNum}/${year}`
-        }),
-        values: cumulativeValues,
+      const stepMs = evolutionPeriod === "1w" ? 24 * 60 * 60 * 1000 : evolutionPeriod === "1m" ? 7 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000
+      const points: Array<{ date: Date; label: string; value: number }> = []
+      for (let d = new Date(startDate); d <= now; d.setTime(d.getTime() + stepMs)) {
+        const pointDate = new Date(d)
+        if (pointDate > now) break
+        let totalValue = 0
+        stats.assetsWithPrices.forEach(asset => {
+          const assetCreatedDate = new Date(asset.createdAt)
+          if (assetCreatedDate <= pointDate && asset.prices.currentValue) totalValue += asset.prices.currentValue
+        })
+        points.push({ date: new Date(pointDate), label: format(pointDate, labelFormat, { locale: fr }), value: totalValue })
       }
+      return { labels: points.map(p => p.label), values: points.map(p => p.value) }
     }
 
-    // Grouper par mois et calculer la valeur totale cumulée
-    const monthlyData = new Map<string, number>()
-    
-    // Trier les événements par date
-    allEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
-    // Pour chaque mois, calculer la valeur totale des actifs à ce moment
-    const monthsSet = new Set<string>()
-    allEvents.forEach(event => {
-      const date = new Date(event.date)
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-      monthsSet.add(monthKey)
+    allEvents.sort((a, b) => a.date.getTime() - b.date.getTime())
+    const uniqueDates = new Map<number, Date>()
+    allEvents.forEach(e => {
+      const key = evolutionPeriod === "1w" ? e.date.getTime() : evolutionPeriod === "1m"
+        ? new Date(e.date.getFullYear(), e.date.getMonth(), e.date.getDate()).getTime()
+        : new Date(e.date.getFullYear(), e.date.getMonth(), 1).getTime()
+      if (!uniqueDates.has(key)) uniqueDates.set(key, e.date)
     })
+    const sortedDates = Array.from(uniqueDates.values()).sort((a, b) => a.getTime() - b.getTime())
+    const values: number[] = []
 
-    // Pour chaque mois, calculer la valeur totale actuelle de tous les actifs qui existaient à ce moment
-    const sortedMonths = Array.from(monthsSet).sort((a, b) => a.localeCompare(b))
-    const monthlyValues: number[] = []
-
-    sortedMonths.forEach(month => {
-      const [year, monthNum] = month.split('-')
-      const monthDate = new Date(parseInt(year), parseInt(monthNum) - 1)
-      
-      // Calculer la valeur totale des actifs à ce moment
+    sortedDates.forEach(pointDate => {
       let totalValue = 0
       stats.assetsWithPrices.forEach(asset => {
         const assetCreatedDate = new Date(asset.createdAt)
-        if (assetCreatedDate <= monthDate) {
-          // Trouver la dernière évaluation avant ou à ce mois
+        if (assetCreatedDate <= pointDate) {
           const relevantEvents = (asset.events || [])
             .filter(e => {
               const eventDate = new Date(e.date)
-              return eventDate <= monthDate && e.type === "VALUATION" && e.amount
+              return eventDate <= pointDate && (e.type === "VALUATION" || e.type === "PURCHASE") && e.amount
             })
             .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-          
-          if (relevantEvents.length > 0) {
-            totalValue += Number(relevantEvents[0].amount)
-          } else if (asset.prices.currentValue) {
-            // Si pas d'évaluation historique, utiliser la valeur actuelle
-            totalValue += asset.prices.currentValue
-          }
+          if (relevantEvents.length > 0) totalValue += Number(relevantEvents[0].amount)
+          else if (asset.prices.currentValue) totalValue += asset.prices.currentValue
         }
       })
-      
-      monthlyValues.push(totalValue)
+      values.push(totalValue)
     })
 
     return {
-      labels: sortedMonths.map(([year, monthNum]) => `${monthNum}/${year}`),
-      values: monthlyValues,
+      labels: sortedDates.map(d => format(d, labelFormat, { locale: fr })),
+      values,
     }
-  }, [assets, stats.assetsWithPrices])
+  }, [assets, stats.assetsWithPrices, evolutionPeriod])
 
   // Graphique : Top 10 actifs les plus précieux
   const top10Data = useMemo(() => {
@@ -554,10 +541,32 @@ export function AssetsStats() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Évolution de la valeur totale - Toujours affiché */}
         <Card className="bg-card/70 backdrop-blur border border-border/60">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold">Évolution de la valeur totale</h3>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-primary" />
+                <h3 className="text-sm font-semibold">Évolution de la valeur totale</h3>
+              </div>
+              <p className="text-xs text-foreground/60 mt-1">
+                Choisir une période pour voir l&apos;évolution.
+              </p>
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {(["1w", "1m", "1y", "5y"] as EvolutionPeriod[]).map((period) => {
+                const isSelected = evolutionPeriod === period
+                return (
+                  <Button
+                    key={period}
+                    size="sm"
+                    variant={isSelected ? "solid" : "bordered"}
+                    color={isSelected ? "primary" : "default"}
+                    onPress={() => setEvolutionPeriod(period)}
+                    className="min-w-12"
+                  >
+                    {period === "1w" ? "1 sem." : period === "1m" ? "1 mois" : period === "1y" ? "1 an" : "5 ans"}
+                  </Button>
+                )
+              })}
             </div>
           </CardHeader>
           <CardBody>
