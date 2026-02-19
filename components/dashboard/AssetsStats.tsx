@@ -56,6 +56,7 @@ type SortField = "name" | "category" | "coffre" | "purchasePrice" | "currentValu
 type SortDirection = "asc" | "desc"
 
 // Helper pour extraire les prix d'un actif
+// Si pas de VALUATION, on utilise PURCHASE comme valeur courante (fallback pour les graphiques)
 function getAssetPrices(asset: Asset) {
   const events = asset.events || []
   const purchase = events.find((e) => e.type === "PURCHASE")
@@ -63,7 +64,7 @@ function getAssetPrices(asset: Asset) {
   const sale = events.find((e) => e.type === "SALE")
   
   const purchasePrice = purchase?.amount ? Number(purchase.amount) : null
-  const currentValue = valuation?.amount ? Number(valuation.amount) : null
+  const currentValue = valuation?.amount ? Number(valuation.amount) : (purchase?.amount ? Number(purchase.amount) : null)
   const salePrice = sale?.amount ? Number(sale.amount) : null
   
   const gainLoss = purchasePrice && currentValue ? currentValue - purchasePrice : null
@@ -76,7 +77,7 @@ function getAssetPrices(asset: Asset) {
     salePrice,
     saleDate: sale?.date || null,
     gainLoss,
-    gainLossPercent: purchasePrice && gainLoss ? ((gainLoss / purchasePrice) * 100) : null,
+    gainLossPercent: purchasePrice && gainLoss !== null ? ((gainLoss / purchasePrice) * 100) : null,
   }
 }
 
